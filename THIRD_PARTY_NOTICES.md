@@ -171,6 +171,17 @@ FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
 OTHER DEALINGS IN THE FONT SOFTWARE.
 ```
 
+## Play (font)
+
+Source: https://fonts.google.com/specimen/Play, packaged by Fontsource as `@fontsource/play`.
+Served with the application as woff2 files. Licensed under the SIL Open Font License, Version 1.1 (the full text is
+in the Tektur section above).
+
+```text
+Copyright (c) 2011, Jonas Hecksher, Playtypes, e-types AS (lasse@e-types.com), with Reserved Font Name 'Play',
+'Playtype', 'Playtype Sans'.
+```
+
 ## Map data and tiles
 
 The base map is rendered from OpenFreeMap vector tiles (https://openfreemap.org), which are built from OpenMapTiles

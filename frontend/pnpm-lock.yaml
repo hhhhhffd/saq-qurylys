@@ -11,6 +11,9 @@ importers:
       '@fontsource-variable/tektur':
         specifier: 5.3.0
         version: 5.3.0
+      '@fontsource/play':
+        specifier: 5.3.0
+        version: 5.3.0
       '@hookform/resolvers':
         specifier: 5.9.1
         version: 5.9.1(@standard-schema/spec@1.1.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(react-hook-form@7.90.0(@types/react@19.3.0)(react@19.3.0))(zod@4.6.7)
@@ -364,6 +367,9 @@ packages:
 
   '@fontsource-variable/tektur@5.3.0':
     resolution: {integrity: sha512-aTiP3FWurF3A7kIr3PyHib27A9PLurrkHfu6UwCv1eCHyi7k9AyPBhIspGH8n6fDWrpqFXqpWZ+zev/MbPZ/4A==}
+
+  '@fontsource/play@5.3.0':
+    resolution: {integrity: sha512-VpI6fd/A3jT1J3bOuyHn01CioAqwGWwNReTGycrFF2D57An2EJhDAuG030up3Ho7jSy1sSGW85gtB+l/v3gXOw==}
 
   '@hono/node-server@2.1.5':
     resolution: {integrity: sha512-MgP/I06GdvsilDspMk/qmRzpk8LOUStP6jFAbSRi40W09DhoyUn+Mj7eyKICPqeYKybOjVFLVIAQzvu1bfIa7Q==}
@@ -3829,6 +3835,8 @@ snapshots:
   '@floating-ui/utils@0.2.12': {}
 
   '@fontsource-variable/tektur@5.3.0': {}
+
+  '@fontsource/play@5.3.0': {}
 
   '@hono/node-server@2.1.5(hono@4.13.13)':
     dependencies:

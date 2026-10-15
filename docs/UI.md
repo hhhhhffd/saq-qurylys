@@ -29,7 +29,7 @@
 | Формы | `react-hook-form` + `zod` + `@hookform/resolvers` + shadcn `field` (вместо `@mantine/form`) |
 | Хуки | `src/lib/hooks.ts`: `useDebouncedValue`, `useDebouncedCallback`, `useDisclosure`, `useElementSize`, `useReducedMotion` (вместо `@mantine/hooks`) |
 | Анимации эффектов | `motion` (только для эффектов, которым он нужен) |
-| Шрифт | Tektur (`@fontsource-variable/tektur`, OFL-1.1) везде, включая казахский (все буквы Ә Ғ Қ Ң Ө Ұ Ү Һ І и ₸ есть) |
+| Шрифты | Заголовки, логотип, вкладки, подписи капсом — Tektur (`@fontsource-variable/tektur`); основной текст и таблицы — Play (`@fontsource/play`, 400 и 700): в Tektur строчная «д» нарисована как «g». Оба OFL-1.1, оба с казахскими буквами Ә Ғ Қ Ң Ө Ұ Ү Һ І и ₸ |
 
 Новых CSS-модулей нет. Глобальный CSS (`src/theme/app.css`) — только токены, `@theme`, `@font-face`/импорт
 шрифта, keyframes и переопределения MapLibre. CSS-модуль компонента удаляется, когда компонент переведён на классы.
@@ -69,7 +69,8 @@
 | `--shadow-2` | `0 12px 40px rgba(0, 0, 0, .45), 0 0 0 1px var(--border)` | поповер, модалка |
 | `--shadow-glow` | `0 0 0 1px var(--accent-glow), 0 0 24px -6px var(--accent-glow)` | активное/выбранное |
 | `--shadow-window` | `0 0 80px -24px rgba(240, 3, 91, .45), 0 0 0 1px var(--border)` | «окно» (логин, модалка) |
-| `--font-sans` | `'Tektur Variable', system-ui, sans-serif` | всё |
+| `--font-sans` | `'Play', 'Tektur Variable', system-ui, sans-serif` | основной текст, таблицы, поля |
+| `--font-heading` | `'Tektur Variable', system-ui, sans-serif` | логотип, заголовки страниц, заголовки панелей капсом, вкладки (`font-heading`) |
 | `--font-mono` | `ui-monospace, 'SF Mono', Menlo, Consolas, monospace` | хэши, коды |
 
 Цвета зон для canvas/WebGL (карта, граф) — те же значения в `components/zoneColor.ts` (`ZONE_HEX`); других копий нет.
@@ -161,7 +162,7 @@
 | Бренд (розовый) | `bg-primary` (заливка), `text-primary-foreground` (белый на розовом), `hover:bg-accent-hover`, `text-accent-text` (мелкий розовый текст), `text-link`, `ring-focus`, `shadow-glow` |
 | Зоны | `bg-zone-red`, `bg-zone-red-bg`, `text-zone-red-ink` (так же `green`, `yellow`, `none`); `bg-graph-developer` |
 | Тени и радиусы | `shadow-1`, `shadow-2`, `shadow-glow`, `shadow-window`; `rounded-sm` 2px, `rounded` и `rounded-md` 4px, `rounded-lg` и крупнее 6px |
-| Шрифт и размеры | `font-sans` (Tektur), `font-mono`; `text-3xs` 10px, `text-2xs` 11px, `text-xs` 12px, `text-sm` 13px (базовый плотный размер), `text-base` 16px |
+| Шрифт и размеры | `font-sans` (Play), `font-heading` (Tektur), `font-mono`; `text-3xs` 10px, `text-2xs` 11px, `text-xs` 12px, `text-sm` 13px (базовый плотный размер), `text-base` 16px |
 
 Ловушка имён: в shadcn `accent` значит «фон наведения», а наш брендовый `--accent` у shadcn называется `primary`. Поэтому
 `bg-accent` и `bg-primary` разные вещи: розовая заливка только `bg-primary` (и `text-primary`, `border-primary`), а `bg-accent`
@@ -297,7 +298,7 @@ const { register, control, handleSubmit, formState: { errors } } = useForm({
 | `Spotlight` | свой | `color` (`var(--accent)`) и пропсы `div`. Первый ребёнок `relative`-контейнера; проявляется один раз |
 | `MovingBorder` | свой | `duration` (3.2 с), `color`; оборачивает кнопку: `<MovingBorder><Button>…</Button></MovingBorder>`. Огонёк идёт по `offset-path: rect()` с постоянной скоростью, вне экрана пауза; без поддержки `rect()` остаётся просто рамка |
 
-Атрибуции в начале файлов и в `THIRD_PARTY_NOTICES.md` (React Bits, shadcn/ui, Tektur OFL-1.1, OpenFreeMap, OpenMapTiles, OSM).
+Атрибуции в начале файлов и в `THIRD_PARTY_NOTICES.md` (React Bits, shadcn/ui, Tektur и Play OFL-1.1, OpenFreeMap, OpenMapTiles, OSM).
 Keyframes эффектов и анимации `animate-glitch-*`, `animate-spotlight`, `animate-moving-border` лежат в `app.css`.
 
 ### 9.6 Что пока держится на Mantine
