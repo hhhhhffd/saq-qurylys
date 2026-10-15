@@ -1,0 +1,16 @@
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.filters > * {
+  flex: 1 1 220px;
+  max-width: 320px;
+}
+
+.disclaimer {
+  margin-top: 12px;
+}
