@@ -19,6 +19,7 @@ from app.csv_import import (
 )
 from app.models import AppUser, Complaint, ConstructionObject
 from app.models.enums import ComplaintSource, ComplaintStatus
+from app.modules.complaints.service import set_verified
 from app.scope import TerritoryScope
 
 logger = logging.getLogger(__name__)
@@ -32,6 +33,7 @@ COLUMNS = REQUIRED | {
     "summary",
     "status",
     "confirmed_payments",
+    "is_verified",
 }
 
 
@@ -49,6 +51,7 @@ def _import_row(
     status = parse_enum(row.get("status"), "status", ComplaintStatus)
     is_collective = parse_bool(row.get("is_collective"), "is_collective")
     confirmed_payments = parse_bool(row.get("confirmed_payments"), "confirmed_payments")
+    is_verified = parse_bool(row.get("is_verified"), "is_verified")
     signatories = parse_int(row.get("signatories_count"), "signatories_count", 1, 100000)
     external_id = row.get("external_id")
 
@@ -77,6 +80,8 @@ def _import_row(
         complaint.confirmed_payments = confirmed_payments
     elif existing is None:
         complaint.confirmed_payments = False
+    if is_verified is not None:
+        set_verified(complaint, is_verified, user)
     if signatories is not None:
         complaint.signatories_count = signatories
     elif existing is None:

@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from typing import Annotated
 
 from pydantic import BaseModel, Field, StringConstraints
@@ -20,6 +20,9 @@ class ComplaintOut(ORMModel):
     summary: str | None
     status: ComplaintStatus
     confirmed_payments: bool
+    is_verified: bool
+    verified_by: int | None
+    verified_at: datetime | None
 
 
 class ComplaintCreate(BaseModel):
@@ -31,6 +34,8 @@ class ComplaintCreate(BaseModel):
     summary: str | None = None
     status: ComplaintStatus = ComplaintStatus.new
     confirmed_payments: bool = False
+    # Checked by an analyst; a collective complaint counts for R4 only once verified.
+    is_verified: bool = False
 
 
 class ComplaintUpdate(BaseModel):
@@ -42,3 +47,4 @@ class ComplaintUpdate(BaseModel):
     summary: str | None = None
     status: ComplaintStatus | None = None
     confirmed_payments: bool | None = None
+    is_verified: bool | None = None

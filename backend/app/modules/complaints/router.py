@@ -12,6 +12,7 @@ from app.events import object_changed, objects_changed
 from app.models import Complaint
 from app.modules.complaints import importer
 from app.modules.complaints.schemas import ComplaintCreate, ComplaintOut, ComplaintUpdate
+from app.modules.complaints.service import set_verified
 from app.modules.objects.service import get_object_in_scope
 from app.uploads import read_csv_upload
 
@@ -31,7 +32,8 @@ def create_complaint(
         select(Complaint.id).where(Complaint.source == body.source, Complaint.external_id == body.external_id)
     ):
         raise _duplicate_error()
-    complaint = Complaint(object_id=obj.id, **body.model_dump())
+    complaint = Complaint(object_id=obj.id, **body.model_dump(exclude={"is_verified"}))
+    set_verified(complaint, body.is_verified, user)
     session.add(complaint)
     session.flush()
     audit.record(session, user, "complaint.create", "complaint", complaint.id, None, audit.snapshot(complaint), request)
@@ -49,12 +51,23 @@ def update_complaint(
         raise api_error(404, "complaint_not_found", "Обращение не найдено")
     get_object_in_scope(session, scope, complaint.object_id)
     changes = body.model_dump(exclude_unset=True)
-    for field in ("received_at", "source", "is_collective", "signatories_count", "status", "confirmed_payments"):
+    for field in (
+        "received_at",
+        "source",
+        "is_collective",
+        "signatories_count",
+        "status",
+        "confirmed_payments",
+        "is_verified",
+    ):
         if field in changes and changes[field] is None:
             raise api_error(422, "validation_error", "Поле не может быть пустым")
     before = audit.snapshot(complaint)
+    verified = changes.pop("is_verified", None)
     for field, value in changes.items():
         setattr(complaint, field, value)
+    if verified is not None:
+        set_verified(complaint, verified, user)
     try:
         session.flush()
     except IntegrityError as exc:
