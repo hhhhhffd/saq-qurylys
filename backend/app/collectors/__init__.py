@@ -69,7 +69,8 @@ def register_enabled(
         return Fetcher(client, settings.collect_request_delay_s, sleep)
 
     collectors: list[base.Collector] = []
-    if sources["telegram"]:
+    # The userbot reads Telegram instead: it also reaches the groups that have no t.me/s preview (SPEC 10.8).
+    if sources["telegram"] and not settings.userbot_configured:
         collectors.append(TelegramCollector(fetcher(), settings.collect_max_pages))
     if sources["instagram"]:
         collectors.append(

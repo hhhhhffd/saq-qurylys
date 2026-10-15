@@ -40,6 +40,8 @@ RUN apt-get update \
 
 # ---- api (also used by beat) ----
 FROM base AS api
+# The Telegram session of the userbot (a volume is mounted here and takes the owner of this directory).
+RUN mkdir -p /data/userbot && chown app:app /data/userbot
 COPY --chown=app:app . .
 USER app
 EXPOSE 8000

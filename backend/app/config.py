@@ -63,6 +63,14 @@ class Settings(BaseSettings):
     collect_max_pages: int = Field(default=3, ge=1)
     collect_user_agent: str = "Mozilla/5.0 (compatible; SAQ-Qurylys/1.0; public advertising monitoring)"
 
+    # Telegram userbot (SPEC 10.8): a user account that reads public channels and groups through MTProto. Both values
+    # come from https://my.telegram.org; with an empty one the userbot is off. An empty TELEGRAM_API_ID in .env is 0.
+    telegram_api_id: int = 0
+    telegram_api_hash: str = ""
+    userbot_session: str = "/data/userbot/saq"
+    userbot_join_delay_s: float = Field(default=60, ge=0)
+    userbot_backfill_limit: int = Field(default=100, ge=1)
+
     # Text recognition on photos of publications (SPEC 10.2); runs locally, nothing leaves the server.
     ocr_enabled: bool = True
     ocr_languages: str = "rus+kaz+eng"
@@ -80,6 +88,16 @@ class Settings(BaseSettings):
         if urlparse(value).scheme not in {"http", "https"}:
             raise ValueError("S3_ENDPOINT must be a URL like http://minio:9000")
         return value.rstrip("/")
+
+    @field_validator("telegram_api_id", mode="before")
+    @classmethod
+    def _empty_api_id_is_unset(cls, value: object) -> object:
+        return 0 if isinstance(value, str) and not value.strip() else value
+
+    @property
+    def userbot_configured(self) -> bool:
+        """The userbot serves Telegram when it has its credentials and the Telegram source is switched on."""
+        return self.collect_telegram_enabled and self.telegram_api_id > 0 and bool(self.telegram_api_hash.strip())
 
     @computed_field  # type: ignore[prop-decorator]
     @property

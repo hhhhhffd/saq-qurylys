@@ -24,10 +24,12 @@ dependencies = [
     "pytesseract>=0.3.13",
     "python-multipart>=0.0.32",
     "python-telegram-bot>=22.8,<23",
+    "qrcode>=8",
     "rapidfuzz>=3.14.6",
     "redis>=6.4.0",
     "selectolax>=1.0",
     "sqlalchemy>=2.1.4",
+    "telethon>=1.40,<2",
     "uvicorn[standard]>=0.54.0",
     "weasyprint>=70.0",
 ]
@@ -80,7 +82,7 @@ plugins = ["pydantic.mypy"]
 exclude = ["alembic/versions/"]
 
 [[tool.mypy.overrides]]
-module = ["celery.*", "kombu.*", "geoalchemy2.*", "minio.*", "weasyprint.*", "asn1crypto.*", "pymorphy3.*", "rapidfuzz.*", "phonenumbers.*", "pytesseract.*"]
+module = ["celery.*", "kombu.*", "geoalchemy2.*", "minio.*", "weasyprint.*", "asn1crypto.*", "pymorphy3.*", "rapidfuzz.*", "phonenumbers.*", "pytesseract.*", "telethon.*", "qrcode.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

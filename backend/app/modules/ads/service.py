@@ -236,6 +236,20 @@ def _notify_collector_failed(session: Session, account: SourceAccount, error: st
     add_notifications(session, admins, NotificationKind.collector_failed, "source_account", account.id, payload)
 
 
+def record_collection_result(session: Session, account: SourceAccount, started_at: datetime, error: str | None) -> None:
+    """Record the outcome of a collection on the account; the administrators are told when it starts to fail.
+    Not committed."""
+    if error is None:
+        account.last_collected_at = started_at
+        account.last_error = None
+        account.last_error_at = None
+    else:
+        if account.last_error is None:
+            _notify_collector_failed(session, account, error)
+        account.last_error = error
+        account.last_error_at = started_at
+
+
 def _finish_collected_post(session: Session, ad: AdPost, media_urls: list[str], client: httpx.Client | None) -> None:
     """Store the photos of a committed post and queue its pipeline."""
     ad_id, capture = ad.id, ad.capture_status is CaptureStatus.pending
@@ -291,15 +305,7 @@ def _collect_account(
         logger.exception("Collecting source account %s (%s) failed", account_id, platform)
         session.rollback()
         error = "Непредвиденная ошибка сбора, подробности в журнале сервера"
-    if error is None:
-        account.last_collected_at = started_at
-        account.last_error = None
-        account.last_error_at = None
-    else:
-        if account.last_error is None:
-            _notify_collector_failed(session, account, error)
-        account.last_error = error
-        account.last_error_at = started_at
+    record_collection_result(session, account, started_at, error)
     session.commit()
     return created
 

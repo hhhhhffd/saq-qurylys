@@ -153,6 +153,27 @@ services:
       minio:
         condition: service_healthy
 
+  # Telegram userbot (SPEC 10.8); started on demand after a one-time login by QR code:
+  #   docker compose --profile userbot run --rm userbot python -m app.userbot login
+  #   docker compose --profile userbot up -d userbot
+  # It needs TELEGRAM_API_ID and TELEGRAM_API_HASH in .env; the login session lives in the userbotdata volume.
+  userbot:
+    <<: *backend
+    profiles: ["userbot"]
+    build:
+      context: ./backend
+      target: api
+    command: ["python", "-m", "app.userbot", "run"]
+    volumes:
+      - userbotdata:/data/userbot
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
   frontend:
     build:
       context: ./frontend
@@ -167,3 +188,4 @@ volumes:
   pgdata:
   redisdata:
   miniodata:
+  userbotdata:
