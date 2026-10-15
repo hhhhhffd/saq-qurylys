@@ -15,7 +15,8 @@ os.environ["DATABASE_URL"] = os.environ["TEST_DATABASE_URL"]
 os.environ.setdefault("S3_ENDPOINT", "http://localhost:9000")
 os.environ.setdefault("S3_ACCESS_KEY", "saq-minio-dev")
 os.environ.setdefault("S3_SECRET_KEY", "saq-minio-dev-secret")
-os.environ["S3_BUCKET_EVIDENCE"] = "evidence-test"
+# Parallel test runs (separate worktrees) need their own database and bucket: the bucket is emptied at the end.
+os.environ["S3_BUCKET_EVIDENCE"] = os.environ.get("TEST_S3_BUCKET", "evidence-test")
 os.environ["EVIDENCE_LOCK_MODE"] = "GOVERNANCE"
 os.environ["EVIDENCE_RETENTION_DAYS"] = "1"
 os.environ["TSA_URL"] = ""

@@ -50,6 +50,27 @@ class Settings(BaseSettings):
     # An administrator can still start a run by hand.
     homeportal_sync_enabled: bool = False
 
+    # Automatic collection of publications (SPEC 10.1). Every collector is off until enabled: real sources are
+    # collected only by a deployment that chose to (OPEN_QUESTIONS 30).
+    collect_telegram_enabled: bool = False
+    collect_olx_enabled: bool = False
+    collect_krisha_enabled: bool = False
+    # Instagram is read only through the official Graph API (Business Discovery); an empty token keeps it off.
+    instagram_graph_token: str = ""
+    instagram_graph_user_id: str = ""
+    instagram_graph_api_version: str = "v26.0"
+    collect_request_delay_s: float = Field(default=2.0, ge=0)
+    collect_max_pages: int = Field(default=3, ge=1)
+    collect_user_agent: str = "Mozilla/5.0 (compatible; SAQ-Qurylys/1.0; public advertising monitoring)"
+
+    # Text recognition on photos of publications (SPEC 10.2); runs locally, nothing leaves the server.
+    ocr_enabled: bool = True
+    ocr_languages: str = "rus+kaz+eng"
+
+    # Telegram bot for citizens (SPEC 10.4); an empty token keeps it off.
+    telegram_bot_token: str = ""
+    bot_reports_per_hour: int = Field(default=10, ge=1)
+
     # Turn off in tests: object_changed() then does not touch the Celery broker.
     events_enabled: bool = True
 

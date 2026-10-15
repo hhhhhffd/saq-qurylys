@@ -159,9 +159,9 @@ def test_celery_registers_contract_tasks_and_schedule() -> None:
     assert (registry_entry["schedule"].hour, registry_entry["schedule"].minute) == ({3}, {0})
     routed = set(celery_app.conf.task_routes)
     assert routed == {
-        "archive.capture", "nlp.analyze", "nlp.link", "nlp.llm_extract", "ads.recheck_due",
-        "collect.run_all", "risk.recalc_object", "risk.sweep_due", "signals.check_deadlines", "notify.red_zone",
-        "registry.sync_homeportal",
+        "archive.capture", "nlp.analyze", "nlp.link", "nlp.llm_extract", "nlp.ocr", "ads.recheck_due",
+        "collect.run_all", "collect.source", "risk.recalc_object", "risk.sweep_due", "signals.check_deadlines",
+        "notify.red_zone", "registry.sync_homeportal",
     }  # fmt: skip
     assert celery_app.conf.task_routes["registry.sync_homeportal"] == {"queue": "collect"}
     assert {queue.name for queue in celery_app.conf.task_queues} == {

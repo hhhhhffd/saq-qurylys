@@ -31,13 +31,16 @@ export type DocType =
 export type CheckStatus = 'confirmed' | 'not_found' | 'checking';
 export type CheckSource =
   'housing_portal' | 'kazreestr' | 'mio_registry' | 'cadastre' | 'eotinish' | 'manual' | 'other';
-export type ComplaintSource = 'eotinish' | 'manual' | 'other';
+export type ComplaintSource = 'eotinish' | 'manual' | 'telegram' | 'other';
 export type ComplaintStatus = 'new' | 'in_review' | 'closed';
 export type LinkedEntityKind = 'ad_account' | 'sales_office' | 'phone' | 'website' | 'bank_details';
 
 export type Platform = 'instagram' | 'tiktok' | 'telegram' | 'website' | 'aggregator' | 'outdoor' | 'other';
 export type AdStatus = 'captured' | 'verification' | 'removed_saved';
 export type CaptureStatus = 'pending' | 'done' | 'failed';
+export type AdOrigin = 'manual' | 'capture' | 'collector' | 'citizen';
+export type OcrStatus = 'pending' | 'done' | 'failed';
+export type AdVersionSource = 'capture' | 'collector' | 'recheck';
 export type LlmStatus = 'none' | 'pending' | 'done' | 'failed' | 'disabled';
 export type LinkMethod = 'account' | 'phone' | 'name' | 'manual';
 export type PaymentScheme = 'booking' | 'down_payment' | 'deposit' | 'installment' | 'nonstandard_contract';
@@ -83,11 +86,13 @@ export type NotificationKind =
   | 'signal_due_soon'
   | 'signal_overdue'
   | 'signal_responded'
-  | 'capture_failed';
+  | 'capture_failed'
+  | 'citizen_report'
+  | 'collector_failed';
 
 export type HolidayKind = 'holiday' | 'workday';
 export type TerritoryLevel = 'region' | 'city';
-export type ScoreTrigger = 'event' | 'schedule' | 'manual';
+export type ScoreTrigger = 'event' | 'schedule' | 'manual' | 'replay';
 
 // ---------------------------------------------------------------- auth / users / territories
 
@@ -542,9 +547,13 @@ export interface SourceAccount {
   territory_id: number | null;
   is_watched: boolean;
   last_collected_at: string | null;
+  last_error: string | null;
+  last_error_at: string | null;
 }
 
-export type SourceAccountInput = Partial<Omit<SourceAccount, 'id' | 'last_collected_at'>> & {
+export type SourceAccountInput = Partial<
+  Omit<SourceAccount, 'id' | 'last_collected_at' | 'last_error' | 'last_error_at'>
+> & {
   platform: Platform;
 };
 
@@ -617,6 +626,9 @@ export interface AdRow {
   /** null for a publication entered by hand */
   capture_status: CaptureStatus | null;
   capture_error: string | null;
+  origin: AdOrigin;
+  /** null when the publication has no photos to read */
+  ocr_status: OcrStatus | null;
 }
 
 export interface AdDetail extends AdRow {

@@ -11,6 +11,7 @@ from app.events import objects_changed
 from app.geo import make_point
 from app.models import AdPost, ConstructionObject, PhraseHit, SourceAccount, Territory
 from app.models.enums import (
+    AdOrigin,
     AdStatus,
     CaptureStatus,
     DetectedBy,
@@ -162,6 +163,7 @@ def capture_ad(
         author=handle_from_url(platform, url),
         source_account_id=source.id if source else None,
         capture_status=CaptureStatus.pending,
+        origin=AdOrigin.capture,
         **fields,
     )
     session.add(ad)

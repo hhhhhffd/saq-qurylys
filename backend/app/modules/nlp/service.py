@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.models import AdPost, ConstructionObject, Developer, LinkedEntity, Phrase, PhraseHit, SourceAccount, Territory
 from app.models.enums import (
+    AdOrigin,
     AdStatus,
     DetectedBy,
     LinkedEntityKind,
@@ -31,6 +32,7 @@ logger = logging.getLogger(__name__)
 
 ACCOUNT_CONFIDENCE = 1.0
 PHONE_CONFIDENCE = 0.9
+UNREVIEWED_ORIGINS = frozenset({AdOrigin.collector, AdOrigin.citizen})
 # Below this similarity a name is noise: no tentative link is proposed. The similarity of a name is the share
 # of its distinctive words found in the text, so this keeps "three of four words" (0.75) and drops two of three.
 MIN_NAME_SIMILARITY = 0.75
@@ -283,6 +285,10 @@ def link_ad(session: Session, ad: AdPost) -> tuple[int | None, int | None]:
         )
     if ad.status is not AdStatus.removed_saved:
         confident = object_id is not None and not ambiguous and confidence is not None and confidence >= threshold
+        # A post nobody on staff looked at (collected, sent by a citizen) counts only once a person confirms the
+        # guessed link; an account that staff bound to the object is not a guess (OPEN_QUESTIONS 29).
+        if ad.origin in UNREVIEWED_ORIGINS and method is not LinkMethod.account:
+            confident = False
         ad.status = AdStatus.captured if confident else AdStatus.verification
     return previous, object_id
 

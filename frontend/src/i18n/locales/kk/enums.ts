@@ -50,7 +50,7 @@ const enums: typeof ru = {
     manual: 'Қолмен',
     other: 'Басқа',
   },
-  complaint_source: { eotinish: 'e-Otinish', manual: 'Қолмен', other: 'Басқа' },
+  complaint_source: { eotinish: 'e-Otinish', manual: 'Қолмен', telegram: 'Telegram-бот', other: 'Басқа' },
   complaint_status: { new: 'Жаңа', in_review: 'Қарастырылуда', closed: 'Жабылған' },
   linked_kind: {
     ad_account: 'Жарнама аккаунты',
@@ -74,6 +74,13 @@ const enums: typeof ru = {
     removed_saved: 'Жарияланым жойылған, мәліметтер сақталған',
   },
   capture_status: { pending: 'Тіркелуде…', done: 'Сурет сақталған', failed: 'Тіркеу қатесі' },
+  ad_origin: {
+    manual: 'Қолмен енгізілген',
+    capture: 'Сілтеме бойынша қосылған',
+    collector: 'Автоматты түрде жиналған',
+    citizen: 'Азаматтың хабарламасы',
+  },
+  ocr_status: { pending: 'Мәтін танылуда…', done: 'Суреттердегі мәтін танылды', failed: 'Тану қатесі' },
   llm_status: {
     none: 'Талданбаған',
     pending: 'ЖИ талдауда…',
@@ -132,11 +139,18 @@ const enums: typeof ru = {
     signal_overdue: 'Қарау мерзімі өтіп кетті',
     signal_responded: 'Қарау нәтижесі алынды',
     capture_failed: 'Жарияланымды тіркеу мүмкін болмады',
+    citizen_report: 'Азаматтан жаңа хабарлама',
+    collector_failed: 'Дереккөзден жарияланымдарды жинау сәтсіз аяқталды',
     pdf_archive_failed: 'Карточка PDF-нің мұрағаттық көшірмесін сақтау мүмкін болмады',
   },
   holiday_kind: { holiday: 'Мерекелік күн', workday: 'Жұмыс күні (ауыстырылған)' },
   territory_level: { region: 'Облыс', city: 'Қала' },
-  score_trigger: { event: 'Оқиға бойынша', schedule: 'Кесте бойынша', manual: 'Қолмен' },
+  score_trigger: {
+    event: 'Оқиға бойынша',
+    schedule: 'Кесте бойынша',
+    manual: 'Қолмен',
+    replay: 'Фактілердің күндері бойынша қалпына келтірілген',
+  },
   risk_factor: {
     r1_no_legal_basis: 'Құқықтық негіз жоқ',
     r2_money_offer: 'Ақша салу ұсынысы',

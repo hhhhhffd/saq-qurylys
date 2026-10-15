@@ -25,11 +25,17 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev --no-install-project
 
-# ---- browser: Chromium for Playwright captures (before the code, so code changes keep this layer) ----
+# ---- browser: Chromium for Playwright captures and Tesseract for OCR (before the code, so code changes keep
+# these layers) ----
 FROM base AS browser
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 RUN playwright install --with-deps chromium \
     && chmod -R a+rX /ms-playwright \
+    && rm -rf /var/lib/apt/lists/*
+# One Tesseract thread per task: the worker already runs several tasks at once.
+ENV OMP_THREAD_LIMIT=1
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-rus tesseract-ocr-kaz \
     && rm -rf /var/lib/apt/lists/*
 
 # ---- api (also used by beat) ----

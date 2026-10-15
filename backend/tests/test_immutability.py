@@ -7,9 +7,10 @@ from sqlalchemy.orm import Session
 
 from app import audit
 from app.config import get_settings
-from app.models import Document, Evidence, RiskFactorChange
-from app.models.enums import DocType, EvidenceKind, LockMode
+from app.models import AdPostVersion, Document, Evidence, RiskFactorChange
+from app.models.enums import AdVersionSource, DocType, EvidenceKind, LockMode
 from tests.conftest import World, make_object
+from tests.support_ads import add_ad
 
 
 def _evidence(db: Session, world: World) -> Evidence:
@@ -65,6 +66,22 @@ def test_risk_factor_history_is_append_only(db: Session, world: World) -> None:
     db.flush()
     _assert_append_only(db, "UPDATE risk_factor_change SET new_weight = 0 WHERE id = :id", id=change.id)
     _assert_append_only(db, "DELETE FROM risk_factor_change WHERE id = :id", id=change.id)
+
+
+def test_later_versions_of_a_publication_are_append_only(db: Session, world: World) -> None:
+    ad = add_ad(db, world.ust, "Бронь за 10%")
+    version = AdPostVersion(
+        ad_post_id=ad.id,
+        text="Скоро старт продаж",
+        text_sha256="0" * 64,
+        observed_at=datetime.now(UTC),
+        source=AdVersionSource.recheck,
+    )
+    db.add(version)
+    db.flush()
+    _assert_append_only(db, "UPDATE ad_post_version SET text = 'forged' WHERE id = :id", id=version.id)
+    _assert_append_only(db, "DELETE FROM ad_post_version WHERE id = :id", id=version.id)
+    _assert_append_only(db, "TRUNCATE ad_post_version")
 
 
 def test_evidence_requires_exactly_one_owner(db: Session, world: World) -> None:

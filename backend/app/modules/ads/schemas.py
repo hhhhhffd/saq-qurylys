@@ -5,11 +5,13 @@ from pydantic import BaseModel, Field, StringConstraints, field_validator, model
 
 from app.models import PhraseHit
 from app.models.enums import (
+    AdOrigin,
     AdStatus,
     CaptureStatus,
     DetectedBy,
     LinkMethod,
     LlmStatus,
+    OcrStatus,
     PaymentScheme,
     PhraseCategory,
     Platform,
@@ -56,6 +58,9 @@ class AdRow(ORMModel):
     # NULL when no capture applies (a manual publication has no capture).
     capture_status: CaptureStatus | None
     capture_error: str | None
+    origin: AdOrigin
+    # NULL when the post has no photos to read.
+    ocr_status: OcrStatus | None
 
 
 class PhraseHitOut(ORMModel):
@@ -144,6 +149,8 @@ class SourceAccountOut(ORMModel):
     territory_id: int | None
     is_watched: bool
     last_collected_at: datetime | None
+    last_error: str | None
+    last_error_at: datetime | None
 
 
 class SourceAccountCreate(BaseModel):

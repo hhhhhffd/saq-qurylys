@@ -9,7 +9,7 @@ from app.collectors.base import CollectedPost, get_collector, registered_platfor
 from app.config import get_settings
 from app.errors import api_error
 from app.models import AdPost, ConstructionObject, Evidence, PhraseHit, SourceAccount
-from app.models.enums import CaptureStatus, Platform
+from app.models.enums import AdOrigin, CaptureStatus, Platform
 from app.modules.ads.schemas import AdDetail, AdRow, LinkedObject, PhraseHitOut
 from app.modules.ads.urls import handle_from_url
 from app.modules.evidence.schemas import EvidenceOut
@@ -147,6 +147,7 @@ def ingest_collected_post(session: Session, account: SourceAccount, post: Collec
         text=post.text,
         links=post.links,
         capture_status=CaptureStatus.pending if post.url else None,
+        origin=AdOrigin.collector,
     )
     session.add(ad)
     session.flush()

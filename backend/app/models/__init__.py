@@ -1,4 +1,4 @@
-from app.models.ads import AdPost, Phrase, PhraseHit, SourceAccount
+from app.models.ads import AdPost, AdPostVersion, DismissedSourceSuggestion, Phrase, PhraseHit, SourceAccount
 from app.models.base import Base
 from app.models.construction import Complaint, ConstructionObject, Document, Inspection, LinkedEntity
 from app.models.developer import Developer
@@ -10,6 +10,7 @@ from app.models.territory import AppUser, District, Territory
 
 __all__ = [
     "AdPost",
+    "AdPostVersion",
     "AppSetting",
     "AppUser",
     "AuditLog",
@@ -17,6 +18,7 @@ __all__ = [
     "Complaint",
     "ConstructionObject",
     "Developer",
+    "DismissedSourceSuggestion",
     "District",
     "Document",
     "Evidence",

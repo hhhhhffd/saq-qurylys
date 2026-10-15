@@ -4,7 +4,8 @@ when all of them are found."""
 import pytest
 from sqlalchemy.orm import Session
 
-from app.models.enums import AdStatus
+from app.models import SourceAccount
+from app.models.enums import AdOrigin, AdStatus, LinkMethod, Platform
 from app.modules.nlp import service
 from app.modules.settings.service import save_settings
 from tests.conftest import World, make_object
@@ -91,3 +92,27 @@ def test_aliases_are_scored_like_names(db: Session, world: World) -> None:
     obj = make_object(db, world.ust, "Жилой комплекс Алатау", aliases=["Alatau Residence Park"])
     assert link(db, world, "Alatau Park — новая очередь")[0] == obj.id
     assert link(db, world, "Новинка Residence")[0] is None
+
+
+@pytest.mark.parametrize("origin", [AdOrigin.collector, AdOrigin.citizen])
+def test_a_post_nobody_reviewed_needs_a_person_to_confirm_a_guessed_link(
+    db: Session, world: World, origin: AdOrigin
+) -> None:
+    obj = make_object(db, world.ust, "Жилой комплекс Нур Плаза")
+    ad = add_ad(db, world.ust, "Нур Плаза: старт продаж", origin=origin)
+
+    service.link_ad(db, ad)
+
+    assert (ad.object_id, ad.link_method, ad.status) == (obj.id, LinkMethod.name, AdStatus.verification)
+
+
+def test_a_collected_post_of_an_account_bound_by_staff_counts_at_once(db: Session, world: World) -> None:
+    obj = make_object(db, world.ust, "Жилой комплекс Нур Плаза")
+    account = SourceAccount(platform=Platform.telegram, handle="nur_plaza", object_id=obj.id, territory_id=world.ust.id)
+    db.add(account)
+    db.flush()
+    ad = add_ad(db, world.ust, "Старт продаж", origin=AdOrigin.collector, source_account_id=account.id)
+
+    service.link_ad(db, ad)
+
+    assert (ad.object_id, ad.link_method, ad.status) == (obj.id, LinkMethod.account, AdStatus.captured)

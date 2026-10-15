@@ -48,7 +48,7 @@ const enums = {
     manual: 'Вручную',
     other: 'Другое',
   },
-  complaint_source: { eotinish: 'e-Otinish', manual: 'Вручную', other: 'Другое' },
+  complaint_source: { eotinish: 'e-Otinish', manual: 'Вручную', telegram: 'Telegram-бот', other: 'Другое' },
   complaint_status: { new: 'Новое', in_review: 'В работе', closed: 'Закрыто' },
   linked_kind: {
     ad_account: 'Рекламный аккаунт',
@@ -72,6 +72,13 @@ const enums = {
     removed_saved: 'Публикация удалена, сведения сохранены',
   },
   capture_status: { pending: 'Фиксация…', done: 'Снимок сохранён', failed: 'Ошибка фиксации' },
+  ad_origin: {
+    manual: 'Внесено вручную',
+    capture: 'Добавлено по ссылке',
+    collector: 'Собрано автоматически',
+    citizen: 'Сообщение гражданина',
+  },
+  ocr_status: { pending: 'Распознавание текста…', done: 'Текст с изображений распознан', failed: 'Ошибка распознавания' },
   llm_status: {
     none: 'Не анализировалось',
     pending: 'Анализ ИИ…',
@@ -131,11 +138,18 @@ const enums = {
     signal_overdue: 'Срок рассмотрения истёк',
     signal_responded: 'Получен результат рассмотрения',
     capture_failed: 'Не удалось зафиксировать публикацию',
+    citizen_report: 'Новое сообщение гражданина',
+    collector_failed: 'Сбор публикаций с источника не удался',
     pdf_archive_failed: 'Не удалось сохранить архивную копию PDF карточки',
   },
   holiday_kind: { holiday: 'Праздничный день', workday: 'Рабочий день (перенос)' },
   territory_level: { region: 'Область', city: 'Город' },
-  score_trigger: { event: 'По событию', schedule: 'По расписанию', manual: 'Вручную' },
+  score_trigger: {
+    event: 'По событию',
+    schedule: 'По расписанию',
+    manual: 'Вручную',
+    replay: 'Восстановлено по датам фактов',
+  },
   risk_factor: {
     r1_no_legal_basis: 'Нет правового основания',
     r2_money_offer: 'Предложение внести деньги',

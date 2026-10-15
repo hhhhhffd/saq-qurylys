@@ -81,6 +81,7 @@ class CheckSource(StrEnum):
 class ComplaintSource(StrEnum):
     eotinish = "eotinish"
     manual = "manual"
+    telegram = "telegram"
     other = "other"
 
 
@@ -143,6 +144,27 @@ class CaptureStatus(StrEnum):
     failed = "failed"
 
 
+class AdOrigin(StrEnum):
+    """How a publication entered the system: added by staff (by hand or by URL) or gathered automatically."""
+
+    manual = "manual"
+    capture = "capture"
+    collector = "collector"
+    citizen = "citizen"
+
+
+class AdVersionSource(StrEnum):
+    capture = "capture"
+    collector = "collector"
+    recheck = "recheck"
+
+
+class OcrStatus(StrEnum):
+    pending = "pending"
+    done = "done"
+    failed = "failed"
+
+
 class EvidenceKind(StrEnum):
     screenshot_png = "screenshot_png"
     archive_mhtml = "archive_mhtml"
@@ -177,6 +199,8 @@ class ScoreTrigger(StrEnum):
     event = "event"
     schedule = "schedule"
     manual = "manual"
+    # History reconstructed afterwards from dated facts (SPEC 10.5), not computed at the time.
+    replay = "replay"
 
 
 class SignalStatus(StrEnum):
@@ -206,6 +230,8 @@ class NotificationKind(StrEnum):
     signal_overdue = "signal_overdue"
     signal_responded = "signal_responded"
     capture_failed = "capture_failed"
+    citizen_report = "citizen_report"
+    collector_failed = "collector_failed"
 
 
 class HolidayKind(StrEnum):
