@@ -79,7 +79,7 @@ export function TimeMachineBar({ timeline, machine, onClose }: Props) {
           {machine.playing ? <IconPlayerPauseFilled /> : <IconPlayerPlayFilled />}
         </Button>
         <time
-          className="min-w-0 flex-1 truncate font-heading text-base font-semibold tabular-nums" 
+          className="min-w-0 flex-1 truncate text-base font-bold tabular-nums" 
           dateTime={frame.at}
           data-testid="time-machine-date">
           {dateLabel(frame.at)}

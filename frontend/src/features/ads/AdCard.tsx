@@ -76,7 +76,7 @@ export function AdCard({ ad, highlighted = false, focusHitId = null }: Props) {
       <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5">
           {!(view.is_outdoor && view.platform === 'outdoor') && <Chip>{e('platform', view.platform)}</Chip>}
-          {view.author && <span className="font-heading text-sm font-semibold [overflow-wrap:anywhere]">{view.author}</span>}
+          {view.author && <span className="text-sm font-bold [overflow-wrap:anywhere]">{view.author}</span>}
           {view.is_outdoor && (
             <Chip title={t('card.outdoorTitle')}>
               <IconMapPin aria-hidden />

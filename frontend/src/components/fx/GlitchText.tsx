@@ -61,7 +61,7 @@ export default function GlitchText({
     <div
       style={style}
       data-text={children}
-      className={cn('relative inline-block text-[clamp(2rem,10vw,8rem)] font-black text-text select-none', layers, enableOnHover ? onHover : always, className)}
+      className={cn('relative inline-block text-[clamp(2rem,10vw,8rem)] font-black whitespace-nowrap text-text select-none', layers, enableOnHover ? onHover : always, className)}
     >
       {children}
     </div>

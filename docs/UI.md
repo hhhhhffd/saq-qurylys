@@ -29,7 +29,7 @@
 | Формы | `react-hook-form` + `zod` + `@hookform/resolvers` + shadcn `field` (вместо `@mantine/form`) |
 | Хуки | `src/lib/hooks.ts`: `useDebouncedValue`, `useDebouncedCallback`, `useDisclosure`, `useElementSize`, `useReducedMotion` (вместо `@mantine/hooks`) |
 | Анимации эффектов | `motion` (только для эффектов, которым он нужен) |
-| Шрифты | Заголовки, логотип, вкладки, подписи капсом — Tektur (`@fontsource-variable/tektur`); основной текст и таблицы — Play (`@fontsource/play`, 400 и 700): в Tektur строчная «д» нарисована как «g». Оба OFL-1.1, оба с казахскими буквами Ә Ғ Қ Ң Ө Ұ Ү Һ І и ₸ |
+| Шрифты | Tektur (`@fontsource-variable/tektur`) — только капс и цифры: логотип, заголовки панелей, вкладки, счётчики, баллы; всё со строчными буквами, включая заголовки страниц и названия ЖК, — Play (`@fontsource/play`, 400 и 700): в Tektur строчная «д» нарисована как «g». Оба OFL-1.1, оба с казахскими буквами Ә Ғ Қ Ң Ө Ұ Ү Һ І и ₸ |
 
 Новых CSS-модулей нет. Глобальный CSS (`src/theme/app.css`) — только токены, `@theme`, `@font-face`/импорт
 шрифта, keyframes и переопределения MapLibre. CSS-модуль компонента удаляется, когда компонент переведён на классы.
