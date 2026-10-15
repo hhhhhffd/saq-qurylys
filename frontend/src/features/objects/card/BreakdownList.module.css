@@ -1,0 +1,131 @@
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.factor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+}
+
+.factor:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.main {
+  min-width: 0;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 4px 8px;
+  flex-wrap: wrap;
+}
+
+.name {
+  font-weight: 600;
+}
+
+.off .name {
+  color: var(--text-2);
+  font-weight: 540;
+}
+
+.desc {
+  margin: 2px 0 0;
+  color: var(--text-3);
+  font-size: 0.75rem;
+}
+
+.refs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  margin-top: 8px;
+}
+
+.refsLabel {
+  color: var(--text-3);
+  font-size: 0.75rem;
+}
+
+.details {
+  margin-top: 8px;
+}
+
+.details summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--text-2);
+  font-size: 0.75rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.details summary::-webkit-details-marker {
+  display: none;
+}
+
+.details summary:hover {
+  color: var(--text);
+}
+
+.chevron {
+  transition: transform var(--dur) var(--ease);
+}
+
+.details[open] .chevron {
+  transform: rotate(90deg);
+}
+
+.details[open] summary {
+  margin-bottom: 8px;
+}
+
+.weight {
+  min-width: 56px;
+  font-size: 1.0625rem;
+  font-weight: 650;
+  text-align: right;
+}
+
+.off .weight {
+  color: var(--text-3);
+  font-weight: 450;
+}
+
+.notCounted {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 400;
+}
+
+.total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-strong);
+  font-size: 1rem;
+}
+
+.totalNote {
+  color: var(--text-3);
+  font-size: 0.75rem;
+}
+
+.muted {
+  margin: 0;
+  color: var(--text-3);
+}

@@ -1,0 +1,29 @@
+.ref {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--link);
+  font: inherit;
+  font-size: 0.75rem;
+  line-height: 1.55;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+a.ref,
+button.ref {
+  cursor: pointer;
+  transition: background var(--dur) var(--ease);
+}
+
+a.ref:hover,
+button.ref:hover {
+  background: var(--hover);
+}
+
+span.ref {
+  color: var(--text-2);
+}
