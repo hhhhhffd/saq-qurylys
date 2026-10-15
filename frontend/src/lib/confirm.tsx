@@ -48,7 +48,8 @@ export function ConfirmProvider() {
   // `options` stays after closing so the dialog does not go empty during its exit animation.
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogContent>
+      {/* Confirmations keep the plain `dialog` role the Mantine confirm modals had: the e2e suite finds them by it. */}
+      <AlertDialogContent role="dialog">
         <AlertDialogHeader>
           <AlertDialogTitle>{options?.title}</AlertDialogTitle>
         </AlertDialogHeader>
