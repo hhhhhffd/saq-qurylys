@@ -856,3 +856,68 @@ export interface RegistrySyncStatus {
   scheduled_enabled: boolean;
   last_sync: RegistrySyncResult | null;
 }
+
+// ---------------------------------------------------------------- link graph (SPEC 10.3)
+
+export type GraphNodeType = 'developer' | 'object' | 'phone' | 'account' | 'ad';
+export type GraphEdgeType =
+  'developer_object' | 'owner_phone' | 'owner_account' | 'ad_object' | 'ad_phone' | 'ad_account';
+export type GraphFindingKind = 'shared_phone' | 'shared_account';
+
+/** `id` is `<type>:<key>` (`object:12`, `phone:+77000000101`, `account:instagram/handle`); `ref_id` is the database id. */
+export interface GraphNode {
+  id: string;
+  type: GraphNodeType;
+  label: string;
+  ref_id: number | null;
+  zone: Zone | null;
+  is_demo: boolean | null;
+  platform: Platform | null;
+}
+
+export interface GraphEdge {
+  source: string;
+  target: string;
+  type: GraphEdgeType;
+}
+
+/** A phone or an account tying together several developers; `value` is the key of its node (`+7700…`, `instagram/handle`). */
+export interface GraphFinding {
+  kind: GraphFindingKind;
+  value: string;
+  label: string;
+  developer_ids: number[];
+  object_ids: number[];
+}
+
+/** `GET /graph` */
+export interface LinkGraph {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+  findings: GraphFinding[];
+  /** the graph was cut to its size limit */
+  truncated: boolean;
+}
+
+/** At most one of the three; none = the whole scope of the user. */
+export interface GraphParams {
+  object_id?: number;
+  developer_id?: number;
+  territory_id?: number;
+}
+
+/** `GET /source-suggestions` item: an account that publications link to and nobody watches yet. */
+export interface SourceSuggestion {
+  platform: Platform;
+  handle: string;
+  url: string;
+  posts_count: number;
+  object_ids: number[];
+  last_seen_at: string;
+}
+
+/** `POST /source-suggestions/dismiss` (204) */
+export interface SuggestionDismissInput {
+  platform: Platform;
+  handle: string;
+}

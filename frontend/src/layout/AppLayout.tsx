@@ -18,6 +18,7 @@ export function AppLayout() {
           { to: '/map', label: t('nav.map') },
           { to: '/objects', label: t('nav.objects') },
           { to: '/ads', label: t('nav.ads') },
+          { to: '/graph', label: t('nav.graph') },
         ]
       : []),
     { to: '/signals', label: t('nav.signals') },
