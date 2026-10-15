@@ -328,6 +328,20 @@ def test_replay_rows_never_replace_the_current_score_but_show_in_the_history(
     assert sum(item["trigger"] == "replay" for item in body["items"]) == 18
 
 
+def test_an_object_with_only_replayed_history_has_no_current_score(
+    client: TestClient, db: Session, world: World
+) -> None:
+    """Replay writes slices up to `end` when nothing was calculated yet: they are not the current breakdown."""
+    obj = make_object(db, world.ust)
+    add_ad(db, obj, ago(25), hits=DEPOSIT)
+    assert replay_history(db, obj, ago(20), ago(0), DAY) == 21
+    assert replay_rows(db, obj)
+
+    assert db.scalar(latest_score_stmt(obj.id)) is None
+    detail = client.get(f"/api/v1/objects/{obj.id}", headers=auth(world.users["mio_ust"])).json()
+    assert detail["latest_score"] is None
+
+
 def test_the_red_zone_notice_ignores_replayed_history(db: Session, world: World) -> None:
     obj = make_object(db, world.ust)
     for doc_type in (DocType.guarantee, DocType.dsu_permit):
