@@ -1,3 +1,25 @@
+.parts {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Text read from the photos by a machine: set apart from the words of the publication itself. */
+.ocr {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--surface-sunken);
+}
+
+.ocrCaption {
+  color: var(--text-3);
+  font-size: 0.75rem;
+  font-weight: 540;
+}
+
 .text {
   margin: 0;
   font-size: 0.875rem;

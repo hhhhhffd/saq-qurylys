@@ -142,6 +142,21 @@ export function AdCard({ ad, highlighted = false, focusHitId = null }: Props) {
         ) : (
           <p className="faint">{t('card.noText')}</p>
         )}
+        {(view.ocr_status === 'pending' || view.ocr_status === 'failed') && (
+          <div className={classes.chips}>
+            {view.ocr_status === 'pending' ? (
+              <span className={classes.capture} role="status">
+                <Loader size="xs" />
+                {e('ocr_status', 'pending')}
+              </span>
+            ) : (
+              <Chip tone="yellow">
+                <IconAlertTriangle size={12} stroke={2} aria-hidden />
+                {e('ocr_status', 'failed')}
+              </Chip>
+            )}
+          </div>
+        )}
         {detailQuery.isPending && <Skeleton h={14} w="55%" />}
         {detailQuery.isError && (
           <div className={classes.detailError} role="alert">

@@ -36,3 +36,36 @@ export function buildSegments<H extends HitRange>(text: string, hits: readonly H
   if (cursor < text.length) segments.push({ text: text.slice(cursor), hit: null });
   return segments;
 }
+
+/** The text read from the photos of a publication follows this marker in `AdRow.text` (SPEC 10.2). */
+export const OCR_MARKER = '\n\n[OCR]\n';
+
+export interface TextPart<H extends HitRange> {
+  text: string;
+  /** hits lying wholly inside the part, with offsets relative to the part */
+  hits: H[];
+}
+
+/**
+ * Splits the text of a publication at the OCR marker (the first one, as the backend does) into the publication's
+ * own text and the text recognised on its photos. Hit offsets are indices into the whole text: a hit goes to the
+ * part that wholly contains it and is shifted to the part's start; a hit crossing the marker belongs to neither,
+ * so no hit is ever cut.
+ */
+export function splitOcr<H extends HitRange>(
+  text: string,
+  hits: readonly H[],
+): { own: TextPart<H>; ocr: TextPart<H> | null } {
+  const markerAt = text.indexOf(OCR_MARKER);
+  if (markerAt === -1) return { own: { text, hits: [...hits] }, ocr: null };
+  const ocrStart = markerAt + OCR_MARKER.length;
+  return {
+    own: { text: text.slice(0, markerAt), hits: hits.filter((hit) => hit.end <= markerAt) },
+    ocr: {
+      text: text.slice(ocrStart),
+      hits: hits
+        .filter((hit) => hit.start >= ocrStart)
+        .map((hit) => ({ ...hit, start: hit.start - ocrStart, end: hit.end - ocrStart })),
+    },
+  };
+}

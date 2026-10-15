@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { PhraseHit } from '@/api/types';
 import { useEnum } from '@/i18n/useEnum';
 import { hitSource } from '@/lib/hitSource';
-import { buildSegments } from './segments';
+import { buildSegments, splitOcr } from './segments';
 import classes from './HighlightedText.module.css';
 
 const CLAMP_CHARS = 420;
@@ -30,8 +30,8 @@ interface Props {
   focusHitId?: number | null;
 }
 
-/** Ad text with phrase hits marked by their character offsets; long texts are clamped. */
-export function HighlightedText({ text, hits, focusHitId = null }: Props) {
+/** One piece of text with phrase hits marked by their character offsets; long texts are clamped. */
+function TextBlock({ text, hits, focusHitId = null }: Props) {
   const { t } = useTranslation('ads');
   const e = useEnum();
   const [toggled, setToggled] = useState(false);
@@ -67,6 +67,25 @@ export function HighlightedText({ text, hits, focusHitId = null }: Props) {
         >
           {expanded ? t('text.collapse') : t('text.expand')}
         </button>
+      )}
+    </div>
+  );
+}
+
+/** Ad text; the part recognised on the photos (SPEC 10.2) is a separate block, hits are marked in both parts. */
+export function HighlightedText({ text, hits, focusHitId = null }: Props) {
+  const { t } = useTranslation('ads');
+  const { own, ocr } = splitOcr(text, hits);
+  const showOcr = ocr !== null && ocr.text.trim() !== '';
+
+  return (
+    <div className={classes.parts}>
+      {(!showOcr || own.text.trim() !== '') && <TextBlock text={own.text} hits={own.hits} focusHitId={focusHitId} />}
+      {showOcr && (
+        <section className={classes.ocr}>
+          <span className={classes.ocrCaption}>{t('text.ocr')}</span>
+          <TextBlock text={ocr.text} hits={ocr.hits} focusHitId={focusHitId} />
+        </section>
       )}
     </div>
   );

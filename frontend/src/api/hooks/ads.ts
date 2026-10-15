@@ -15,16 +15,18 @@ import type {
   SourceAccountInput,
 } from '../types';
 
-const CAPTURE_POLL_MS = 3000;
+const PENDING_POLL_MS = 3000;
+
+/** A worker is still capturing the page or reading the photos of the publication. */
+const isProcessing = (ad: AdRow) => ad.capture_status === 'pending' || ad.ocr_status === 'pending';
 
 export function useAds(params: AdListParams) {
   return useQuery({
     queryKey: qk.adList(params),
     queryFn: () => api<Paged<AdRow>>('/ads', { params: { ...params } }),
     placeholderData: keepPreviousData,
-    // Captures run in a worker; keep polling while any item on the page is still pending.
-    refetchInterval: (query) =>
-      query.state.data?.items.some((ad) => ad.capture_status === 'pending') ? CAPTURE_POLL_MS : false,
+    // Captures and OCR run in a worker; keep polling while any item on the page is still pending.
+    refetchInterval: (query) => (query.state.data?.items.some(isProcessing) ? PENDING_POLL_MS : false),
   });
 }
 
@@ -33,7 +35,7 @@ export function useAd(id: number | null | undefined) {
     queryKey: qk.ad(id ?? 0),
     queryFn: () => api<AdDetail>(`/ads/${id}`),
     enabled: id != null,
-    refetchInterval: (query) => (query.state.data?.capture_status === 'pending' ? CAPTURE_POLL_MS : false),
+    refetchInterval: (query) => (query.state.data && isProcessing(query.state.data) ? PENDING_POLL_MS : false),
   });
 }
 
