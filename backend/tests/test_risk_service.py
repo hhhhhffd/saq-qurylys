@@ -357,8 +357,11 @@ def test_an_unrelated_ad_guessed_onto_an_object_cannot_turn_it_red(db: Session, 
     nlp.analyze_ad(db, ad)
     nlp.link_ad(db, ad)
     db.flush()
-    assert (ad.object_id, ad.status) == (target.id, AdStatus.verification)
+    assert ad.object_id is None  # the generic «ЖК» token alone no longer links the ad to «ЖК Нур»
 
+    # Any unconfirmed guess (here forced) must still not count towards the score.
+    ad.object_id, ad.status, ad.link_confidence = target.id, AdStatus.verification, 0.5
+    db.flush()
     result = recalc(db, target)
 
     assert (result.risk_score.score, result.risk_score.zone) == (35, Zone.yellow)  # R1 only: no money offer counts
