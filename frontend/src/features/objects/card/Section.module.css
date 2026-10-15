@@ -25,3 +25,158 @@
   margin: 0;
   color: var(--text-3);
 }
+
+.pad {
+  padding: 0 18px 18px;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  min-width: 620px;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.table th {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-3);
+  font-size: 0.75rem;
+  font-weight: 540;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.table th:first-child,
+.table td:first-child {
+  padding-left: 18px;
+}
+
+.table th:last-child,
+.table td:last-child {
+  padding-right: 18px;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.sub {
+  display: block;
+  color: var(--text-3);
+  font-size: 0.75rem;
+}
+
+.strong {
+  font-weight: 600;
+}
+
+/* Rows that evidence links jump to (#doc-12, #complaint-5, #inspection-3). */
+.target {
+  scroll-margin-top: calc(var(--header-h) + 16px);
+}
+
+.target:target,
+.target:target > td {
+  background: var(--pressed);
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  padding: 14px 18px;
+  border-top: 1px solid var(--border);
+}
+
+.item:first-child {
+  border-top: 0;
+}
+
+.itemHead {
+  display: flex;
+  align-items: center;
+  gap: 6px 10px;
+  flex-wrap: wrap;
+}
+
+.itemAction {
+  margin-left: auto;
+}
+
+.text {
+  margin: 8px 0 0;
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+
+.thumbs {
+  margin-top: 10px;
+}
+
+.missing {
+  padding: 14px 18px 18px;
+  border-top: 1px solid var(--border);
+}
+
+.missingList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.missingItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text-3);
+  font-size: 0.8125rem;
+}
+
+.missingKey {
+  border-style: solid;
+  border-color: var(--zone-red);
+  background: var(--zone-red-bg);
+  color: var(--zone-red-ink);
+}
+
+.group + .group {
+  margin-top: 16px;
+}
+
+.entityRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 0;
+  border-top: 1px solid var(--border);
+}
+
+.entityRow:first-of-type {
+  border-top: 0;
+}
+
+.entityValue {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
