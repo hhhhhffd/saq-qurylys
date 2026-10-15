@@ -81,11 +81,12 @@ def test_pipeline_is_a_chain_of_immutable_steps_on_their_queues(monkeypatch: pyt
 
     assert describe(chains[0]) == [
         ("archive.capture", (7, 3), "archive", True),
+        ("nlp.ocr", (7,), "nlp", True),
         ("nlp.analyze", (7,), "nlp", True),
         ("nlp.link", (7,), "nlp", True),
         ("nlp.llm_extract", (7,), "nlp", True),
     ]
-    assert [step[0] for step in describe(chains[1])] == ["nlp.analyze", "nlp.link", "nlp.llm_extract"]
+    assert [step[0] for step in describe(chains[1])] == ["nlp.ocr", "nlp.analyze", "nlp.link", "nlp.llm_extract"]
     assert chains[0].options == {"retry": False}
 
 

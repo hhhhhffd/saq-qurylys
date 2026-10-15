@@ -404,6 +404,7 @@ def test_manual_ad_with_photos_stores_evidence(
     assert body["text"] == "Билборд: бронь квартир, звоните 8 777 123 45 67"
     assert body["is_outdoor"] is True and (body["lat"], body["lon"]) == (49.95, 82.61) and body["is_demo"] is False
     assert body["object_id"] == obj.id and body["link_method"] == "manual" and body["capture_status"] is None
+    assert body["ocr_status"] == "pending"
     assert body["published_at"].startswith("2026-10-01T04:30:00") and body["captured_at"]
     assert [item["kind"] for item in body["evidence"]] == ["photo", "photo"]
     assert [item["sha256"] for item in body["evidence"]] == [
@@ -423,6 +424,7 @@ def test_manual_ad_minimal_and_validation(client: TestClient, db: Session, world
     assert minimal.status_code == 201
     assert minimal.json()["territory_id"] == world.ust.id and minimal.json()["object_id"] is None
     assert minimal.json()["is_outdoor"] is False and minimal.json()["evidence"] == []
+    assert minimal.json()["ocr_status"] is None  # no photos to read
 
     def post(**changes: Any) -> Any:
         return client.post(f"{ADS}/manual", headers=headers, data={"text": "x", "platform": "other", **changes})

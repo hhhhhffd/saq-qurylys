@@ -18,6 +18,7 @@ from app.models.enums import (
     EvidenceKind,
     LinkMethod,
     LlmStatus,
+    OcrStatus,
     Platform,
 )
 from app.modules.ads import service
@@ -230,6 +231,7 @@ def create_manual_ad(
         captured_at=datetime.now(UTC),
         is_outdoor=is_outdoor,
         location=make_point(lat, lon),
+        ocr_status=OcrStatus.pending if payloads else None,
         **fields,
     )
     session.add(ad)

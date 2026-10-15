@@ -3,12 +3,32 @@ import logging
 from app.db import get_sessionmaker
 from app.events import object_changed, objects_changed
 from app.models import AdPost
-from app.models.enums import LlmStatus
+from app.models.enums import LlmStatus, OcrStatus
 from app.modules.ads.service import refresh_claimed_readiness
 from app.modules.nlp import service
+from app.modules.nlp.ocr import recognise_ad
 from app.worker.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
+
+
+@celery_app.task(name="nlp.ocr")
+def ocr(ad_post_id: int) -> None:
+    """Reads the photos of the post before it is analyzed. Never raises: a failure here must not stop the chain."""
+    with get_sessionmaker()() as session:
+        ad = session.get(AdPost, ad_post_id)
+        if ad is None:
+            logger.warning("nlp.ocr: ad_post %s does not exist", ad_post_id)
+            return
+        try:
+            recognise_ad(session, ad)
+        except Exception:
+            logger.exception("nlp.ocr: recognition failed for ad_post %s", ad_post_id)
+            session.rollback()
+            ad = session.get(AdPost, ad_post_id)
+            if ad is not None:
+                ad.ocr_status = OcrStatus.failed
+        session.commit()
 
 
 @celery_app.task(name="nlp.analyze")

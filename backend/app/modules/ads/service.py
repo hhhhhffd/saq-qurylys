@@ -52,7 +52,7 @@ def build_detail(session: Session, ad: AdPost) -> AdDetail:
 
 
 def dispatch_pipeline(ad_post_id: int, *, capture: bool, requested_by: int | None) -> bool:
-    """Queue the pipeline of a new publication (SPEC 5): capture (when it has a URL), analyze, link, LLM.
+    """Queue the pipeline of a new publication (SPEC 5, 10.2): capture (when it has a URL), OCR, analyze, link, LLM.
 
     Call after the post is committed. Returns False when the broker is unreachable; the request whose data is
     already saved must not fail because of it.
@@ -60,6 +60,7 @@ def dispatch_pipeline(ad_post_id: int, *, capture: bool, requested_by: int | Non
     if not get_settings().events_enabled:
         return True
     steps: list[tuple[str, str, list[int | None]]] = [
+        ("nlp.ocr", "nlp", [ad_post_id]),
         ("nlp.analyze", "nlp", [ad_post_id]),
         ("nlp.link", "nlp", [ad_post_id]),
         ("nlp.llm_extract", "nlp", [ad_post_id]),
