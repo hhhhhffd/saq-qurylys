@@ -1,0 +1,1149 @@
+{
+  "developers": [
+    {
+      "bin": "990340000011",
+      "name": "ТОО «Север-Строй Демо»",
+      "director": "Иванов И. И.",
+      "founders": [
+        "Иванов И. И.",
+        "Сидоров С. С."
+      ],
+      "authorized_company": null,
+      "phones": [
+        "+7 700 000 01 00"
+      ]
+    },
+    {
+      "bin": "990540000022",
+      "name": "ТОО «Гавань Девелопмент Демо»",
+      "director": "Петров П. П.",
+      "founders": [
+        "Петров П. П."
+      ],
+      "authorized_company": null,
+      "phones": [
+        "+7 700 000 02 00"
+      ]
+    },
+    {
+      "bin": "990740000033",
+      "name": "ТОО «Рощин и Партнёры Демо»",
+      "director": "Сидорова А. А.",
+      "founders": [
+        "Сидорова А. А.",
+        "Рощин Р. Р."
+      ],
+      "authorized_company": null,
+      "phones": [
+        "+7 700 000 03 00"
+      ]
+    },
+    {
+      "bin": "990940000044",
+      "name": "ТОО «Янтарь Групп Демо»",
+      "director": "Нурланов Н. Н.",
+      "founders": [
+        "Нурланов Н. Н."
+      ],
+      "authorized_company": null,
+      "phones": [
+        "+7 700 000 05 00"
+      ]
+    },
+    {
+      "bin": "991140000055",
+      "name": "ТОО «Ручей Инвест Демо»",
+      "director": "Ержанова Е. Е.",
+      "founders": [
+        "Ержанова Е. Е.",
+        "Ручьёв Р. Р."
+      ],
+      "authorized_company": null,
+      "phones": [
+        "+7 700 000 06 00"
+      ]
+    },
+    {
+      "bin": "991340000066",
+      "name": "ТОО «Берег-Строй Демо»",
+      "director": "Смирнов С. С.",
+      "founders": [
+        "Смирнов С. С."
+      ],
+      "authorized_company": null,
+      "phones": [
+        "+7 700 000 08 00"
+      ]
+    },
+    {
+      "bin": "991540000077",
+      "name": "ТОО «Аллея Девелопмент Демо»",
+      "director": "Козлова К. К.",
+      "founders": [
+        "Козлова К. К.",
+        "Тополев Т. Т."
+      ],
+      "authorized_company": null,
+      "phones": [
+        "+7 700 000 14 00"
+      ]
+    },
+    {
+      "bin": "991740000088",
+      "name": "ТОО «Осень Холдинг Демо»",
+      "director": "Волков В. В.",
+      "founders": [
+        "Волков В. В."
+      ],
+      "authorized_company": null,
+      "phones": [
+        "+7 700 000 16 00"
+      ]
+    },
+    {
+      "bin": "991940000099",
+      "name": "ТОО «Хрусталь Проект Демо»",
+      "director": "Орлов О. О.",
+      "founders": [
+        "Орлов О. О."
+      ],
+      "authorized_company": null,
+      "phones": [
+        "+7 700 000 17 00"
+      ]
+    }
+  ],
+  "objects": [
+    {
+      "name": "ЖК «Северный бриз»",
+      "aliases": [
+        "Северный бриз",
+        "Сценарий A"
+      ],
+      "territory_code": "ust-kamenogorsk",
+      "district": "Октябрьский",
+      "developer_bin": "990340000011",
+      "address": "ул. Ветровая, 12",
+      "cadastral_number": "05-999-001-0101",
+      "land_purpose": "для строительства многоквартирного жилого комплекса",
+      "lat": 49.97094,
+      "lon": 82.57292,
+      "planned_completion": "+330d",
+      "forecast_completion": "+330d",
+      "construction_status": "active",
+      "documents": [
+        {
+          "doc_type": "land_title",
+          "number": "05-999-001-0101",
+          "issued_at": "-420d",
+          "issuer": "НАО «Правительство для граждан»",
+          "check_status": "confirmed",
+          "check_source": "cadastre",
+          "note": null
+        }
+      ],
+      "inspections": [
+        {
+          "inspected_at": "-9d",
+          "readiness_pct": 54,
+          "lat": 49.97094,
+          "lon": 82.57292,
+          "note": "Каркас 5-го этажа, темп соответствует графику."
+        }
+      ],
+      "linked_entities": [
+        {
+          "kind": "phone",
+          "value": "+77000000101",
+          "note": "Офис продаж"
+        }
+      ],
+      "ads": [
+        {
+          "platform": "instagram",
+          "url": "https://example.invalid/instagram/severny_briz_demo/p1",
+          "external_id": "demo-severny_briz_demo-p1",
+          "author": "severny_briz_demo",
+          "published_at": "-3d",
+          "text": "Платная бронь квартир в ЖК «Северный бриз»: закрепите квартиру за собой всего за 50 000 ₸. Забронируйте онлайн, остальное — после подписания договора. Телефон отдела продаж: +7 700 000 01 01",
+          "phones": [
+            "+7 700 000 01 01"
+          ],
+          "payment_schemes": [
+            "booking"
+          ],
+          "is_outdoor": false
+        }
+      ]
+    },
+    {
+      "name": "ЖК «Золотая осень»",
+      "aliases": [
+        "Золотая осень",
+        "Сценарий B"
+      ],
+      "territory_code": "ust-kamenogorsk",
+      "district": "Защита",
+      "developer_bin": "991740000088",
+      "address": "ул. Осенняя, 6",
+      "cadastral_number": "05-999-002-0202",
+      "land_purpose": "для строительства многоквартирного жилого комплекса",
+      "lat": 50.00684,
+      "lon": 82.57301,
+      "planned_completion": "+800d",
+      "forecast_completion": "+800d",
+      "construction_status": "active",
+      "documents": [
+        {
+          "doc_type": "guarantee",
+          "number": null,
+          "issued_at": null,
+          "issuer": "АО «КЖК»",
+          "check_status": "not_found",
+          "check_source": "housing_portal",
+          "note": "Гарантия АО «КЖК»: договор по объекту в реестре Жилищного портала не найден.",
+          "checked_at": "-6d"
+        },
+        {
+          "doc_type": "dsu_permit",
+          "number": null,
+          "issued_at": null,
+          "issuer": "МИО",
+          "check_status": "not_found",
+          "check_source": "mio_registry",
+          "note": "Разрешение МИО: по ответу акимата не выдавалось.",
+          "checked_at": "-5d"
+        }
+      ],
+      "inspections": [
+        {
+          "inspected_at": "-35d",
+          "readiness_pct": 5,
+          "lat": 50.00684,
+          "lon": 82.57301,
+          "note": "Площадка огорожена, работ не ведётся."
+        }
+      ],
+      "linked_entities": [
+        {
+          "kind": "phone",
+          "value": "+77000000201",
+          "note": "Офис продаж"
+        }
+      ],
+      "ads": [
+        {
+          "platform": "instagram",
+          "url": "https://example.invalid/instagram/zolotaya_osen_demo/p1",
+          "external_id": "demo-zolotaya_osen_demo-p1",
+          "author": "zolotaya_osen_demo",
+          "published_at": "-2d",
+          "text": "ЖК «Золотая осень»: цена, как на старте! Внесите депозит 100 000 ₸ — и стоимость квартиры фиксируется. Предложение ограничено. +7 700 000 02 01",
+          "phones": [
+            "+7 700 000 02 01"
+          ],
+          "payment_schemes": [
+            "deposit"
+          ],
+          "is_outdoor": false
+        },
+        {
+          "platform": "telegram",
+          "url": "https://example.invalid/telegram/zolotaya_osen_demo/102",
+          "external_id": "demo-zolotaya_osen_demo-102",
+          "author": "zolotaya_osen_demo",
+          "published_at": "-6d",
+          "text": "Золотая осень: открыли продажи 3 очереди! Квартиры с видом на парк. +7 700 000 02 01",
+          "phones": [
+            "+7 700 000 02 01"
+          ],
+          "is_outdoor": false
+        }
+      ]
+    },
+    {
+      "name": "ЖК «Тихая гавань»",
+      "aliases": [
+        "Тихая гавань",
+        "Сценарий C"
+      ],
+      "territory_code": "ust-kamenogorsk",
+      "district": "Новая Гавань",
+      "developer_bin": "990540000022",
+      "address": "ул. Причальная, 3",
+      "cadastral_number": "05-999-003-0303",
+      "land_purpose": "для строительства многоквартирного жилого комплекса",
+      "lat": 49.98926,
+      "lon": 82.64941,
+      "planned_completion": "+520d",
+      "forecast_completion": "+500d",
+      "construction_status": "active",
+      "documents": [
+        {
+          "doc_type": "guarantee",
+          "number": "ДПГ-26-16-901/301",
+          "issued_at": "-240d",
+          "issuer": "АО «КЖК»",
+          "check_status": "confirmed",
+          "check_source": "housing_portal",
+          "note": "Гарантия АО «КЖК» подтверждена; отдельное разрешение МИО не требуется для оценки.",
+          "checked_at": "-12d"
+        },
+        {
+          "doc_type": "psd",
+          "number": "ПСД-26/044",
+          "issued_at": "-300d",
+          "issuer": "ТОО «Проектный институт Демо»",
+          "check_status": "confirmed",
+          "check_source": "manual",
+          "note": null
+        }
+      ],
+      "inspections": [
+        {
+          "inspected_at": "-14d",
+          "readiness_pct": 38,
+          "lat": 49.98926,
+          "lon": 82.64941,
+          "note": "Монолитные работы по 4-му этажу."
+        }
+      ],
+      "linked_entities": [
+        {
+          "kind": "phone",
+          "value": "+77000000301",
+          "note": "Офис продаж"
+        }
+      ],
+      "ads": [
+        {
+          "platform": "website",
+          "url": "https://example.invalid/website/tihaya-gavan/page",
+          "external_id": "demo-tihaya-gavan-page",
+          "author": "tihaya-gavan",
+          "published_at": "-5d",
+          "text": "ЖК «Тихая гавань» у набережной: просторные планировки, закрытый двор, ипотека Отбасы банка. Запись на просмотр квартир: +7 700 000 03 01",
+          "phones": [
+            "+7 700 000 03 01"
+          ],
+          "is_outdoor": false
+        }
+      ]
+    },
+    {
+      "name": "ЖК «Тополиная аллея»",
+      "aliases": [
+        "Тополиная аллея"
+      ],
+      "territory_code": "ust-kamenogorsk",
+      "district": "Стрелка",
+      "developer_bin": "991540000077",
+      "address": "ул. Тополиная, 18",
+      "cadastral_number": "05-999-004-0404",
+      "land_purpose": "для строительства многоквартирного жилого комплекса",
+      "lat": 49.94753,
+      "lon": 82.59459,
+      "planned_completion": "+200d",
+      "forecast_completion": "+200d",
+      "construction_status": "active",
+      "documents": [
+        {
+          "doc_type": "guarantee",
+          "number": "ДПГ-25-16-777/412",
+          "issued_at": "-250d",
+          "issuer": "АО «КЖК»",
+          "check_status": "confirmed",
+          "check_source": "housing_portal",
+          "note": null,
+          "checked_at": "-20d"
+        }
+      ],
+      "inspections": [
+        {
+          "inspected_at": "-12d",
+          "readiness_pct": 35,
+          "lat": 49.94753,
+          "lon": 82.59459,
+          "note": "Каркас возведён до 5-го этажа из 9."
+        }
+      ],
+      "complaints": [
+        {
+          "received_at": "-40d",
+          "source": "eotinish",
+          "external_id": "EO-DEMO-0103",
+          "is_collective": true,
+          "signatories_count": 28,
+          "is_verified": true,
+          "status": "in_review",
+          "confirmed_payments": false,
+          "summary": "Дольщики жалуются на задержку работ; подписи проверены аналитиком."
+        }
+      ],
+      "linked_entities": [
+        {
+          "kind": "phone",
+          "value": "+77000000401",
+          "note": "Офис продаж"
+        }
+      ],
+      "ads": [
+        {
+          "platform": "telegram",
+          "url": "https://example.invalid/telegram/topolinaya_alleya_demo/201",
+          "external_id": "demo-topolinaya_alleya_demo-201",
+          "author": "topolinaya_alleya_demo",
+          "published_at": "-7d",
+          "text": "ЖК «Тополиная аллея»: идёт отделка фасада, выложили свежие фото со стройки. Запись на экскурсию: +7 700 000 04 01",
+          "phones": [
+            "+7 700 000 04 01"
+          ],
+          "is_outdoor": false
+        }
+      ]
+    },
+    {
+      "name": "ЖК «Кедровый квартал»",
+      "aliases": [
+        "Кедровый квартал"
+      ],
+      "territory_code": "ust-kamenogorsk",
+      "district": "Бабкина Мельница",
+      "developer_bin": "990740000033",
+      "address": "ул. Кедровая, 4",
+      "cadastral_number": "05-999-005-0505",
+      "land_purpose": "для строительства многоквартирного жилого комплекса",
+      "lat": 49.97755,
+      "lon": 82.647,
+      "planned_completion": "+450d",
+      "forecast_completion": "+450d",
+      "construction_status": "active",
+      "documents": [
+        {
+          "doc_type": "dsu_permit",
+          "number": "KZ99VWE00009001",
+          "issued_at": "-150d",
+          "issuer": "МИО",
+          "check_status": "confirmed",
+          "check_source": "housing_portal",
+          "note": "Участие БВУ. Разрешение МИО подтверждено в реестре КЖК.",
+          "checked_at": "-18d"
+        }
+      ],
+      "inspections": [
+        {
+          "inspected_at": "-12d",
+          "readiness_pct": 35,
+          "lat": 49.97755,
+          "lon": 82.647,
+          "note": "Каркас возведён до 5-го этажа из 9."
+        }
+      ],
+      "linked_entities": [
+        {
+          "kind": "phone",
+          "value": "+77000000501",
+          "note": "Офис продаж"
+        }
+      ],
+      "ads": [
+        {
+          "platform": "instagram",
+          "url": "https://example.invalid/instagram/kedrovy_kvartal_demo/p4",
+          "external_id": "demo-kedrovy_kvartal_demo-p4",
+          "author": "kedrovy_kvartal_demo",
+          "published_at": "-4d",
+          "text": "ЖК «Кедровый квартал»: готовность дома — 70%! Фасад закрыт, внутри идут отделочные работы. Рассрочка от застройщика без переплат. Звоните: +7 700 000 05 01",
+          "phones": [
+            "+7 700 000 05 01"
+          ],
+          "claimed_readiness_pct": 70,
+          "is_outdoor": false
+        }
+      ]
+    },
+    {
+      "name": "ЖК «Звёздный путь»",
+      "aliases": [
+        "Звёздный путь"
+      ],
+      "territory_code": "ust-kamenogorsk",
+      "district": "Лесозавод",
+      "developer_bin": "991340000066",
+      "address": "ул. Звёздная, 2",
+      "cadastral_number": "05-999-006-0606",
+      "land_purpose": "для строительства многоквартирного жилого комплекса",
+      "lat": 49.92179,
+      "lon": 82.67407,
+      "planned_completion": "+150d",
+      "forecast_completion": "+330d",
+      "construction_status": "stalled",
+      "stalled_since": "-68d",
+      "documents": [
+        {
+          "doc_type": "guarantee",
+          "number": "ДПГ-24-16-640/291",
+          "issued_at": "-500d",
+          "issuer": "АО «КЖК»",
+          "check_status": "confirmed",
+          "check_source": "housing_portal",
+          "note": null,
+          "checked_at": "-25d"
+        }
+      ],
+      "inspections": [
+        {
+          "inspected_at": "-70d",
+          "readiness_pct": 47,
+          "lat": 49.92179,
+          "lon": 82.67407,
+          "note": "Работы остановлены, на площадке нет техники."
+        }
+      ],
+      "complaints": [
+        {
+          "received_at": "-15d",
+          "source": "manual",
+          "external_id": "DEMO-C-0105",
+          "is_collective": true,
+          "signatories_count": 12,
+          "is_verified": false,
+          "status": "new",
+          "confirmed_payments": false,
+          "summary": "Коллективное обращение дольщиков о простое стройки; подписи ещё не проверены."
+        }
+      ],
+      "linked_entities": [
+        {
+          "kind": "phone",
+          "value": "+77000000601",
+          "note": "Офис продаж"
+        }
+      ],
+      "ads": []
+    },
+    {
+      "name": "ЖК «Новая эра»",
+      "aliases": [
+        "Новая эра"
+      ],
+      "territory_code": "ust-kamenogorsk",
+      "district": "Меновное",
+      "developer_bin": "991140000055",
+      "address": "ул. Новая, 40",
+      "cadastral_number": "05-999-007-0707",
+      "land_purpose": "для строительства многоквартирного жилого комплекса",
+      "lat": 49.93374,
+      "lon": 82.58428,
+      "planned_completion": "-120d",
+      "forecast_completion": "+60d",
+      "construction_status": "active",
+      "documents": [
+        {
+          "doc_type": "dsu_permit",
+          "number": "ДСУ-24/077",
+          "issued_at": "-560d",
+          "issuer": "МИО",
+          "check_status": "confirmed",
+          "check_source": "mio_registry",
+          "note": "Разрешение МИО.",
+          "checked_at": "-30d"
+        }
+      ],
+      "inspections": [
+        {
+          "inspected_at": "-16d",
+          "readiness_pct": 88,
+          "lat": 49.93374,
+          "lon": 82.58428,
+          "note": "Внутренние работы, срок сдачи перенесён."
+        }
+      ],
+      "linked_entities": [
+        {
+          "kind": "phone",
+          "value": "+77000000701",
+          "note": "Офис продаж"
+        }
+      ],
+      "ads": [
+        {
+          "platform": "telegram",
+          "url": "https://example.invalid/telegram/novaya_era_demo/301",
+          "external_id": "demo-novaya_era_demo-301",
+          "author": "novaya_era_demo",
+          "published_at": "-10d",
+          "text": "Новая эра: срок сдачи перенесён, но работы идут. Ждём вас на день открытых дверей в субботу. +7 700 000 07 01",
+          "phones": [
+            "+7 700 000 07 01"
+          ],
+          "is_outdoor": false
+        }
+      ]
+    },
+    {
+      "name": "ЖК «Облачный»",
+      "aliases": [
+        "Облачный"
+      ],
+      "territory_code": "ust-kamenogorsk",
+      "district": "КШТ",
+      "developer_bin": "990540000022",
+      "address": "ул. Облачная, 11",
+      "cadastral_number": "05-999-008-0808",
+      "land_purpose": "для строительства многоквартирного жилого комплекса",
+      "lat": 49.89882,
+      "lon": 82.62076,
+      "planned_completion": "+480d",
+      "forecast_completion": "+480d",
+      "construction_status": "active",
+      "documents": [
+        {
+          "doc_type": "dsu_permit",
+          "number": "ДСУ-26/190",
+          "issued_at": "-20d",
+          "issuer": "МИО",
+          "check_status": "checking",
+          "check_source": "mio_registry",
+          "note": "Номер в реестре пока не найден; запрос в МИО направлен, ответ не получен."
+        }
+      ],
+      "inspections": [
+        {
+          "inspected_at": "-10d",
+          "readiness_pct": 12,
+          "lat": 49.89882,
+          "lon": 82.62076,
+          "note": "Котлован и свайное поле."
+        }
+      ],
+      "linked_entities": [
+        {
+          "kind": "phone",
+          "value": "+77000000801",
+          "note": "Офис продаж"
+        }
+      ],
+      "ads": [
+        {
+          "platform": "telegram",
+          "url": "https://example.invalid/telegram/oblachny_demo/401",
+          "external_id": "demo-oblachny_demo-401",
+          "author": "oblachny_demo",
+          "published_at": "-8d",
+          "text": "Начало продаж в ЖК «Облачный»! Приглашаем в офис продаж на ул. Облачной, 11. Консультации по ипотеке: +7 700 000 08 01",
+          "phones": [
+            "+7 700 000 08 01"
+          ],
+          "is_outdoor": false
+        }
+      ]
+    },
+    {
+      "name": "ЖК «Берёзовая роща»",
+      "aliases": [
+        "Берёзовая роща"
+      ],
+      "territory_code": "ust-kamenogorsk",
+      "district": "Студгородок",
+      "developer_bin": "990740000033",
+      "address": "ул. Берёзовая, 7",
+      "cadastral_number": "05-999-009-0909",
+      "land_purpose": "для строительства многоквартирного жилого комплекса",
+      "lat": 49.9562,
+      "lon": 82.58203,
+      "planned_completion": "+210d",
+      "forecast_completion": "+210d",
+      "construction_status": "active",
+      "documents": [
+        {
+          "doc_type": "guarantee",
+          "number": "ДПГ-25-16-815/430",
+          "issued_at": "-330d",
+          "issuer": "АО «КЖК»",
+          "check_status": "confirmed",
+          "check_source": "housing_portal",
+          "note": null,
+          "checked_at": "-10d"
+        },
+        {
+          "doc_type": "expertise",
+          "number": "01-0123/26",
+          "issued_at": "-300d",
+          "issuer": "РГП «Госэкспертиза»",
+          "check_status": "confirmed",
+          "check_source": "manual",
+          "note": null
+        }
+      ],
+      "inspections": [
+        {
+          "inspected_at": "-21d",
+          "readiness_pct": 71,
+          "lat": 49.9562,
+          "lon": 82.58203,
+          "note": "Кровля выполнена, начата внутренняя отделка."
+        }
+      ],
+      "linked_entities": [
+        {
+          "kind": "phone",
+          "value": "+77000000901",
+          "note": "Офис продаж"
+        }
+      ],
+      "ads": []
+    },
+    {
+      "name": "ЖК «Янтарный двор»",
+      "aliases": [
+        "Янтарный двор"
+      ],
+      "territory_code": "ust-kamenogorsk",
+      "district": "Центр",
+      "developer_bin": "990940000044",
+      "address": "ул. Янтарная, 5",
+      "cadastral_number": "05-999-010-1010",
+      "land_purpose": "для строительства многоквартирного жилого комплекса",
+      "lat": 49.94903,
+      "lon": 82.62642,
+      "planned_completion": "+270d",
+      "forecast_completion": "+270d",
+      "construction_status": "active",
+      "documents": [
+        {
+          "doc_type": "dsu_permit",
+          "number": "ДСУ-25/204",
+          "issued_at": "-310d",
+          "issuer": "МИО",
+          "check_status": "confirmed",
+          "check_source": "mio_registry",
+          "note": "Разрешение МИО.",
+          "checked_at": "-15d"
+        }
+      ],
+      "inspections": [
+        {
+          "inspected_at": "-18d",
+          "readiness_pct": 63,
+          "lat": 49.94903,
+          "lon": 82.62642,
+          "note": "Фасадные работы, внутренняя разводка сетей."
+        }
+      ],
+      "linked_entities": [
+        {
+          "kind": "phone",
+          "value": "+77000001001",
+          "note": "Офис продаж"
+        }
+      ],
+      "ads": [
+        {
+          "platform": "website",
+          "url": "https://example.invalid/website/yantarny-dvor/page",
+          "external_id": "demo-yantarny-dvor-page",
+          "author": "yantarny-dvor",
+          "published_at": "-9d",
+          "text": "Квартиры в ЖК «Янтарный двор» в центре города: ипотека Отбасы банка и других банков, подбор планировки онлайн. Заявка на консультацию: +7 700 000 10 01",
+          "phones": [
+            "+7 700 000 10 01"
+          ],
+          "is_outdoor": false
+        },
+        {
+          "platform": "outdoor",
+          "url": null,
+          "external_id": "demo-billboard-yantarny-b1",
+          "author": "billboard-yantarny",
+          "published_at": "-14d",
+          "text": "ЖК «Янтарный двор». Открытие продаж 2 очереди! Звоните: +7 700 000 10 01",
+          "phones": [
+            "+7 700 000 10 01"
+          ],
+          "is_outdoor": true,
+          "lat": 49.94543,
+          "lon": 82.62962
+        }
+      ]
+    },
+    {
+      "name": "ЖК «Лазурный берег»",
+      "aliases": [
+        "Лазурный берег"
+      ],
+      "territory_code": "ust-kamenogorsk",
+      "district": "Левый Берег",
+      "developer_bin": "991340000066",
+      "address": "ул. Набережная, 28",
+      "cadastral_number": "05-999-011-1111",
+      "land_purpose": "для строительства многоквартирного жилого комплекса",
+      "lat": 49.92846,
+      "lon": 82.65538,
+      "planned_completion": "+180d",
+      "forecast_completion": "+170d",
+      "construction_status": "active",
+      "documents": [
+        {
+          "doc_type": "guarantee",
+          "number": "ДПГ-25-16-701/388",
+          "issued_at": "-400d",
+          "issuer": "АО «КЖК»",
+          "check_status": "confirmed",
+          "check_source": "housing_portal",
+          "note": null,
+          "checked_at": "-9d"
+        }
+      ],
+      "inspections": [
+        {
+          "inspected_at": "-7d",
+          "readiness_pct": 83,
+          "lat": 49.92846,
+          "lon": 82.65538,
+          "note": "Отделка подъездов, благоустройство двора."
+        }
+      ],
+      "linked_entities": [
+        {
+          "kind": "phone",
+          "value": "+77000001101",
+          "note": "Офис продаж"
+        }
+      ],
+      "ads": [
+        {
+          "platform": "instagram",
+          "url": "https://example.invalid/instagram/lazurny_bereg_demo/p7",
+          "external_id": "demo-lazurny_bereg_demo-p7",
+          "author": "lazurny_bereg_demo",
+          "published_at": "-2d",
+          "text": "Лазурный берег уже виден из окон! Рассрочка от застройщика на 24 месяца, первый взнос от 15%. Покажем квартиры: +7 700 000 11 01",
+          "phones": [
+            "+7 700 000 11 01"
+          ],
+          "claimed_readiness_pct": 80,
+          "is_outdoor": false
+        }
+      ]
+    },
+    {
+      "name": "ЖК «Эдельвейс»",
+      "aliases": [
+        "Эдельвейс"
+      ],
+      "territory_code": "ust-kamenogorsk",
+      "district": "Металлург",
+      "developer_bin": "991540000077",
+      "address": "ул. Горная, 2",
+      "cadastral_number": "05-999-012-1212",
+      "land_purpose": "для строительства многоквартирного жилого комплекса",
+      "lat": 49.89523,
+      "lon": 82.65837,
+      "planned_completion": "+365d",
+      "forecast_completion": "+365d",
+      "construction_status": "active",
+      "documents": [
+        {
+          "doc_type": "guarantee",
+          "number": null,
+          "issued_at": null,
+          "issuer": "АО «КЖК»",
+          "check_status": "not_found",
+          "check_source": "housing_portal",
+          "note": "В реестре КЖК не найдено.",
+          "checked_at": "-8d"
+        },
+        {
+          "doc_type": "dsu_permit",
+          "number": null,
+          "issued_at": null,
+          "issuer": "МИО",
+          "check_status": "not_found",
+          "check_source": "mio_registry",
+          "note": "Ответ МИО: разрешение не выдавалось.",
+          "checked_at": "-8d"
+        }
+      ],
+      "inspections": [
+        {
+          "inspected_at": "-20d",
+          "readiness_pct": 10,
+          "lat": 49.89523,
+          "lon": 82.65837,
+          "note": "Подготовка площадки."
+        }
+      ],
+      "linked_entities": [
+        {
+          "kind": "phone",
+          "value": "+77000001201",
+          "note": "Офис продаж"
+        }
+      ],
+      "ads": []
+    },
+    {
+      "name": "ЖК «Хрустальный город»",
+      "aliases": [
+        "Хрустальный город"
+      ],
+      "territory_code": "ust-kamenogorsk",
+      "district": "Верхне-ульбинское",
+      "developer_bin": "991940000099",
+      "address": "ул. Хрустальная, 1",
+      "cadastral_number": "05-999-013-1313",
+      "land_purpose": "для строительства многоквартирного жилого комплекса",
+      "lat": 50.01571,
+      "lon": 82.69907,
+      "planned_completion": "+700d",
+      "forecast_completion": "+700d",
+      "construction_status": "active",
+      "documents": [
+        {
+          "doc_type": "guarantee",
+          "number": null,
+          "issued_at": null,
+          "issuer": "АО «КЖК»",
+          "check_status": "not_found",
+          "check_source": "housing_portal",
+          "note": "В реестре КЖК не найдено.",
+          "checked_at": "-7d"
+        },
+        {
+          "doc_type": "dsu_permit",
+          "number": null,
+          "issued_at": null,
+          "issuer": "МИО",
+          "check_status": "not_found",
+          "check_source": "mio_registry",
+          "note": "Ответ МИО: разрешение не выдавалось.",
+          "checked_at": "-7d"
+        }
+      ],
+      "inspections": [
+        {
+          "inspected_at": "-25d",
+          "readiness_pct": 3,
+          "lat": 50.01571,
+          "lon": 82.69907,
+          "note": "Выполнено ограждение, строительство не начато."
+        }
+      ],
+      "complaints": [
+        {
+          "received_at": "-9d",
+          "source": "eotinish",
+          "external_id": "EO-DEMO-0104",
+          "is_collective": false,
+          "signatories_count": 3,
+          "is_verified": false,
+          "status": "new",
+          "confirmed_payments": true,
+          "summary": "Заявитель внёс 500 000 ₸ по договору резерва; договор не зарегистрирован."
+        }
+      ],
+      "linked_entities": [
+        {
+          "kind": "phone",
+          "value": "+77000001301",
+          "note": "Офис продаж"
+        }
+      ],
+      "ads": [
+        {
+          "platform": "website",
+          "url": "https://example.invalid/website/hrustalny-gorod/page",
+          "external_id": "demo-hrustalny-gorod-page",
+          "author": "hrustalny-gorod",
+          "published_at": "-3d",
+          "text": "ЖК «Хрустальный город»: вложите в недвижимость выгодно! Мы заключаем инвестиционный договор на квартиры в строящемся доме — фиксированная цена и доходность выше депозита в банке. Оформление за один визит: +7 700 000 13 01",
+          "phones": [
+            "+7 700 000 13 01"
+          ],
+          "payment_schemes": [
+            "nonstandard_contract"
+          ],
+          "is_outdoor": false
+        },
+        {
+          "platform": "outdoor",
+          "url": null,
+          "external_id": "demo-billboard-hrustalny-b1",
+          "author": "billboard-hrustalny",
+          "published_at": "-12d",
+          "text": "Хрустальный город. Договор резервирования — закрепите квартиру за собой! Телефон: +7 700 000 13 01",
+          "phones": [
+            "+7 700 000 13 01"
+          ],
+          "is_outdoor": true,
+          "lat": 50.01931,
+          "lon": 82.70227
+        },
+        {
+          "platform": "telegram",
+          "url": "https://example.invalid/telegram/hrustalny_gorod_demo/501",
+          "external_id": "demo-hrustalny_gorod_demo-501",
+          "author": "hrustalny_gorod_demo",
+          "published_at": "-1d",
+          "text": "Горячее предложение: зарезервировать квартиру в ЖК «Хрустальный город» можно по договору резерва — всего 50 000 ₸. Подробности: +7 700 000 13 01",
+          "phones": [
+            "+7 700 000 13 01"
+          ],
+          "is_outdoor": false
+        }
+      ]
+    },
+    {
+      "name": "ЖК «Радужный парк»",
+      "aliases": [
+        "Радужный парк"
+      ],
+      "territory_code": "ust-kamenogorsk",
+      "district": "Аблакетка",
+      "developer_bin": "990940000044",
+      "address": "ул. Радужная, 9",
+      "cadastral_number": "05-999-014-1414",
+      "land_purpose": "для строительства многоквартирного жилого комплекса",
+      "lat": 49.90443,
+      "lon": 82.68962,
+      "planned_completion": "+720d",
+      "forecast_completion": "+720d",
+      "construction_status": "active",
+      "documents": [
+        {
+          "doc_type": "dsu_permit",
+          "number": "KZ99PDD00009002",
+          "issued_at": "-60d",
+          "issuer": "МИО",
+          "check_status": "confirmed",
+          "check_source": "housing_portal",
+          "note": "Разрешение МИО.",
+          "checked_at": "-5d"
+        }
+      ],
+      "inspections": [
+        {
+          "inspected_at": "-3d",
+          "readiness_pct": 8,
+          "lat": 49.90443,
+          "lon": 82.68962,
+          "note": "Земляные работы, котлован."
+        }
+      ],
+      "linked_entities": [
+        {
+          "kind": "phone",
+          "value": "+77000001401",
+          "note": "Офис продаж"
+        }
+      ],
+      "ads": []
+    },
+    {
+      "name": "ЖК «Серебряный ручей»",
+      "aliases": [
+        "Серебряный ручей"
+      ],
+      "territory_code": "ust-kamenogorsk",
+      "district": "Шмелёв Лог",
+      "developer_bin": "991140000055",
+      "address": "ул. Ручейная, 16",
+      "cadastral_number": "05-999-015-1515",
+      "land_purpose": "для строительства многоквартирного жилого комплекса",
+      "lat": 49.96331,
+      "lon": 82.65735,
+      "planned_completion": "+600d",
+      "forecast_completion": "+590d",
+      "construction_status": "active",
+      "documents": [
+        {
+          "doc_type": "guarantee",
+          "number": "ДПГ-26-16-815/431",
+          "issued_at": "-120d",
+          "issuer": "АО «КЖК»",
+          "check_status": "confirmed",
+          "check_source": "housing_portal",
+          "note": null,
+          "checked_at": "-11d"
+        }
+      ],
+      "inspections": [
+        {
+          "inspected_at": "-11d",
+          "readiness_pct": 15,
+          "lat": 49.96331,
+          "lon": 82.65735,
+          "note": "Устройство плиты фундамента."
+        }
+      ],
+      "complaints": [
+        {
+          "received_at": "-60d",
+          "source": "manual",
+          "external_id": "DEMO-C-0102",
+          "is_collective": false,
+          "signatories_count": 1,
+          "is_verified": true,
+          "status": "closed",
+          "confirmed_payments": false,
+          "summary": "Шум строительной техники в вечернее время; нарушение устранено."
+        }
+      ],
+      "linked_entities": [
+        {
+          "kind": "phone",
+          "value": "+77000001501",
+          "note": "Офис продаж"
+        }
+      ],
+      "ads": []
+    },
+    {
+      "name": "ЖК «Солнечная долина»",
+      "aliases": [
+        "Солнечная долина"
+      ],
+      "territory_code": "ust-kamenogorsk",
+      "district": "Красина",
+      "developer_bin": "990340000011",
+      "address": "ул. Солнечная, 21",
+      "cadastral_number": "05-999-016-1616",
+      "land_purpose": "для строительства многоквартирного жилого комплекса",
+      "lat": 49.94903,
+      "lon": 82.66944,
+      "planned_completion": "+400d",
+      "forecast_completion": "+400d",
+      "construction_status": "active",
+      "documents": [
+        {
+          "doc_type": "dsu_permit",
+          "number": "ДСУ-26/033",
+          "issued_at": "-90d",
+          "issuer": "МИО",
+          "check_status": "confirmed",
+          "check_source": "mio_registry",
+          "note": "Разрешение МИО.",
+          "checked_at": "-6d"
+        }
+      ],
+      "inspections": [
+        {
+          "inspected_at": "-5d",
+          "readiness_pct": 22,
+          "lat": 49.94903,
+          "lon": 82.66944,
+          "note": "Нулевой цикл завершён, начат каркас."
+        }
+      ],
+      "linked_entities": [
+        {
+          "kind": "phone",
+          "value": "+77000001601",
+          "note": "Офис продаж"
+        }
+      ],
+      "ads": []
+    }
+  ]
+}

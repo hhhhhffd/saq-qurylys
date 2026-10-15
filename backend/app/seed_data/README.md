@@ -1,7 +1,8 @@
 # Seed data files
 
 `python -m app.seed` loads these optional files when they exist. All are loaded idempotently.
-Files are UTF-8. A missing file is skipped.
+Files are UTF-8. A missing file is skipped. `districts.geojson` and `holidays.json` are always loaded;
+`demo_objects.json` only with `--demo`, the pilot snapshot only with `--pilot`.
 
 ## `districts.geojson`
 
@@ -14,7 +15,9 @@ GeoJSON `FeatureCollection`. Each feature is a district polygon (Polygon or Mult
 ```
 
 `territory_code` is optional (default `ust-kamenogorsk`) and must be an existing city. Districts are matched by
-`(city, name)`: re-running updates the boundary.
+`(city, name)`: re-running updates the boundary. Other properties of the features (`bank`, `group`, `approximate`,
+`area_km2`, `seed`, `notes`) and the collection-level metadata are ignored by the loader. The polygons are
+approximate (OSM-derived, no official boundaries exist): they serve the district filter only.
 
 ## `holidays.json`
 
@@ -30,52 +33,73 @@ Production calendar overrides. Saturdays and Sundays are days off by default.
 
 ## `demo_objects.json` (only with `--demo`)
 
-All demo objects are created with `is_demo=true`. Use fictional names and BINs only (see
-`docs/OPEN_QUESTIONS.md`, item 1). An object that already exists (`is_demo` and same `name`) is skipped together
-with its children, so re-running never duplicates data. Unknown keys are rejected.
+Fictional data only (docs/OPEN_QUESTIONS.md, item 1; SPEC D19): objects, developers, people, phones
+(`+7 700 000 xx xx`) and URLs (`https://example.invalid/...`) are invented, BINs start with `99`. All demo objects
+and all demo ads are created with `is_demo=true`. An object that already exists (`is_demo` and same `name`) is
+skipped together with its children, so re-running never duplicates data. Unknown keys are rejected.
+
+The shipped file holds 16 objects and 14 ads, built so that scoring (SPEC section 6) gives:
+
+| Object | What it shows | Score / zone |
+|---|---|---|
+| ЖК «Северный бриз» (alias «Сценарий A») | legal basis never checked + paid booking (R2, R3) | 35 yellow |
+| ЖК «Золотая осень» (alias «Сценарий B») | guarantee and MIO permit both checked, not found + deposit (R1, R2, R3) | 70 red |
+| ЖК «Тихая гавань» (alias «Сценарий C») | guarantee confirmed, no MIO permit + ordinary advertising (R3) | 10 green |
+| ЖК «Хрустальный город» | not found + «инвестиционный договор», «договор резервирования» on a site, a billboard and Telegram | 70 red |
+| ЖК «Эдельвейс» | R1 alone, no advertising | 35 yellow |
+| ЖК «Тополиная аллея» | verified collective complaint (R4) + ad | 25 yellow |
+| ЖК «Кедровый квартал» | claimed 70% vs 35% at the inspection (R5) + installment ad | 45 yellow |
+| ЖК «Лазурный берег» | confirmed guarantee, but «рассрочка от застройщика» still counts (R2) | 35 yellow |
+| ЖК «Звёздный путь», ЖК «Новая эра» | stalled for 68 days / planned date passed 120 days ago (R6) | 5 / 15 green |
+| ЖК «Облачный» | MIO permit still `checking`: flag «Нужна проверка», no points | 10 green |
+| four more | clean cards | 0-10 green |
+
+Every risky wording in the texts is one the seeded dictionary matches (a test checks it). `seed.py` adds the wording of
+the case to the dictionary variants («внесите депозит», «цена до завершения»), also in existing databases.
 
 ```json
 {
   "developers": [
-    {"bin": "999999999999", "name": "ТОО «Вымышленный»", "director": "Иванов И. И.",
-     "founders": ["Иванов И. И."], "authorized_company": null, "phones": ["+7 701 000 00 01"]}
+    {"bin": "990000000011", "name": "ТОО «Вымышленный»", "director": "Иванов И. И.",
+     "founders": ["Иванов И. И."], "authorized_company": null, "phones": ["+7 700 000 01 00"]}
   ],
   "objects": [
     {
       "name": "ЖК «Вымышленный»",
-      "aliases": ["Вымышленный квартал"],
+      "aliases": ["Вымышленный квартал", "Сценарий A"],
       "territory_code": "ust-kamenogorsk",
-      "district": "Центральный",
-      "developer_bin": "999999999999",
+      "district": "Центр",
+      "developer_bin": "990000000011",
       "address": "ул. Примерная, 1",
-      "cadastral_number": "05-123-000-001",
+      "cadastral_number": "05-999-000-0001",
       "land_purpose": "для строительства жилого комплекса",
-      "lat": 49.95, "lon": 82.61,
-      "planned_completion": "2027-12-31",
-      "forecast_completion": "2028-06-30",
+      "lat": 49.95, "lon": 82.62,
+      "planned_completion": "+330d",
+      "forecast_completion": "+330d",
       "construction_status": "active",
       "stalled_since": null,
       "prior_violations": null,
       "readiness_claimed_pct": null,
       "documents": [
-        {"doc_type": "dsu_permit", "number": "12-ДСУ", "issued_at": "2026-03-01", "issuer": "МИО",
-         "check_status": "not_found", "check_source": "kazreestr", "note": null}
+        {"doc_type": "guarantee", "number": "ДПГ-26-16-901/301", "issued_at": "-240d", "issuer": "АО «КЖК»",
+         "check_status": "confirmed", "check_source": "housing_portal", "checked_at": "-12d", "note": null}
       ],
       "complaints": [
-        {"received_at": "2026-09-01", "source": "eotinish", "external_id": "EO-1", "is_collective": true,
-         "signatories_count": 12, "summary": "...", "status": "new", "confirmed_payments": false}
+        {"received_at": "-40d", "source": "eotinish", "external_id": "EO-DEMO-1", "is_collective": true,
+         "signatories_count": 28, "summary": "...", "status": "in_review", "confirmed_payments": false,
+         "is_verified": true}
       ],
       "inspections": [
-        {"inspected_at": "2026-08-01", "readiness_pct": 35, "lat": 49.95, "lon": 82.61, "note": "каркас"}
+        {"inspected_at": "-9d", "readiness_pct": 35, "lat": 49.95, "lon": 82.62, "note": "каркас"}
       ],
       "linked_entities": [
-        {"kind": "phone", "value": "+77010000001", "note": null}
+        {"kind": "phone", "value": "+77000000101", "note": "Офис продаж"}
       ],
       "ads": [
-        {"platform": "instagram", "url": "https://example.invalid/p/1", "external_id": "p1", "author": "vymyshlennyi",
-         "published_at": "2026-10-01T10:00:00+05:00", "text": "Бронь квартир открыта",
-         "phones": ["8 701 000 00 01"], "is_outdoor": false, "lat": null, "lon": null,
-         "payment_schemes": ["booking"], "claimed_readiness_pct": 60, "price_before_completion": false,
+        {"platform": "instagram", "url": "https://example.invalid/instagram/demo/p1", "external_id": "demo-p1",
+         "author": "demo", "published_at": "-3d", "text": "Платная бронь квартир. +7 700 000 01 01",
+         "phones": ["+7 700 000 01 01"], "is_outdoor": false, "lat": null, "lon": null,
+         "payment_schemes": ["booking"], "claimed_readiness_pct": null, "price_before_completion": false,
          "status": "captured"}
       ]
     }
@@ -85,14 +109,57 @@ with its children, so re-running never duplicates data. Unknown keys are rejecte
 
 Rules:
 
+- **Relative dates.** Every date or datetime field (`planned_completion`, `forecast_completion`, `stalled_since`,
+  `issued_at`, `checked_at`, `received_at`, `inspected_at`, `published_at`) accepts `"-2d"`, `"+330d"` or `"-36h"`:
+  the moment of loading plus the offset. Dates are taken in the city time zone, datetimes are UTC. Absolute ISO values
+  work as before. This keeps the demo current: ads stay inside the analysis window, inspections fresh, deadlines ahead.
 - `developer_bin` must reference a developer from `developers` (or an existing one).
+- `district` is a name from `districts.geojson`; without it the district is found by point in polygon.
 - `readiness_actual_pct` is taken from the latest inspection by date; `readiness_claimed_pct` from the object
   field if set, otherwise from the latest ad with `claimed_readiness_pct`.
-- Ads are stored as already captured publications linked to the object; phrase hits are not created here (the
-  NLP pipeline does that when it processes the text). Evidence files are not part of the demo data.
+- Documents with a status other than `checking` are recorded as checked by `demo_mio` (when that user exists).
+  `checked_at` is optional and should be given for checked documents.
+- A complaint with `is_verified: true` is recorded as verified by `demo_mio` just now (R4 counts verified collective
+  complaints only).
+- Ads are stored as already captured publications linked to the object (`link_method=manual`), always with
+  `is_demo=true`; phrase hits are not created here (the NLP pipeline does that). Evidence files are not part of the
+  demo data. `platform: "outdoor"` ads have no URL and carry `lat`/`lon`.
 - Enum values: `doc_type`, `check_status`, `check_source`, `source`, `status`, `kind`, `platform`,
   `payment_schemes` and `construction_status` use the codes from `docs/SPEC.md` section 3.
-- After loading, `risk.recalc_object` is requested for every new object so the risk module can score it.
+- After loading, every new ad is sent through `nlp.analyze` -> `nlp.link` -> `risk.recalc_object` (Celery tasks
+  addressed by name, one chain per ad), and objects without ads are rescored with `risk.recalc_object` directly.
+  Nothing happens when `EVENTS_ENABLED=false`.
 
 `--demo` also creates users `demo_admin`, `demo_mio` (Усть-Каменогорск), `demo_gask` (Усть-Каменогорск) and
 `demo_police` (whole region). Their password is `DEMO_USER_PASSWORD` if set, otherwise random and printed once.
+
+## `pilot/ust-kamenogorsk-public-2026-10-13.json` (only with `--pilot`, optional)
+
+A snapshot of public data collected on 2026-10-13 (third-party data, not verified by SAQ): 26 residential complexes
+under construction from the krisha.kz catalogue (`objects`) and 15 records of the register of shared construction
+objects of АО «КЖК» (`homeportal_registry_objects_vko`). A copy of `data/pilot/` that ships in the backend image.
+The import is described in `app/modules/registry_sync/pilot.py`; in short:
+
+- Real objects are `is_demo=false` and carry only facts of the snapshot. **Legal entities only** (SPEC D19): a developer
+  gets the BIN and legal name of the registry; no director, founders, phone or e-mail is imported. No complaints, no
+  ads, no `prior_violations`: the zone is calculated by the risk module.
+- Union: every krisha.kz object, plus every registry record no krisha.kz object claims, except records the portal counts
+  as completed (commissioning date in the past): Tumar Towers (1077) is skipped. A registry-only record with
+  coordinates outside the city (Renesans, 1428) is imported without a position.
+- A registry match is trusted unless the snapshot itself says «не подтверждено» and krisha.kz does not show the same
+  document number. Such a match (Satti City 2 vs registry «Satti City») is not linked: the registry record becomes an
+  object of its own and the krisha.kz object gets the placeholder document, both cross-referencing in their notes.
+- Documents: «Разрешение МИО» / «Участие БВУ» -> `dsu_permit`, «Гарантия КЖК» -> `guarantee`; number and issue date
+  from the registry, `check_status=confirmed`, `check_source=housing_portal`, `checked_at` = collection date,
+  the registry URL in the note. Several records of one object (ЖАНЫМ: guarantee and two amendments) make several
+  documents. A krisha.kz object without a registry record gets one `dsu_permit` in status `checking` with the note
+  «требуется ручная сверка: в выгрузке реестра КЖК от 2026-10-13 не найден» and what krisha.kz states.
+- Position, address and cadastral number come from the registry when its point lies within 500 m of the krisha.kz
+  point; otherwise (Asyl Tau, 1.6 km) the krisha.kz position is kept and the note says so. Planned completion is the
+  latest commissioning date of the registry records, else the end of the krisha.kz quarter; the forecast equals it.
+  Status is `active`, or `not_started` when the registry start date is in the future.
+- BINs from third-party aggregators (statsnet.co) are not entered into the developer card (the model has no field
+  for «не проверено»); the BIN and its source are quoted in the note of the object's `checking` document.
+- District: point in polygon (PostGIS `ST_Contains`) against `districts.geojson`.
+- Repeatable: objects are found again by document number, cadastral number, developer and site, or name. An existing
+  object is only completed (empty fields filled), never overwritten; a document checked by a person is left alone.

@@ -10,7 +10,8 @@ Requirements: Docker with Compose v2, [uv](https://docs.astral.sh/uv/) for runni
 cp .env.example .env          # dev-only placeholder values; never commit .env
 docker compose up -d --build db redis minio api worker beat   # add `frontend` once ./frontend exists
 docker compose exec api python -m app.seed          # reference data + initial admin (idempotent)
-docker compose exec api python -m app.seed --demo   # + demo users and demo objects (prints demo passwords once)
+docker compose exec api python -m app.seed --demo   # + demo users and fictional demo objects (prints demo passwords once)
+docker compose exec api python -m app.seed --pilot  # optional: + public registry facts about real pilot objects
 curl localhost:8000/api/v1/health
 curl -s localhost:8000/api/v1/auth/login -H 'content-type: application/json' \
   -d '{"username":"admin","password":"change-me-admin-password"}'
@@ -54,6 +55,7 @@ Queues: `collect`, `archive`, `nlp`, `score`, `notify`, `default`. Tasks are imp
 | `risk.recalc_object(object_id)` | score | on demand, via `app.events.object_changed(object_id)` |
 | `risk.sweep_due` | score | daily 02:00 |
 | `collect.run_all` | collect | daily 01:00 |
+| `registry.sync_homeportal` | collect | daily 03:00, runs only if `HOMEPORTAL_SYNC_ENABLED=true`; on demand via the API |
 | `ads.recheck_due` | collect | every 6 hours |
 | `signals.check_deadlines` | notify | daily 06:00 |
 | `notify.red_zone` | notify | on demand |
@@ -107,6 +109,28 @@ Only objects within your territory are matched. Empty cells leave existing value
 
 Optional files in `backend/app/seed_data/` (districts, holidays, demo objects) are loaded by `python -m app.seed`.
 Their formats are in [backend/app/seed_data/README.md](backend/app/seed_data/README.md).
+
+## Данные пилота
+
+Три источника данных, не смешиваются между собой:
+
+- **Демо** (`python -m app.seed --demo`) — 16 вымышленных ЖК в Усть-Каменогорске (`is_demo=true`, у публикаций тоже),
+  вымышленные застройщики с БИН `99…`, телефоны `+7 700 000 xx xx`, ссылки `https://example.invalid/…`. Среди них три
+  контрольных сценария кейса (SPEC 6.6): A «Северный бриз» (основание не проверено + платная бронь → 35, жёлтая),
+  B «Золотая осень» (отсутствие основания установлено + депозит → 70, красная), C «Тихая гавань» (подтверждена
+  гарантия, обычная реклама → 10, зелёная). Даты в файле относительные (`-3d`), поэтому публикации всегда
+  свежие. После загрузки публикации уходят в `nlp.analyze` → `nlp.link`, затем объект пересчитывается.
+- **Пилот** (`python -m app.seed --pilot`, необязательно) — только публичные сведения о юридических лицах и объектах:
+  26 строящихся ЖК с krisha.kz и записи реестра АО «КЖК» (homeportal.kz) от 2026-10-13, файл
+  `backend/app/seed_data/pilot/`. Без ФИО, телефонов и e-mail, без жалоб, рекламы и любых оценок: зону система считает
+  сама. Документы «Разрешение МИО» / «Участие БВУ» → `dsu_permit`, «Гарантия КЖК» → `guarantee`, статус `confirmed` с
+  источником `housing_portal`; ЖК, которых нет в реестре, получают документ `checking` («требуется ручная сверка»).
+  Повторный запуск ничего не дублирует и не затирает правки сотрудников.
+- **Синхронизация реестра КЖК** (`registry.sync_homeportal`) — обновляет те же документы по публичному API
+  `api.homeportal.kz`, сырые ответы сохраняются как доказательства (`registry_response`). По умолчанию выключена
+  (`HOMEPORTAL_SYNC_ENABLED=false`): для регулярного использования нужно согласие АО «КЖК» (docs/OPEN_QUESTIONS.md,
+  п. 11). Вручную: `POST /api/v1/registry-sync/homeportal` (администратор без территории), состояние —
+  `GET /api/v1/registry-sync/status`. Документ, пропавший из реестра, переводится в `checking`, но не в `not_found`.
 
 ## Access rules worth knowing
 
