@@ -1,6 +1,6 @@
-import type { StyleSpecification } from '@/lib/maplibre';
+import type { Map as MapLibreMap, StyleSpecification } from '@/lib/maplibre';
 
-export const MAP_STYLE_URL = import.meta.env.VITE_MAP_STYLE_URL || 'https://tiles.openfreemap.org/styles/positron';
+export const MAP_STYLE_URL = import.meta.env.VITE_MAP_STYLE_URL || 'https://tiles.openfreemap.org/styles/dark';
 
 /** Used when the style above cannot be loaded (offline, blocked host): plain OpenStreetMap raster tiles. */
 export const FALLBACK_STYLE: StyleSpecification = {
@@ -25,6 +25,62 @@ export const CITY_ZOOM = 10.5;
 /** MapLibre cannot read CSS variables, so design tokens are resolved to concrete colors. */
 export function readToken(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+/** Colors of the indigo basemap that have no token: water and parks sit between the page and the panel colors. */
+const WATER = '#14112f';
+const PARK = '#161232';
+const LAND_LIGHT = '#15112b';
+const BUILDING = '#1a1536';
+const ROAD_MINOR = '#1f1a42';
+const ROAD_MAJOR = '#2a2457';
+
+/**
+ * Recolors the loaded style to the app palette. Layers are matched by type and id prefix, so other styles
+ * (VITE_MAP_STYLE_URL) get a reasonable result too; layers with no rule keep their own colors.
+ */
+export function recolorBasemap(map: MapLibreMap): void {
+  const background = readToken('--bg');
+  const border = readToken('--border-strong');
+  const label = readToken('--text-3');
+  const set = (id: string, property: Parameters<MapLibreMap['setPaintProperty']>[1], value: string) => map.setPaintProperty(id, property, value);
+
+  for (const layer of map.getStyle().layers) {
+    const { id } = layer;
+    switch (layer.type) {
+      case 'raster':
+        // Fallback OSM tiles: dim and desaturate so they do not glare next to the dark UI.
+        map.setPaintProperty(id, 'raster-brightness-max', 0.3);
+        map.setPaintProperty(id, 'raster-saturation', -0.6);
+        map.setPaintProperty(id, 'raster-contrast', 0.15);
+        break;
+      case 'background':
+        set(id, 'background-color', background);
+        break;
+      case 'fill':
+        if (id.startsWith('water')) set(id, 'fill-color', WATER);
+        else if (id.startsWith('building')) {
+          set(id, 'fill-color', BUILDING);
+          set(id, 'fill-outline-color', border);
+        } else if (id.startsWith('landcover_wood') || id.startsWith('landuse_park')) set(id, 'fill-color', PARK);
+        else if (id.startsWith('landuse_residential')) set(id, 'fill-color', LAND_LIGHT);
+        else set(id, 'fill-color', background);
+        break;
+      case 'line':
+        if (id.startsWith('boundary')) set(id, 'line-color', border);
+        else if (id.startsWith('waterway')) set(id, 'line-color', WATER);
+        else if (id.includes('casing')) set(id, 'line-color', background);
+        else if (id.startsWith('railway')) set(id, 'line-color', id.endsWith('dashline') ? background : ROAD_MINOR);
+        else if (id.startsWith('highway_major') || id.startsWith('highway_motorway')) set(id, 'line-color', ROAD_MAJOR);
+        else set(id, 'line-color', ROAD_MINOR);
+        break;
+      case 'symbol':
+        if (layer.layout?.['text-field'] === undefined) break;
+        set(id, 'text-color', label);
+        set(id, 'text-halo-color', background);
+        break;
+    }
+  }
 }
 
 export function prefersReducedMotion(): boolean {

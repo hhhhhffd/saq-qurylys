@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
-import { Button, Tooltip } from '@mantine/core';
 import { IconHistory, IconInfoCircle } from '@tabler/icons-react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useDashboard } from '@/api/hooks/objects';
 import { useDistricts } from '@/api/hooks/reference';
 import { useTimeline } from '@/api/hooks/timeline';
@@ -19,7 +20,6 @@ import { ObjectList } from './ObjectList';
 import { TimeMachineBar } from './TimeMachineBar';
 import { countZones, rowsAtFrame, useTimeMachine } from './timeMachine';
 import { ZoneCounters } from './ZoneCounters';
-import classes from './MapPage.module.css';
 
 /** Space at the bottom of the map that the time machine bar covers; markers are fitted above it. */
 const TIME_BAR_INSET = 130;
@@ -47,23 +47,23 @@ export function MapPage() {
         actions={
           <>
             <Button
-              variant={timeMachine ? 'filled' : 'default'}
-              leftSection={<IconHistory size={16} stroke={1.8} />}
+              variant={timeMachine ? 'default' : 'secondary'}
               aria-pressed={timeMachine}
               onClick={() => setTimeMachine((on) => !on)}
             >
+              <IconHistory />
               {t('timeMachine.toggle')}
             </Button>
-            <Button component={Link} to="/signals" variant="default">
-              {t('links.signals')}
+            <Button asChild variant="secondary">
+              <Link to="/signals">{t('links.signals')}</Link>
             </Button>
-            <Button component={Link} to="/ads" variant="default">
-              {t('links.ads')}
+            <Button asChild variant="secondary">
+              <Link to="/ads">{t('links.ads')}</Link>
             </Button>
           </>
         }
       />
-      <div className={classes.filters}>
+      <div className="mb-4 flex flex-wrap items-center gap-2.5 empty:hidden">
         <TerritoryFilter
           territoryId={territoryId}
           districtId={districtId}
@@ -78,7 +78,7 @@ export function MapPage() {
         />
         {hasFilters && (
           <Button
-            variant="subtle"
+            variant="ghost"
             onClick={() => {
               setZone(null);
               setParams((prev) => patchParams(prev, { territory: null, district: null }));
@@ -147,11 +147,11 @@ function DashboardContent({
   const withoutCoordinates = rows.filter((row) => row.lat === null || row.lon === null).length;
 
   return (
-    <div className={classes.content} data-stale={stale || undefined}>
-      <ZoneCounters counts={counts} active={zone} onToggle={onToggleZone} />
+    <div className="flex flex-col gap-3.5 transition-opacity duration-(--dur) data-stale:opacity-60" data-stale={stale || undefined}>
+      <ZoneCounters counts={counts} active={zone} onToggle={onToggleZone} animated={frame === undefined} />
       <ZoneDisclaimer />
-      <div className={classes.grid}>
-        <div className={classes.mapColumn}>
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 [--map-h:320px] lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:[--map-h:min(70dvh,640px)]">
+        <div className="min-w-0">
           <DashboardMap
             objects={rows}
             districts={districts}
@@ -164,27 +164,30 @@ function DashboardContent({
             {timeMachine && <TimeMachineBar timeline={timeline} machine={machine} onClose={onCloseTimeMachine} />}
           </DashboardMap>
           {timeMachine && (
-            <p className={classes.note}>
-              <Tooltip
-                label={t('timeMachine.noteHint')}
-                multiline
-                w={300}
-                events={{ hover: true, focus: true, touch: true }}
-              >
-                <span className={classes.hint} tabIndex={0}>
-                  <IconInfoCircle size={14} stroke={1.8} aria-hidden />
-                  {t('timeMachine.note')}
-                </span>
+            <p className="mx-1 mt-2 text-xs text-text-3">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex cursor-help items-center gap-1 rounded-sm underline decoration-dotted underline-offset-3" tabIndex={0}>
+                    <IconInfoCircle className="size-3.5" aria-hidden />
+                    {t('timeMachine.note')}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-75">{t('timeMachine.noteHint')}</TooltipContent>
               </Tooltip>
             </p>
           )}
           {withoutCoordinates > 0 && (
-            <p className={classes.note}>{t('map.withoutCoordinates', { count: withoutCoordinates })}</p>
+            <p className="mx-1 mt-2 text-xs text-text-3">{t('map.withoutCoordinates', { count: withoutCoordinates })}</p>
           )}
         </div>
-        <section className={`panel ${classes.listPanel}`} aria-label={t('list.title')}>
-          <h2 className={classes.listTitle}>{t('list.title')}</h2>
-          <div className={classes.scroll}>
+        <section
+          className="flex max-h-[min(60dvh,480px)] min-w-0 flex-col overflow-hidden rounded border border-border bg-surface lg:max-h-(--map-h)"
+          aria-label={t('list.title')}
+        >
+          <h2 className="border-b border-border px-3 py-1.5 font-heading text-2xs font-bold tracking-wider uppercase">
+            {t('list.title')}
+          </h2>
+          <div className="min-h-0 overflow-y-auto">
             <ObjectList rows={rows} highlightedId={highlightedId} onHighlight={setHighlightedId} />
           </div>
         </section>

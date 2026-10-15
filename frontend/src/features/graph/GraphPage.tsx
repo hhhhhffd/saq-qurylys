@@ -1,9 +1,9 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Button } from '@mantine/core';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useLinkGraph } from '@/api/hooks/graph';
 import type { GraphNode, LinkGraph } from '@/api/types';
+import { Button } from '@/components/ui/button';
 import { EmptyState, QueryBoundary } from '@/components/QueryState';
 import { PageHeader } from '@/components/PageHeader';
 import { ZoneDisclaimer } from '@/components/ZoneDisclaimer';
@@ -13,7 +13,6 @@ import { Legend } from './Legend';
 import { LinkGraphCanvas } from './LinkGraphCanvas';
 import { SuggestionsPanel } from './SuggestionsPanel';
 import { buildAdjacency, findingNodes, withHolders } from './graphModel';
-import classes from './GraphPage.module.css';
 
 export function GraphPage() {
   const { t } = useTranslation('graph');
@@ -33,7 +32,7 @@ export function GraphPage() {
         subtitle={subtitle}
         actions={
           seedId !== null && (
-            <Button variant="default" onClick={() => setParams({})}>
+            <Button variant="secondary" onClick={() => setParams({})}>
               {t('showAll')}
             </Button>
           )
@@ -108,8 +107,11 @@ function GraphWorkspace({ graph, seedId, stale, onRecentre }: WorkspaceProps) {
   );
 
   return (
-    <div className={classes.layout} data-stale={stale || undefined}>
-      <section className={`panel ${classes.stage}`} aria-label={t('title')}>
+    <div
+      className="mt-3.5 grid grid-cols-[minmax(0,1fr)] gap-4 transition-opacity duration-(--dur) data-stale:opacity-60 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start"
+      data-stale={stale || undefined}
+    >
+      <section className="min-w-0 overflow-hidden rounded border border-border bg-surface" aria-label={t('title')}>
         {graph.nodes.length === 0 ? (
           <EmptyState>
             <strong>{t('empty')}</strong>
@@ -125,11 +127,11 @@ function GraphWorkspace({ graph, seedId, stale, onRecentre }: WorkspaceProps) {
               onNodeClick={handleNodeClick}
               onBackgroundClick={clearSelection}
             />
-            <div className={classes.footer}>
+            <div className="flex flex-col gap-2 border-t border-border px-3 py-2.5">
               <Legend />
-              <p className={classes.note}>{t('canvas.hint')}</p>
+              <p className="m-0 text-xs text-text-3">{t('canvas.hint')}</p>
               {graph.truncated && (
-                <p className={classes.note} role="status">
+                <p className="m-0 text-xs text-text-3" role="status">
                   {t('truncated', { count: graph.nodes.length })}
                 </p>
               )}
@@ -137,7 +139,7 @@ function GraphWorkspace({ graph, seedId, stale, onRecentre }: WorkspaceProps) {
           </>
         )}
       </section>
-      <div className={classes.side}>
+      <div className="flex min-w-0 flex-col gap-4">
         <FindingsPanel findings={graph.findings} nodes={graph.nodes} active={finding} onSelect={selectFinding} />
         <SuggestionsPanel />
       </div>

@@ -3,7 +3,18 @@ import { Slider as SliderPrimitive } from 'radix-ui';
 import { cn } from '@/lib/utils';
 
 /** Pink-filled track with a minimal thumb. One thumb per value (two values make a range). */
-function Slider({ className, defaultValue, value, min = 0, max = 100, ...props }: React.ComponentProps<typeof SliderPrimitive.Root>) {
+function Slider({
+  className,
+  defaultValue,
+  value,
+  min = 0,
+  max = 100,
+  thumbLabel,
+  ...props
+}: React.ComponentProps<typeof SliderPrimitive.Root> & {
+  /** accessible name of the thumbs (the `slider` role is on the thumb, not on the root) */
+  thumbLabel?: string;
+}) {
   const values = React.useMemo(
     () => (Array.isArray(value) ? value : Array.isArray(defaultValue) ? defaultValue : [min]),
     [value, defaultValue, min],
@@ -32,6 +43,7 @@ function Slider({ className, defaultValue, value, min = 0, max = 100, ...props }
         <SliderPrimitive.Thumb
           key={index}
           data-slot="slider-thumb"
+          aria-label={thumbLabel}
           className="block h-3 w-1.5 shrink-0 rounded-[1px] bg-text outline-none transition-shadow after:absolute after:-inset-2 hover:shadow-glow focus-visible:ring-1 focus-visible:ring-focus disabled:pointer-events-none"
         />
       ))}

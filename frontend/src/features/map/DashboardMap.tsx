@@ -19,8 +19,25 @@ import {
   isWebGlAvailable,
   prefersReducedMotion,
   readToken,
+  recolorBasemap,
 } from './mapStyle';
-import classes from './DashboardMap.module.css';
+
+// Frame, MapLibre controls and the popup, restyled for the dark theme. MapLibre's own CSS is light and unlayered,
+// so it beats Tailwind's layered utilities: the overrides of its classes need `!`.
+const FRAME_CLASS = [
+  'relative h-[var(--map-h,320px)] overflow-hidden rounded-lg bg-surface-sunken shadow-1',
+  '[&_.maplibregl-ctrl-group]:rounded! [&_.maplibregl-ctrl-group]:border! [&_.maplibregl-ctrl-group]:border-border-strong! [&_.maplibregl-ctrl-group]:bg-surface-raised! [&_.maplibregl-ctrl-group]:shadow-none!',
+  '[&_.maplibregl-ctrl-group_button]:border-border! [&_.maplibregl-ctrl-icon]:invert! [&_.maplibregl-ctrl-group_button:hover]:bg-hover!',
+  '[&_.maplibregl-ctrl-attrib]:bg-surface-glass! [&_.maplibregl-ctrl-attrib]:text-text-3! [&_.maplibregl-ctrl-attrib_a]:text-text-2!',
+  '[&_.maplibregl-ctrl-attrib-button]:invert!',
+].join(' ');
+const POPUP_CLASS = [
+  'pointer-events-none',
+  '[&_.maplibregl-popup-content]:rounded! [&_.maplibregl-popup-content]:border! [&_.maplibregl-popup-content]:border-border-strong! [&_.maplibregl-popup-content]:bg-surface-raised! [&_.maplibregl-popup-content]:px-3! [&_.maplibregl-popup-content]:py-2! [&_.maplibregl-popup-content]:font-sans! [&_.maplibregl-popup-content]:text-sm! [&_.maplibregl-popup-content]:text-text! [&_.maplibregl-popup-content]:shadow-2!',
+  '[&_.maplibregl-popup-tip]:hidden!',
+].join(' ');
+const POPUP_BODY_CLASS = 'flex flex-col gap-px';
+const POPUP_META_CLASS = 'text-xs text-text-2 tabular-nums';
 
 const OBJECTS_SOURCE = 'objects';
 const DISTRICTS_SOURCE = 'districts';
@@ -105,7 +122,7 @@ function addObjectLayers(map: MapLibreMap) {
       'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 3.5, 8, 5.5, 12, 8, 16, 11],
       // The colors are set per marker (paintMarkers), so a change of zone can fade.
       'circle-color': ['get', 'color'],
-      'circle-stroke-color': readToken('--surface-raised'),
+      'circle-stroke-color': readToken('--bg'),
       'circle-stroke-width': 1.5,
     },
   });
@@ -144,8 +161,8 @@ export function DashboardMap(props: Props) {
   const { t } = useTranslation('map');
   if (!isWebGlAvailable()) {
     return (
-      <div className={classes.frame}>
-        <p className={classes.unavailable} role="status">
+      <div className={FRAME_CLASS}>
+        <p className="m-0 flex h-full items-center justify-center p-6 text-center text-text-2" role="status">
           {t('map.unavailable')}
         </p>
         {props.children}
@@ -209,11 +226,12 @@ function MapCanvas({
       closeOnClick: false,
       offset: 12,
       maxWidth: '280px',
-      className: classes.popup,
+      className: POPUP_CLASS,
     });
 
     map.on('style.load', () => {
       styleLoaded = true;
+      recolorBasemap(map);
       addObjectLayers(map);
       setStyleVersion((version) => version + 1);
     });
@@ -234,14 +252,14 @@ function MapCanvas({
       setHighlight(map, id);
 
       const content = document.createElement('div');
-      content.className = classes.popupBody;
+      content.className = POPUP_BODY_CLASS;
       const code = document.createElement('span');
-      code.className = classes.popupCode;
+      code.className = POPUP_META_CLASS;
       code.textContent = String(properties.code);
       const name = document.createElement('strong');
       name.textContent = String(properties.name);
       const score = document.createElement('span');
-      score.className = classes.popupScore;
+      score.className = POPUP_META_CLASS;
       score.textContent =
         typeof properties.score === 'number'
           ? t('map.popupScore', { score: properties.score })
@@ -249,7 +267,7 @@ function MapCanvas({
       content.append(code, name, score);
       if (properties.is_demo) {
         const demo = document.createElement('span');
-        demo.className = classes.popupCode;
+        demo.className = POPUP_META_CLASS;
         demo.textContent = t('demo.badge', { ns: 'common' });
         content.append(demo);
       }
@@ -323,8 +341,8 @@ function MapCanvas({
   }, [west, south, east, north, centerLat, centerLon, bottomInset, styleVersion]);
 
   return (
-    <div className={classes.frame} role="region" aria-label={t('map.label')}>
-      <div ref={containerRef} className={classes.canvas} />
+    <div className={FRAME_CLASS} role="region" aria-label={t('map.label')}>
+      <div ref={containerRef} className="absolute! inset-0" />
       {children}
     </div>
   );
