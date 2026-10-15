@@ -1,26 +1,30 @@
-"""Idempotent database seed: `python -m app.seed [--demo]`.
+"""Idempotent database seed: `python -m app.seed [--pilot] [--demo]`.
 
 Reference data (territories, risk factors, phrases, settings) and the initial admin are always
 created when missing and never overwritten. Optional files in app/seed_data/ are described in
-app/seed_data/README.md. `--demo` additionally loads demo users and demo_objects.json.
+app/seed_data/README.md. `--pilot` additionally imports the public snapshot of real objects of the pilot city,
+`--demo` loads demo users and the fictional demo_objects.json.
 """
 
 import argparse
 import json
 import logging
+import re
 import secrets
 import sys
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
+from zoneinfo import ZoneInfo
 
-from pydantic import BaseModel, ConfigDict, ValidationError
+from celery import chain
+from pydantic import BaseModel, BeforeValidator, ConfigDict, ValidationError
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import get_settings
 from app.db import get_sessionmaker
-from app.events import object_changed
+from app.events import objects_changed
 from app.geo import make_point
 from app.models import (
     AdPost,
@@ -35,6 +39,7 @@ from app.models import (
     LinkedEntity,
     Phrase,
     RiskFactor,
+    RiskFactorChange,
     Territory,
 )
 from app.models.enums import (
@@ -55,9 +60,12 @@ from app.models.enums import (
     Role,
     TerritoryLevel,
 )
+from app.modules.registry_sync.pilot import import_pilot
+from app.modules.registry_sync.upsert import assign_district
 from app.modules.settings.service import ensure_defaults
 from app.phones import normalize_phone
 from app.security import hash_password
+from app.worker.celery_app import celery_app
 
 logger = logging.getLogger("app.seed")
 
@@ -68,17 +76,30 @@ CITY_CODE = "ust-kamenogorsk"
 TIMEZONE = "Asia/Almaty"
 
 RISK_FACTORS = [
-    ("no_permit", "Нет подтверждённого разрешения (ДСУ) или гарантии", 40),
     (
-        "money_offer",
-        "В рекламе за период есть предложение внести деньги (бронь, задаток, рассрочка, предварительный договор)",
-        20,
+        "r1_no_legal_basis",
+        "Установлено отсутствие правового основания: гарантия КЖК и разрешение МИО проверены, не найдены",
+        35,
     ),
-    ("active_ads", "За период есть реклама объекта", 15),
-    ("complaints", "Есть коллективное обращение или число открытых обращений достигло порога", 15),
-    ("readiness_overstated", "Заявленная в рекламе готовность выше фактической", 10),
-    ("on_schedule", "Строительство идёт по графику (снижающий фактор)", -15),
+    (
+        "r2_money_offer",
+        "В рекламе за период есть предложение внести деньги: бронь, задаток, депозит, рассрочка, предв. договор",
+        25,
+    ),
+    ("r3_active_ads", "За период есть реклама объекта", 10),
+    ("r4_collective_complaint", "Есть проверенное незакрытое коллективное обращение", 15),
+    ("r5_readiness_mismatch", "Заявленная в рекламе готовность выше фактической на пороговое значение", 10),
+    ("r6_stalled_or_delayed", "Строительство остановлено или срок сдачи существенно сорван", 5),
 ]
+# Codes of the first risk model. Removed when nothing refers to them, otherwise switched off.
+OBSOLETE_RISK_FACTORS = (
+    "no_permit",
+    "money_offer",
+    "active_ads",
+    "complaints",
+    "readiness_overstated",
+    "on_schedule",
+)
 
 # (category, text, variants, weight)
 PHRASES: list[tuple[PhraseCategory, str, list[str], int]] = [
@@ -115,13 +136,26 @@ PHRASES: list[tuple[PhraseCategory, str, list[str], int]] = [
     (
         PhraseCategory.deposit,
         "задаток",
-        ["внести задаток", "обеспечительный платёж", "обеспечительный взнос", "гарантийный взнос"],
+        [
+            "внести задаток",
+            "внести депозит",
+            "оплатить депозит",
+            "обеспечительный платёж",
+            "обеспечительный взнос",
+            "гарантийный взнос",
+        ],
         10,
     ),
     (
         PhraseCategory.price_before_completion,
         "цена до сдачи дома",
-        ["цены до сдачи", "цена до ввода в эксплуатацию", "успей купить до повышения цен", "цены вырастут после сдачи"],
+        [
+            "цены до сдачи",
+            "цена до завершения",
+            "цена до ввода в эксплуатацию",
+            "успей купить до повышения цен",
+            "цены вырастут после сдачи",
+        ],
         6,
     ),
     (
@@ -173,17 +207,35 @@ def seed_territories(session: Session) -> None:
 
 
 def seed_risk_factors(session: Session) -> None:
-    existing = set(session.scalars(select(RiskFactor.code)))
+    existing = {row.code: row for row in session.scalars(select(RiskFactor))}
     for order, (code, description, weight) in enumerate(RISK_FACTORS, start=1):
         if code not in existing:
             session.add(RiskFactor(code=code, description=description, weight=weight, sort_order=order))
+    for code in OBSOLETE_RISK_FACTORS:
+        factor = existing.get(code)
+        if factor is None:
+            continue
+        if session.scalar(select(RiskFactorChange.id).where(RiskFactorChange.code == code).limit(1)) is None:
+            session.delete(factor)
+        else:
+            factor.is_active = False  # its weight history stays readable
+
+
+# Variants added to the dictionary after the first release (the wording of the case: "внесите депозит",
+# "цена до завершения"). An existing dictionary gets them appended; nothing else in it is touched.
+ADDED_VARIANTS = frozenset({"внести депозит", "оплатить депозит", "цена до завершения"})
 
 
 def seed_phrases(session: Session) -> None:
-    existing = {(row.category, row.text) for row in session.scalars(select(Phrase))}
+    existing = {(row.category, row.text): row for row in session.scalars(select(Phrase))}
     for category, text, variants, weight in PHRASES:
-        if (category, text) not in existing:
+        phrase = existing.get((category, text))
+        if phrase is None:
             session.add(Phrase(category=category, text=text, variants=variants, weight=weight))
+            continue
+        missing = [variant for variant in variants if variant in ADDED_VARIANTS and variant not in phrase.variants]
+        if missing:
+            phrase.variants = [*phrase.variants, *missing]
 
 
 def seed_admin(session: Session) -> None:
@@ -265,6 +317,33 @@ class _Strict(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+# Dates in demo_objects.json may be relative to the moment of loading ("-2d", "+330d", "-36h"), so the demo
+# stays current: ads remain inside the analysis window, inspections fresh, deadlines in the future.
+_RELATIVE = re.compile(r"([+-])(\d+)([dh])")
+
+
+def _relative_delta(value: Any) -> timedelta | None:
+    match = _RELATIVE.fullmatch(value.strip()) if isinstance(value, str) else None
+    if match is None:
+        return None
+    amount = int(match[2]) * (1 if match[1] == "+" else -1)
+    return timedelta(days=amount) if match[3] == "d" else timedelta(hours=amount)
+
+
+def _resolve_date(value: Any) -> Any:
+    delta = _relative_delta(value)
+    return value if delta is None else (datetime.now(ZoneInfo(TIMEZONE)) + delta).date()
+
+
+def _resolve_datetime(value: Any) -> Any:
+    delta = _relative_delta(value)
+    return value if delta is None else datetime.now(UTC) + delta
+
+
+RelativeDate = Annotated[date, BeforeValidator(_resolve_date)]
+RelativeDateTime = Annotated[datetime, BeforeValidator(_resolve_datetime)]
+
+
 class DemoDeveloper(_Strict):
     bin: str
     name: str
@@ -277,15 +356,16 @@ class DemoDeveloper(_Strict):
 class DemoDocument(_Strict):
     doc_type: DocType
     number: str | None = None
-    issued_at: date | None = None
+    issued_at: RelativeDate | None = None
     issuer: str | None = None
     check_status: CheckStatus = CheckStatus.checking
     check_source: CheckSource | None = None
+    checked_at: RelativeDateTime | None = None
     note: str | None = None
 
 
 class DemoComplaint(_Strict):
-    received_at: date
+    received_at: RelativeDate
     source: ComplaintSource = ComplaintSource.manual
     external_id: str | None = None
     is_collective: bool = False
@@ -293,10 +373,11 @@ class DemoComplaint(_Strict):
     summary: str | None = None
     status: ComplaintStatus = ComplaintStatus.new
     confirmed_payments: bool = False
+    is_verified: bool = False
 
 
 class DemoInspection(_Strict):
-    inspected_at: date
+    inspected_at: RelativeDate
     readiness_pct: int
     lat: float | None = None
     lon: float | None = None
@@ -314,7 +395,7 @@ class DemoAd(_Strict):
     url: str | None = None
     external_id: str | None = None
     author: str | None = None
-    published_at: datetime
+    published_at: RelativeDateTime
     text: str
     phones: list[str] = []
     is_outdoor: bool = False
@@ -337,10 +418,10 @@ class DemoObject(_Strict):
     land_purpose: str | None = None
     lat: float | None = None
     lon: float | None = None
-    planned_completion: date | None = None
-    forecast_completion: date | None = None
+    planned_completion: RelativeDate | None = None
+    forecast_completion: RelativeDate | None = None
     construction_status: ConstructionStatus = ConstructionStatus.active
-    stalled_since: date | None = None
+    stalled_since: RelativeDate | None = None
     prior_violations: str | None = None
     readiness_claimed_pct: int | None = None
     documents: list[DemoDocument] = []
@@ -424,10 +505,28 @@ def _add_demo_object(session: Session, item: DemoObject) -> int:
     )
     session.add(obj)
     session.flush()
+    assign_district(session, obj)  # an object without a named district gets the one that contains its point
 
     now = datetime.now(UTC)
-    session.add_all(Document(object_id=obj.id, **doc.model_dump()) for doc in item.documents)
-    session.add_all(Complaint(object_id=obj.id, **c.model_dump()) for c in item.complaints)
+    # The demo officer "did" the checks and verifications of the demo data, so they show who decided.
+    officer_id = session.scalar(select(AppUser.id).where(AppUser.username == "demo_mio"))
+    session.add_all(
+        Document(
+            object_id=obj.id,
+            checked_by=officer_id if doc.check_status is not CheckStatus.checking else None,
+            **doc.model_dump(),
+        )
+        for doc in item.documents
+    )
+    session.add_all(
+        Complaint(
+            object_id=obj.id,
+            verified_by=officer_id if c.is_verified else None,
+            verified_at=now if c.is_verified else None,
+            **c.model_dump(),
+        )
+        for c in item.complaints
+    )
     session.add_all(
         Inspection(
             object_id=obj.id,
@@ -461,6 +560,7 @@ def _add_demo_object(session: Session, item: DemoObject) -> int:
                 is_outdoor=ad.is_outdoor,
                 location=make_point(ad.lat, ad.lon),
                 status=ad.status,
+                is_demo=True,
             )
         )
     session.flush()
@@ -496,7 +596,53 @@ def seed_demo_objects(session: Session) -> list[int]:
     return created
 
 
-def run(demo: bool) -> None:
+def run_pilot(session_factory: sessionmaker[Session]) -> None:
+    with session_factory() as session:
+        try:
+            result = import_pilot(session)
+        except (OSError, ValueError, KeyError) as exc:
+            raise SystemExit(f"pilot import failed: {exc}") from exc
+        session.commit()
+    objects_changed(result.changes.object_ids)
+    logger.info(
+        "Pilot data ready: %s krisha.kz objects, %s registry-only objects; created %s objects, %s documents; "
+        "updated %s objects, %s documents; skipped as completed in the registry: %s; objects without a district: %s",
+        result.krisha_objects,
+        result.registry_only_objects,
+        result.changes.objects_created,
+        result.changes.documents_created,
+        result.changes.objects_updated,
+        result.changes.documents_updated,
+        ", ".join(result.skipped_completed) or "none",
+        result.without_district,
+    )
+
+
+def dispatch_demo_processing(ads: list[tuple[int, int]], objects_without_ads: list[int]) -> None:
+    """Queue what turns the loaded demo data into scored objects.
+
+    Every ad goes through `nlp.analyze` -> `nlp.link` and then its object is rescored (`risk.recalc_object`), so
+    phrase hits exist before the score is calculated. Tasks are addressed by name: they live in other modules.
+    Objects without ads are rescored right away. Does nothing when events are disabled.
+    """
+    if not get_settings().events_enabled:
+        return
+    for ad_post_id, object_id in ads:
+        try:
+            chain(
+                celery_app.signature("nlp.analyze", args=[ad_post_id], queue="nlp", immutable=True),
+                celery_app.signature("nlp.link", args=[ad_post_id], queue="nlp", immutable=True),
+                celery_app.signature("risk.recalc_object", args=[object_id], queue="score", immutable=True),
+            ).apply_async(retry=False)
+        except Exception:
+            logger.exception(
+                "Failed to enqueue the processing of demo ad %s; the daily sweep will score it", ad_post_id
+            )
+            return
+    objects_changed(objects_without_ads)
+
+
+def run(demo: bool, pilot: bool = False) -> None:
     factory = get_sessionmaker()
     with factory() as session:
         seed_reference(session)
@@ -505,27 +651,34 @@ def run(demo: bool) -> None:
         session.commit()
         logger.info("Reference data ready (districts: %s, holiday entries: %s)", districts, holidays)
 
+    if pilot:
+        run_pilot(factory)
     if not demo:
         return
     with factory() as session:
         credentials = seed_demo_users(session)
         object_ids = seed_demo_objects(session)
+        ads = [
+            (row.id, row.object_id)
+            for row in session.execute(select(AdPost.id, AdPost.object_id).where(AdPost.object_id.in_(object_ids)))
+        ]
         session.commit()
     for username, password in credentials:
         print(f"demo user {username}: {password}")  # shown once; only the hash is stored
     if credentials:
         print("Passwords above are shown once. Set DEMO_USER_PASSWORD to choose your own.")
-    for object_id in object_ids:
-        object_changed(object_id)
-    logger.info("Demo data ready (new objects: %s)", len(object_ids))
+    with_ads = {object_id for _, object_id in ads}
+    dispatch_demo_processing(ads, [object_id for object_id in object_ids if object_id not in with_ads])
+    logger.info("Demo data ready (new objects: %s, new ads: %s)", len(object_ids), len(ads))
 
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="python -m app.seed", description=__doc__)
+    parser.add_argument("--pilot", action="store_true", help="also import the public snapshot of real pilot objects")
     parser.add_argument("--demo", action="store_true", help="also load demo users and demo_objects.json")
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s", stream=sys.stderr)
-    run(demo=args.demo)
+    run(demo=args.demo, pilot=args.pilot)
 
 
 if __name__ == "__main__":

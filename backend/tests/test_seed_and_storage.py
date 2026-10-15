@@ -13,6 +13,7 @@ from app.config import get_settings
 from app.events import object_changed
 from app.models import AppSetting, ConstructionObject, Document, Holiday, Phrase, RiskFactor, Territory
 from app.models.enums import DocType, EvidenceKind, PhraseCategory
+from app.modules.settings.service import AppSettings
 from app.storage import EvidenceLink
 from tests.conftest import PNG_BYTES, World, make_object
 
@@ -20,32 +21,32 @@ from tests.conftest import PNG_BYTES, World, make_object
 def test_seed_reference_is_idempotent_and_matches_spec(db: Session) -> None:
     seed.seed_reference(db)
     seed.seed_reference(db)
-    factors = {f.code: f.weight for f in db.scalars(select(RiskFactor))}
+    factors = {f.code: (f.weight, f.sort_order) for f in db.scalars(select(RiskFactor))}
     assert factors == {
-        "no_permit": 40,
-        "money_offer": 20,
-        "active_ads": 15,
-        "complaints": 15,
-        "readiness_overstated": 10,
-        "on_schedule": -15,
+        "r1_no_legal_basis": (35, 1),
+        "r2_money_offer": (25, 2),
+        "r3_active_ads": (10, 3),
+        "r4_collective_complaint": (15, 4),
+        "r5_readiness_mismatch": (10, 5),
+        "r6_stalled_or_delayed": (5, 6),
     }
     phrases = db.scalars(select(Phrase)).all()
     assert len(phrases) == 9
     assert {p.category for p in phrases} == set(PhraseCategory)
     assert {p.weight for p in phrases if p.category is PhraseCategory.covert_contract} == {12}
-    assert db.scalar(select(func.count()).select_from(AppSetting)) == 10
+    assert db.scalar(select(func.count()).select_from(AppSetting)) == len(AppSettings().model_dump())
     city = db.scalars(select(Territory).where(Territory.code == "ust-kamenogorsk")).one()
     assert city.timezone == "Asia/Almaty" and city.parent_id is not None
 
 
 def test_seed_keeps_admin_edits(db: Session) -> None:
     seed.seed_reference(db)
-    factor = db.get(RiskFactor, "no_permit")
+    factor = db.get(RiskFactor, "r1_no_legal_basis")
     assert factor is not None
     factor.weight = 55
     db.flush()
     seed.seed_reference(db)
-    assert db.get(RiskFactor, "no_permit").weight == 55  # type: ignore[union-attr]
+    assert db.get(RiskFactor, "r1_no_legal_basis").weight == 55  # type: ignore[union-attr]
 
 
 def test_seed_demo_users_and_objects(db: Session, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
