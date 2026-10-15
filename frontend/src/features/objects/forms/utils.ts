@@ -5,7 +5,7 @@ const API_DATE_FORMAT = 'YYYY-MM-DD';
 export const DISPLAY_DATE_FORMAT = 'DD.MM.YYYY';
 
 /** Client-side guard for scans, screenshots and photos; the server enforces its own (configurable) limit. */
-export const MAX_FILE_MB = 50;
+export const MAX_FILE_MB = 25;
 const MAX_FILE_BYTES = MAX_FILE_MB * 1024 * 1024;
 
 export const SCAN_ACCEPT = 'image/png,image/jpeg,image/webp,application/pdf';

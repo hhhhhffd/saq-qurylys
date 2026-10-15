@@ -162,15 +162,12 @@ export function useCreateDocument() {
   });
 }
 
-/** JSON patch; becomes multipart when a screenshot/scan file is attached. */
+/** JSON patch only; files go through `POST /documents/{id}/evidence` (see features/objects/forms/api.ts). */
 export function useUpdateDocument() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data, file }: { id: number; data: Partial<DocumentInput>; file?: File | null }) =>
-      api<ObjectDocument>(`/documents/${id}`, {
-        method: 'PATCH',
-        body: file ? toFormData({ ...data, file }) : data,
-      }),
+    mutationFn: ({ id, data }: { id: number; data: Partial<DocumentInput> }) =>
+      api<ObjectDocument>(`/documents/${id}`, { method: 'PATCH', body: data }),
     onSuccess: () => invalidateObjectData(qc),
     meta: { success: 'saved' },
   });
