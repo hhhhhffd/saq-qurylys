@@ -7,8 +7,9 @@ WINDOW_SECONDS = 3600
 
 
 class RateLimiter:
-    """Reports and complaints of one citizen per hour. The counter is keyed by an HMAC of the Telegram id, so no
-    identifier of the citizen is stored; it disappears an hour after the first message of the window."""
+    """Actions of one citizen per hour (one limiter per kind of action, told apart by `prefix`). The counter is
+    keyed by an HMAC of the Telegram id, so no identifier of the citizen is stored; it disappears an hour after the
+    first message of the window."""
 
     def __init__(self, client: Redis, secret: str, limit: int, prefix: str = "bot:rate:") -> None:
         self._client = client
