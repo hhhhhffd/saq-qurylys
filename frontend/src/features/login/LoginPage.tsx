@@ -9,9 +9,11 @@ import { errorMessage } from '@/api/queryClient';
 import { useAuth } from '@/auth/useAuth';
 import { PasswordInput } from '@/components/form/PasswordInput';
 import { TextInput } from '@/components/form/TextInput';
+import Aurora from '@/components/fx/Aurora';
+import GlitchText from '@/components/fx/GlitchText';
+import { Spotlight } from '@/components/fx/Spotlight';
 import { Button } from '@/components/ui/button';
 import { LanguageSwitch } from '@/layout/LanguageSwitch';
-import classes from './LoginPage.module.css';
 
 export function LoginPage() {
   const { t } = useTranslation();
@@ -48,35 +50,49 @@ export function LoginPage() {
   });
 
   return (
-    <div className={classes.page}>
-      <div className={classes.lang}>
+    <div className="relative isolate grid min-h-dvh place-items-center overflow-hidden bg-bg px-(--gutter) py-6">
+      <div className="absolute inset-0 -z-10" aria-hidden>
+        <Aurora />
+      </div>
+      <Spotlight />
+      <div className="absolute top-4 right-(--gutter)">
         <LanguageSwitch />
       </div>
-      <form className={`panel ${classes.card}`} onSubmit={submit} noValidate>
-        <div className={classes.brand}>
-          SAQ <span>QURYLYS</span>
-        </div>
-        <h1 className={classes.title}>{t('auth.title')}</h1>
-        <p className={classes.subtitle}>{t('auth.subtitle')}</p>
-        <div className="flex flex-col gap-3">
-          <TextInput label={t('auth.username')} autoComplete="username" autoFocus error={errors.username?.message} {...register('username')} />
-          <PasswordInput
-            label={t('auth.password')}
-            autoComplete="current-password"
-            error={errors.password?.message}
-            {...register('password')}
-          />
-        </div>
-        {error && (
-          <p className={classes.error} role="alert">
-            {error}
-          </p>
-        )}
-        <Button type="submit" className="mt-6 w-full" loading={submitting}>
-          {t('auth.login')}
-        </Button>
-        <p className={classes.note}>{t('auth.internalOnly')}</p>
-      </form>
+      <div className="flex w-full flex-col items-center gap-8">
+        <GlitchText className="font-heading text-3xl font-bold sm:text-5xl" backgroundColor="transparent">
+          SAQ QURYLYS
+        </GlitchText>
+        <form
+          className="w-full max-w-[400px] overflow-hidden rounded-lg bg-surface shadow-window"
+          onSubmit={submit}
+          noValidate
+        >
+          <div className="border-b border-border bg-surface-raised px-4 py-2">
+            <h1 className="font-heading text-xs font-bold tracking-wider text-text uppercase">{t('auth.title')}</h1>
+          </div>
+          <div className="p-5">
+            <p className="mb-5 text-sm text-text-2">{t('auth.subtitle')}</p>
+            <div className="flex flex-col gap-3">
+              <TextInput label={t('auth.username')} autoComplete="username" autoFocus error={errors.username?.message} {...register('username')} />
+              <PasswordInput
+                label={t('auth.password')}
+                autoComplete="current-password"
+                error={errors.password?.message}
+                {...register('password')}
+              />
+            </div>
+            {error && (
+              <p className="mt-3 text-sm text-zone-red-ink" role="alert">
+                {error}
+              </p>
+            )}
+            <Button type="submit" className="mt-5 w-full" loading={submitting}>
+              {t('auth.login')}
+            </Button>
+            <p className="mt-4 text-center text-xs text-text-3">{t('auth.internalOnly')}</p>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

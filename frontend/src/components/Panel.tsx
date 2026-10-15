@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
-import classes from './Panel.module.css';
+import { cn } from '@/lib/utils';
 
 interface Props {
   title?: ReactNode;
@@ -13,16 +13,17 @@ interface Props {
   id?: string;
 }
 
+/** The Fatality group box: a thin frame, a caps title row, the body. */
 export function Panel({ title, actions, children, flush, className, style, id }: Props) {
   return (
-    <section id={id} className={`panel ${classes.root} ${className ?? ''}`} style={style}>
+    <section id={id} className={cn('min-w-0 rounded border border-border bg-surface', className)} style={style}>
       {(title || actions) && (
-        <header className={classes.header}>
-          {title && <h3 className={classes.title}>{title}</h3>}
-          {actions && <div className={classes.actions}>{actions}</div>}
+        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-3 py-1.5">
+          {title && <h3 className="font-heading text-2xs font-bold tracking-wider text-text uppercase">{title}</h3>}
+          {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
         </header>
       )}
-      <div className={flush ? classes.flush : classes.body}>{children}</div>
+      <div className={flush ? undefined : 'p-3'}>{children}</div>
     </section>
   );
 }

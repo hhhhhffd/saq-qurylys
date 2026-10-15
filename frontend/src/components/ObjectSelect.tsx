@@ -1,18 +1,23 @@
 import { useMemo, useState } from 'react';
-import { Select, type SelectProps } from '@mantine/core';
-import { useDebouncedValue } from '@/lib/hooks';
 import { useObject, useObjects } from '@/api/hooks/objects';
+import { SelectInput } from '@/components/form/SelectInput';
+import type { FieldProps } from '@/components/form/useFieldControl';
+import { useDebouncedValue } from '@/lib/hooks';
 
-interface Props extends Omit<SelectProps, 'data' | 'value' | 'onChange' | 'searchable' | 'onSearchChange'> {
+interface Props extends FieldProps {
   value: number | null;
   onChange: (id: number | null) => void;
+  placeholder?: string;
+  disabled?: boolean;
+  /** Mantine leftover of callers that are not migrated yet; ignored. Remove with the last caller. */
+  comboboxProps?: unknown;
 }
 
 /** Searchable object picker backed by `GET /objects?q=`. */
-export function ObjectSelect({ value, onChange, ...rest }: Props) {
+export function ObjectSelect({ value, onChange, comboboxProps: _ignored, ...rest }: Props) {
   const [search, setSearch] = useState('');
   const [debounced] = useDebouncedValue(search, 250);
-  const { data } = useObjects({ q: debounced || undefined, limit: 20 });
+  const { data, isFetching } = useObjects({ q: debounced || undefined, limit: 20 });
 
   const options = useMemo(
     () => (data?.items ?? []).map((item) => ({ value: String(item.id), label: `${item.code} · ${item.name}` })),
@@ -30,13 +35,12 @@ export function ObjectSelect({ value, onChange, ...rest }: Props) {
   );
 
   return (
-    <Select
+    <SelectInput
       {...rest}
       data={merged}
       value={value != null ? String(value) : null}
-      searchable
       clearable
-      filter={({ options: all }) => all}
+      loading={isFetching}
       onSearchChange={setSearch}
       onChange={(next) => onChange(next ? Number(next) : null)}
     />

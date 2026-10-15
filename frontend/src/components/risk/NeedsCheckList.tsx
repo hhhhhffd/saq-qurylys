@@ -3,7 +3,6 @@ import type { EvidenceRef, NeedsCheck } from '@/api/types';
 import { Chip } from '@/components/Chip';
 import { useEnum } from '@/i18n/useEnum';
 import { EvidenceRefLink } from './EvidenceRefLink';
-import classes from './NeedsCheckList.module.css';
 
 function refsOf(item: NeedsCheck): EvidenceRef[] {
   switch (item.code) {
@@ -30,23 +29,23 @@ export function NeedsCheckList({ items, linked, anchors }: Props) {
   if (items.length === 0) return null;
 
   return (
-    <section className={classes.root} aria-labelledby="needs-check-title">
-      <div className={classes.head}>
-        <h4 id="needs-check-title" className={classes.title}>
+    <section className="mt-4 rounded border border-zone-yellow/30 bg-zone-yellow-bg px-3 py-2.5" aria-labelledby="needs-check-title">
+      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+        <h4 id="needs-check-title" className="m-0 font-heading text-2xs font-bold tracking-wider text-zone-yellow-ink uppercase">
           {t('card.needsCheck.title')}
         </h4>
         <Chip tone="yellow">{t('card.needsCheck.zeroPoints')}</Chip>
       </div>
-      <p className={classes.note}>{t('card.needsCheck.note')}</p>
-      <ul className={classes.list}>
+      <p className="mt-1 text-xs text-text-2">{t('card.needsCheck.note')}</p>
+      <ul className="mt-2.5 flex list-none flex-col gap-2.5 p-0">
         {items.map((item) => {
           const refs = refsOf(item);
           return (
-            <li key={item.code} className={classes.item}>
-              <strong>{e('needs_check', item.code)}</strong>
-              <p className={classes.desc}>{e('needs_check_desc', item.code, { ...item.detail })}</p>
+            <li key={item.code} className="text-sm">
+              <strong className="font-semibold text-text">{e('needs_check', item.code)}</strong>
+              <p className="mt-0.5 text-text-2">{e('needs_check_desc', item.code, { ...item.detail })}</p>
               {refs.length > 0 && (
-                <div className={classes.refs}>
+                <div className="mt-1.5 flex flex-wrap gap-x-1.5 gap-y-1">
                   {refs.map((ref) => (
                     <EvidenceRefLink
                       key={`${ref.type}-${ref.id}`}

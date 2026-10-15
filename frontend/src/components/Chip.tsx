@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import classes from './Chip.module.css';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 export type ChipTone = 'neutral' | 'green' | 'yellow' | 'red' | 'info';
 
@@ -11,11 +12,13 @@ interface Props {
   title?: string;
 }
 
+const VARIANT = { neutral: 'secondary', green: 'green', yellow: 'yellow', red: 'red', info: 'outline' } as const;
+
 /** Small status label. Tones reuse zone colors; keep them for semantics (ok / warning / danger). */
 export function Chip({ tone = 'neutral', children, outline, title }: Props) {
   return (
-    <span className={`${classes.chip} ${classes[tone]} ${outline ? classes.outline : ''}`} title={title}>
+    <Badge variant={VARIANT[tone]} title={title} className={cn('max-w-full normal-case tracking-normal', outline && 'border-current bg-transparent')}>
       {children}
-    </span>
+    </Badge>
   );
 }

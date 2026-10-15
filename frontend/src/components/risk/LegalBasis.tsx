@@ -2,7 +2,6 @@ import { useTranslation } from 'react-i18next';
 import type { CheckStatus, LegalBasisStatus, LegalCheck, R1Detail } from '@/api/types';
 import { Chip, type ChipTone } from '@/components/Chip';
 import { useEnum } from '@/i18n/useEnum';
-import classes from './LegalBasis.module.css';
 
 const BASIS_TONE: Record<LegalBasisStatus, ChipTone> = {
   confirmed: 'green',
@@ -34,26 +33,26 @@ export function LegalBasis({ status, checks }: Props) {
     : [];
 
   return (
-    <section className={classes.root} aria-labelledby="legal-basis-title">
-      <div className={classes.head}>
-        <h4 id="legal-basis-title" className={classes.title}>
+    <section className="mt-4" aria-labelledby="legal-basis-title">
+      <div className="mb-2 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+        <h4 id="legal-basis-title" className="m-0 font-heading text-2xs font-bold tracking-wider text-text-2 uppercase">
           {t('card.legalBasis.title')}
         </h4>
         <Chip tone={BASIS_TONE[status]}>{e('legal_basis_status', status)}</Chip>
       </div>
       {rows.length > 0 && (
-        <dl className={classes.checks}>
+        <dl className="m-0 flex flex-col gap-1.5 text-sm">
           {rows.map(([docType, result]) => (
-            <div key={docType}>
-              <dt>{e('doc_type', docType)}</dt>
-              <dd>
+            <div key={docType} className="flex items-center justify-between gap-3">
+              <dt className="min-w-0 text-text-2">{e('doc_type', docType)}</dt>
+              <dd className="m-0 flex-none">
                 <Chip tone={CHECK_TONE[result]}>{e('check_status', result)}</Chip>
               </dd>
             </div>
           ))}
         </dl>
       )}
-      <p className={classes.hint}>{t(`card.legalBasis.hint.${status}`)}</p>
+      <p className="mt-2 text-xs text-text-3">{t(`card.legalBasis.hint.${status}`)}</p>
     </section>
   );
 }
