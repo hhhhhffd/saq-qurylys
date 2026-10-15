@@ -1,0 +1,10 @@
+.root {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.failed {
+  color: var(--text-3);
+}

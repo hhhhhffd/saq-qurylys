@@ -1,0 +1,46 @@
+.root {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--surface-sunken);
+  color: var(--text);
+  font-size: 0.875rem;
+}
+
+.warning {
+  background: var(--zone-yellow-bg);
+  box-shadow: inset 3px 0 0 var(--zone-yellow);
+}
+
+.icon {
+  flex: none;
+  margin-top: 2px;
+  color: var(--text-2);
+}
+
+.body {
+  min-width: 0;
+}
+
+.title {
+  margin: 0 0 2px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.content {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.multiline {
+  white-space: pre-wrap;
+}
+
+.meta {
+  margin: 4px 0 0;
+  color: var(--text-3);
+  font-size: 0.75rem;
+}

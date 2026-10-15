@@ -1,0 +1,31 @@
+.root {
+  position: sticky;
+  bottom: 16px;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 10px 14px;
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-2);
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: 0.875rem;
+}
+
+.hint {
+  color: var(--text-3);
+  font-size: 0.8125rem;
+}
+
+.buttons {
+  display: flex;
+  gap: 8px;
+}

@@ -1,0 +1,22 @@
+.root {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  margin: 0;
+  font-size: 0.8125rem;
+}
+
+.item {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+}
+
+.item dt {
+  color: var(--text-3);
+}
+
+.item dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
