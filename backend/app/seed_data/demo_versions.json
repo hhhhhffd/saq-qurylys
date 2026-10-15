@@ -1,0 +1,82 @@
+{
+  "developers": [
+    {
+      "bin": "992140000101",
+      "name": "ТОО «Малахит Девелопмент Демо»",
+      "director": "Каменев К. К.",
+      "founders": ["Каменев К. К."],
+      "authorized_company": null,
+      "phones": ["+7 700 000 91 00"]
+    }
+  ],
+  "object": {
+    "name": "ЖК «Малахит»",
+    "aliases": ["Малахит"],
+    "territory_code": "ust-kamenogorsk",
+    "district": "Октябрьский",
+    "developer_bin": "992140000101",
+    "address": "ул. Каменная, 21",
+    "cadastral_number": "05-999-021-2121",
+    "land_purpose": "для строительства многоквартирного жилого комплекса",
+    "lat": 49.97312,
+    "lon": 82.57527,
+    "planned_completion": "+400d",
+    "forecast_completion": "+400d",
+    "construction_status": "active",
+    "documents": [
+      {
+        "doc_type": "land_title",
+        "number": "05-999-021-2121",
+        "issued_at": "-380d",
+        "issuer": "НАО «Правительство для граждан»",
+        "check_status": "confirmed",
+        "check_source": "cadastre",
+        "checked_at": "-20d",
+        "note": null
+      }
+    ],
+    "inspections": [
+      {
+        "inspected_at": "-12d",
+        "readiness_pct": 40,
+        "lat": 49.97312,
+        "lon": 82.57527,
+        "note": "Фундамент и первый этаж, темп соответствует графику."
+      }
+    ],
+    "linked_entities": [
+      {
+        "kind": "phone",
+        "value": "+77000009101",
+        "note": "Отдел продаж"
+      }
+    ],
+    "ads": [
+      {
+        "platform": "telegram",
+        "url": "https://example.invalid/telegram/malahit_demo/17",
+        "external_id": "demo-malahit_demo-17",
+        "author": "malahit_demo",
+        "published_at": "-4d",
+        "text": "Открыли продажи в ЖК «Малахит»!\n\nБронь квартиры за 10% от стоимости, остальное — после подписания договора.\n\nОтдел продаж: +7 700 000 91 01",
+        "phones": ["+7 700 000 91 01"],
+        "is_outdoor": false,
+        "payment_schemes": ["booking"],
+        "status": "removed_saved"
+      }
+    ]
+  },
+  "history": {
+    "captured": "-90h",
+    "original_screenshot": "demo_versions_original.png",
+    "versions": [
+      {
+        "observed_after_hours": 1.25,
+        "source": "capture",
+        "text": "ЖК «Малахит»\n\nСкоро старт продаж, подробности в директ.\n\nОтдел продаж: +7 700 000 91 01",
+        "screenshot": "demo_versions_edited.png"
+      }
+    ],
+    "removed_after_hours": 2.25
+  }
+}
