@@ -5,8 +5,7 @@ import {
   NavigationControl,
   Popup,
   type AddLayerObject,
-} from 'maplibre-gl';
-import 'maplibre-gl/dist/maplibre-gl.css';
+} from '@/lib/maplibre';
 import { useTranslation } from 'react-i18next';
 import type { DistrictCollection, ObjectRow } from '@/api/types';
 import { ZONE_HEX } from '@/components/zoneColor';
