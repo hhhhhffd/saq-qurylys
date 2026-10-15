@@ -2,6 +2,30 @@
 import type ru from '../ru/objects';
 
 const objects: typeof ru = {
+  list: {
+    title: 'Объектілер',
+    create: 'Объект құру',
+    importCsv: 'CSV импорты',
+    search: 'Атауы немесе коды бойынша іздеу',
+    zoneFilter: 'Аймақ бойынша сүзгі',
+    filters: {
+      city: 'Қала',
+      allCities: 'Барлық қалалар',
+      district: 'Аудан',
+      allDistricts: 'Барлық аудандар',
+    },
+    columns: {
+      code: 'Код',
+      name: 'Атауы',
+      developer: 'Құрылыс салушы',
+      district: 'Аудан',
+      score: 'Балл',
+      zone: 'Аймақ',
+      keyStatus: 'Негізгі мәртебе',
+    },
+    empty: 'Объектілер табылмады',
+    emptyHint: 'Іздеу сұрауын немесе сүзгілерді өзгертіп көріңіз',
+  },
   card: {
     back: 'Объектілер',
     demo: 'Демо-деректер',

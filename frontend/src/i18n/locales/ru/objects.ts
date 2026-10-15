@@ -1,4 +1,28 @@
 const objects = {
+  list: {
+    title: 'Объекты',
+    create: 'Создать объект',
+    importCsv: 'Импорт CSV',
+    search: 'Поиск по названию или коду',
+    zoneFilter: 'Фильтр по зоне',
+    filters: {
+      city: 'Город',
+      allCities: 'Все города',
+      district: 'Район',
+      allDistricts: 'Все районы',
+    },
+    columns: {
+      code: 'Код',
+      name: 'Название',
+      developer: 'Застройщик',
+      district: 'Район',
+      score: 'Балл',
+      zone: 'Зона',
+      keyStatus: 'Ключевой статус',
+    },
+    empty: 'Объекты не найдены',
+    emptyHint: 'Измените поисковый запрос или фильтры',
+  },
   card: {
     back: 'Объекты',
     demo: 'Демо-данные',
