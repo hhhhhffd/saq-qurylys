@@ -9,9 +9,7 @@ import { errorMessage } from '@/api/queryClient';
 import { useAuth } from '@/auth/useAuth';
 import { PasswordInput } from '@/components/form/PasswordInput';
 import { TextInput } from '@/components/form/TextInput';
-import Aurora from '@/components/fx/Aurora';
 import GlitchText from '@/components/fx/GlitchText';
-import { Spotlight } from '@/components/fx/Spotlight';
 import { Button } from '@/components/ui/button';
 import { LanguageSwitch } from '@/layout/LanguageSwitch';
 
@@ -50,16 +48,12 @@ export function LoginPage() {
   });
 
   return (
-    <div className="relative isolate grid min-h-dvh place-items-center overflow-hidden bg-bg px-(--gutter) py-6">
-      <div className="absolute inset-0 -z-10" aria-hidden>
-        <Aurora />
-      </div>
-      <Spotlight />
+    <div className="relative grid min-h-dvh place-items-center bg-bg px-(--gutter) py-6">
       <div className="absolute top-4 right-(--gutter)">
         <LanguageSwitch />
       </div>
       <div className="flex w-full flex-col items-center gap-8">
-        <GlitchText className="font-heading text-3xl font-bold sm:text-5xl" backgroundColor="transparent">
+        <GlitchText className="font-heading text-3xl font-bold sm:text-5xl" bursts>
           SAQ QURYLYS
         </GlitchText>
         <form

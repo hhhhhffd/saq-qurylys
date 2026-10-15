@@ -15,6 +15,9 @@ interface GlitchTextProps {
   enableShadows?: boolean;
   /** glitch only while hovered */
   enableOnHover?: boolean;
+  /** short glitch bursts (about half a second every `burstEvery` seconds) instead of a continuous glitch */
+  bursts?: boolean;
+  burstEvery?: number;
   /** colors of the left and right shadow: brand pink and the palette's violet by default */
   shadowColors?: [string, string];
   /**
@@ -30,11 +33,14 @@ export default function GlitchText({
   speed = 0.5,
   enableShadows = true,
   enableOnHover = false,
+  bursts = false,
+  burstEvery = 6,
   shadowColors = ['var(--accent)', 'var(--graph-developer)'],
   backgroundColor = 'var(--bg)',
   className,
 }: GlitchTextProps) {
   const style = {
+    '--burst-duration': `${burstEvery}s`,
     '--after-duration': `${speed * 3}s`,
     '--before-duration': `${speed * 2}s`,
     '--after-shadow': enableShadows ? `-0.04em 0 ${shadowColors[0]}` : 'none',
@@ -52,6 +58,11 @@ export default function GlitchText({
     'after:content-[attr(data-text)] after:[text-shadow:var(--after-shadow)] after:animate-glitch-after ' +
     'before:content-[attr(data-text)] before:[text-shadow:var(--before-shadow)] before:animate-glitch-before';
 
+  // The layers stay clipped to nothing between bursts, so the wordmark reads as plain text most of the time.
+  const burst =
+    'after:content-[attr(data-text)] after:[text-shadow:var(--after-shadow)] after:animate-glitch-burst-after ' +
+    'before:content-[attr(data-text)] before:[text-shadow:var(--before-shadow)] before:animate-glitch-burst-before';
+
   const onHover =
     "after:content-[''] after:opacity-0 before:content-[''] before:opacity-0 " +
     'hover:after:content-[attr(data-text)] hover:after:opacity-100 hover:after:[text-shadow:var(--after-shadow)] hover:after:animate-glitch-after ' +
@@ -61,7 +72,7 @@ export default function GlitchText({
     <div
       style={style}
       data-text={children}
-      className={cn('relative inline-block text-[clamp(2rem,10vw,8rem)] font-black whitespace-nowrap text-text select-none', layers, enableOnHover ? onHover : always, className)}
+      className={cn('relative inline-block text-[clamp(2rem,10vw,8rem)] font-black whitespace-nowrap text-text select-none', layers, enableOnHover ? onHover : bursts ? burst : always, className)}
     >
       {children}
     </div>

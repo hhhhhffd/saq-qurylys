@@ -114,8 +114,37 @@
 @theme inline {
   --animate-glitch-after: glitch var(--after-duration, 1.5s) infinite linear alternate-reverse;
   --animate-glitch-before: glitch var(--before-duration, 1s) infinite linear alternate-reverse;
+  --animate-glitch-burst-after: glitch-burst var(--burst-duration, 6s) infinite linear;
+  --animate-glitch-burst-before: glitch-burst var(--burst-duration, 6s) 0.12s infinite linear;
   --animate-spotlight: spotlight 1.8s var(--ease) both;
   --animate-moving-border: moving-border var(--moving-border-duration, 3.2s) linear infinite;
+
+  /* Idle (clipped to nothing) for most of the cycle, then a burst of slices in its last ~9%. */
+  @keyframes glitch-burst {
+    0%,
+    91%,
+    100% {
+      clip-path: inset(50% 0 50% 0);
+    }
+    92% {
+      clip-path: inset(20% 0 50% 0);
+    }
+    93.5% {
+      clip-path: inset(60% 0 10% 0);
+    }
+    95% {
+      clip-path: inset(10% 0 70% 0);
+    }
+    96.5% {
+      clip-path: inset(40% 0 30% 0);
+    }
+    98% {
+      clip-path: inset(75% 0 5% 0);
+    }
+    99.5% {
+      clip-path: inset(30% 0 45% 0);
+    }
+  }
 
   @keyframes glitch {
     0% {
