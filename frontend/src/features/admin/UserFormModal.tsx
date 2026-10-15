@@ -1,8 +1,16 @@
-import { Button, Group, Modal, PasswordInput, Select, Stack, Switch, TextInput } from '@mantine/core';
-import { useForm } from '@mantine/form';
+import { useMemo } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
+import { z } from 'zod';
 import { useCreateUser, useUpdateUser } from '@/api/hooks/reference';
 import type { AdminUser, Locale, Role, UserInput } from '@/api/types';
+import { PasswordInput } from '@/components/form/PasswordInput';
+import { SelectInput } from '@/components/form/SelectInput';
+import { SwitchInput } from '@/components/form/SwitchInput';
+import { TextInput } from '@/components/form/TextInput';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { confirmAction } from '@/lib/confirm';
 import { useEnumOptions } from '@/i18n/useEnum';
 import { useTerritoryList } from '@/lib/territories';
@@ -38,8 +46,36 @@ export function UserFormModal({ user, onClose }: Props) {
   const create = useCreateUser();
   const update = useUpdateUser();
 
-  const form = useForm<FormValues>({
-    initialValues: {
+  const schema = useMemo(
+    () =>
+      z.object({
+        username: z
+          .string()
+          .refine((value) => user || USERNAME_PATTERN.test(value.trim().toLowerCase()), t('users.validation.username')),
+        full_name: z.string().trim().min(1, tc('required')),
+        password: z.string().superRefine((value, ctx) => {
+          if (!value) {
+            if (!user) ctx.addIssue({ code: 'custom', message: tc('required') });
+          } else if (value.length < 8 || value.length > 128) {
+            ctx.addIssue({ code: 'custom', message: t('users.validation.password') });
+          }
+        }),
+        role: z.enum(ROLES).nullable().refine((value) => value !== null, tc('required')),
+        territory: z.string().nullable().refine((value) => value, tc('required')),
+        locale: z.enum(LOCALES),
+        is_active: z.boolean(),
+      }),
+    [t, tc, user],
+  );
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: {
       username: user?.username ?? '',
       full_name: user?.full_name ?? '',
       password: '',
@@ -47,17 +83,6 @@ export function UserFormModal({ user, onClose }: Props) {
       territory: user ? (user.territory_id === null ? WHOLE_COUNTRY : String(user.territory_id)) : null,
       locale: user?.locale ?? 'ru',
       is_active: user?.is_active ?? true,
-    },
-    validate: {
-      username: (value) =>
-        user || USERNAME_PATTERN.test(value.trim().toLowerCase()) ? null : t('users.validation.username'),
-      full_name: (value) => (value.trim() ? null : tc('required')),
-      password: (value) => {
-        if (!value) return user ? null : tc('required');
-        return value.length >= 8 && value.length <= 128 ? null : t('users.validation.password');
-      },
-      role: (value) => (value ? null : tc('required')),
-      territory: (value) => (value ? null : tc('required')),
     },
   });
 
@@ -68,7 +93,7 @@ export function UserFormModal({ user, onClose }: Props) {
   ];
   const localeOptions = LOCALES.map((locale) => ({ value: locale, label: t(`locales.${locale}`) }));
 
-  const submit = form.onSubmit((values) => {
+  const submit = handleSubmit((values) => {
     const { role, territory } = values;
     if (role === null || territory === null) return;
     const territoryId = territory === WHOLE_COUNTRY ? null : Number(territory);
@@ -116,62 +141,94 @@ export function UserFormModal({ user, onClose }: Props) {
   });
 
   return (
-    <Modal opened onClose={onClose} title={user ? t('users.form.editTitle') : t('users.form.createTitle')}>
-      <form onSubmit={submit} noValidate>
-        <Stack gap="sm">
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-lg" aria-describedby={undefined}>
+        <DialogHeader>
+          <DialogTitle>{user ? t('users.form.editTitle') : t('users.form.createTitle')}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={submit} noValidate className="grid gap-3">
           <TextInput
             label={t('users.form.username')}
             description={user ? t('users.form.usernameLocked') : t('users.form.usernameHint')}
             autoComplete="off"
-            withAsterisk={!user}
+            required={!user}
             disabled={Boolean(user)}
-            {...form.getInputProps('username')}
+            error={errors.username?.message}
+            {...register('username')}
           />
           <TextInput
             label={t('users.form.fullName')}
-            withAsterisk
+            required
             autoComplete="off"
-            {...form.getInputProps('full_name')}
+            error={errors.full_name?.message}
+            {...register('full_name')}
           />
           <PasswordInput
             label={t('users.form.password')}
             description={user ? t('users.form.passwordHintEdit') : t('users.form.passwordHintCreate')}
-            withAsterisk={!user}
+            required={!user}
             autoComplete="new-password"
-            {...form.getInputProps('password')}
+            error={errors.password?.message}
+            {...register('password')}
           />
-          <Select
-            label={t('users.form.role')}
-            data={enumOptions('role', ROLES)}
-            allowDeselect={false}
-            withAsterisk
-            {...form.getInputProps('role')}
+          <Controller
+            control={control}
+            name="role"
+            render={({ field, fieldState }) => (
+              <SelectInput
+                label={t('users.form.role')}
+                data={enumOptions('role', ROLES)}
+                required
+                value={field.value}
+                onChange={field.onChange}
+                error={fieldState.error?.message}
+              />
+            )}
           />
-          <Select
-            label={t('users.form.territory')}
-            data={territoryOptions}
-            allowDeselect={false}
-            searchable
-            withAsterisk
-            {...form.getInputProps('territory')}
+          <Controller
+            control={control}
+            name="territory"
+            render={({ field, fieldState }) => (
+              <SelectInput
+                label={t('users.form.territory')}
+                data={territoryOptions}
+                searchable
+                required
+                value={field.value}
+                onChange={field.onChange}
+                error={fieldState.error?.message}
+              />
+            )}
           />
-          <Select
-            label={t('users.form.locale')}
-            data={localeOptions}
-            allowDeselect={false}
-            {...form.getInputProps('locale')}
+          <Controller
+            control={control}
+            name="locale"
+            render={({ field }) => (
+              <SelectInput
+                label={t('users.form.locale')}
+                data={localeOptions}
+                value={field.value}
+                onChange={(next) => next && field.onChange(next)}
+              />
+            )}
           />
-          <Switch label={t('users.form.isActive')} {...form.getInputProps('is_active', { type: 'checkbox' })} />
-          <Group justify="flex-end" mt="xs">
-            <Button variant="default" onClick={onClose}>
+          <Controller
+            control={control}
+            name="is_active"
+            render={({ field }) => (
+              <SwitchInput label={t('users.form.isActive')} checked={field.value} onCheckedChange={field.onChange} />
+            )}
+          />
+          <DialogFooter>
+            <Button type="button" variant="secondary" onClick={onClose}>
               {tc('cancel')}
             </Button>
             <Button type="submit" loading={create.isPending || update.isPending}>
               {tc('save')}
             </Button>
-          </Group>
-        </Stack>
-      </form>
-    </Modal>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Stack, Text } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import { useRiskFactors, useUpdateRiskFactor } from '@/api/hooks/reference';
 import type { RiskFactor } from '@/api/types';
@@ -12,7 +11,6 @@ import { FactorHistory } from './FactorHistory';
 import { ActionsHeader } from './RowActions';
 import { SectionHeader } from './SectionHeader';
 import { useFactorLabels } from './useFactorLabels';
-import classes from './AdminPage.module.css';
 
 interface Draft {
   weight: number | string;
@@ -55,22 +53,18 @@ function FactorsTable({ factors }: { factors: RiskFactor[] }) {
         confirmAction({
           title: t('factors.confirm.title', { name }),
           message: (
-            <Stack gap={6}>
-              <Text size="sm">{t('factors.confirm.message')}</Text>
-              {weightChanged && (
-                <Text size="sm" fw={600}>
-                  {t('factors.confirm.weight', { from: factor.weight, to: weight })}
-                </Text>
-              )}
+            <div className="flex flex-col gap-1.5 text-sm">
+              <p>{t('factors.confirm.message')}</p>
+              {weightChanged && <p className="font-semibold">{t('factors.confirm.weight', { from: factor.weight, to: weight })}</p>}
               {activeChanged && (
-                <Text size="sm" fw={600}>
+                <p className="font-semibold">
                   {t('factors.confirm.active', {
                     from: factor.is_active ? tc('yes') : tc('no'),
                     to: isActive ? tc('yes') : tc('no'),
                   })}
-                </Text>
+                </p>
               )}
-            </Stack>
+            </div>
           ),
           confirmLabel: tc('save'),
           onConfirm: () =>
@@ -113,7 +107,7 @@ function FactorsTable({ factors }: { factors: RiskFactor[] }) {
     col.display({
       id: 'description',
       header: t('factors.columns.description'),
-      cell: ({ row }) => <span className="muted">{row.original.description}</span>,
+      cell: ({ row }) => <span className="text-text-2">{row.original.description}</span>,
     }),
     col.display({ id: 'weight', header: t('factors.columns.weight'), cell: WeightCell }),
     col.display({ id: 'active', header: t('factors.columns.active'), cell: ActiveCell }),
@@ -139,7 +133,7 @@ export function FactorsSection() {
   const query = useRiskFactors();
 
   return (
-    <div className={classes.stack}>
+    <div className="flex flex-col gap-7">
       <section>
         <SectionHeader title={t('factors.title')} description={t('factors.description')} />
         <QueryBoundary query={query}>{(factors) => <FactorsTable factors={factors} />}</QueryBoundary>
