@@ -56,23 +56,63 @@ function tracePath(ctx: CanvasRenderingContext2D, type: GraphNodeType, x: number
   }
 }
 
-function drawLabel(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, scale: number, palette: GraphPalette) {
+/** A label asked for while the nodes are painted; they are placed together once the frame is drawn. */
+interface PendingLabel {
+  text: string;
+  /** top centre, in graph units */
+  x: number;
+  y: number;
+  priority: number;
+}
+
+interface Box {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+const overlaps = (a: Box, b: Box) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+
+/**
+ * Draws the labels from the most to the least important, skipping one that would cover a label already drawn:
+ * in a dense cluster the names would otherwise pile up into an unreadable stack. A skipped name still shows on
+ * hover or when zoomed in further.
+ */
+function drawLabels(ctx: CanvasRenderingContext2D, labels: PendingLabel[], scale: number, palette: GraphPalette) {
   const fontSize = LABEL_FONT_PX / scale;
-  ctx.font = `${fontSize}px ${palette.font}`;
-  const shown = text.length > LABEL_MAX_CHARS ? `${text.slice(0, LABEL_MAX_CHARS - 1)}…` : text;
-  const width = ctx.measureText(shown).width;
   const pad = 3 / scale;
-  ctx.globalAlpha = 0.92;
-  ctx.fillStyle = palette.labelBackground;
-  ctx.beginPath();
-  ctx.roundRect(x - width / 2 - pad, y - pad / 2, width + pad * 2, fontSize + pad * 1.5, 3 / scale);
-  ctx.fill();
-  ctx.globalAlpha = 1;
-  ctx.fillStyle = palette.text;
+  const gap = 2 / scale;
+  ctx.save();
+  ctx.font = `${fontSize}px ${palette.font}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
-  ctx.fillText(shown, x, y + pad / 4);
+  const placed: Box[] = [];
+  for (const label of [...labels].sort((a, b) => b.priority - a.priority)) {
+    const shown = label.text.length > LABEL_MAX_CHARS ? `${label.text.slice(0, LABEL_MAX_CHARS - 1)}…` : label.text;
+    const width = ctx.measureText(shown).width;
+    const box = {
+      left: label.x - width / 2 - pad - gap,
+      top: label.y - pad / 2 - gap,
+      right: label.x + width / 2 + pad + gap,
+      bottom: label.y + fontSize + pad + gap,
+    };
+    if (label.priority < PRIORITY.hovered && placed.some((other) => overlaps(box, other))) continue;
+    placed.push(box);
+    ctx.globalAlpha = 0.92;
+    ctx.fillStyle = palette.labelBackground;
+    ctx.beginPath();
+    ctx.roundRect(label.x - width / 2 - pad, label.y - pad / 2, width + pad * 2, fontSize + pad * 1.5, 3 / scale);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = palette.text;
+    ctx.fillText(shown, label.x, label.y + pad / 4);
+  }
+  ctx.restore();
 }
+
+/** Which label wins a place when two would overlap. */
+const PRIORITY = { other: 1, owner: 2, involved: 3, seed: 4, hovered: 5 } as const;
 
 interface Props {
   graph: LinkGraph;
@@ -91,6 +131,7 @@ export function LinkGraphCanvas({ graph, highlight, seedId, onNodeClick, onBackg
   const hoveredId = useRef<string | null>(null);
   const fitted = useRef(false);
   const previousHighlight = useRef<Set<string> | null>(null);
+  const labels = useRef<PendingLabel[]>([]);
   const palette = useMemo(() => readGraphPalette(), []);
   const reducedMotion = useMemo(() => prefersReducedMotion(), []);
   const ready = width > 0 && height > 0;
@@ -160,9 +201,21 @@ export function LinkGraphCanvas({ graph, highlight, seedId, onNodeClick, onBackg
       // Publications are many and their labels long: they are named on hover or when zoomed in, not when emphasised.
       const named = node.type !== 'ad' && (involved || isSeed);
       if (hovered || (!dimmed && (named || scale >= LABEL_SCALE[node.type]))) {
-        ctx.globalAlpha = 1;
-        const label = node.type === 'phone' ? formatPhone(node.label) : node.label;
-        drawLabel(ctx, label, x, y + size + 3 / scale, scale, palette);
+        const owner = node.type === 'developer' || node.type === 'object';
+        labels.current.push({
+          text: node.type === 'phone' ? formatPhone(node.label) : node.label,
+          x,
+          y: y + size + 3 / scale,
+          priority: hovered
+            ? PRIORITY.hovered
+            : isSeed
+              ? PRIORITY.seed
+              : involved
+                ? PRIORITY.involved
+                : owner
+                  ? PRIORITY.owner
+                  : PRIORITY.other,
+        });
       }
       ctx.restore();
     },
@@ -210,6 +263,10 @@ export function LinkGraphCanvas({ graph, highlight, seedId, onNodeClick, onBackg
           cooldownTime={reducedMotion ? COOLDOWN_REDUCED_MS : COOLDOWN_MS}
           warmupTicks={reducedMotion ? WARMUP_REDUCED_TICKS : 0}
           onEngineStop={handleEngineStop}
+          onRenderFramePre={() => {
+            labels.current = [];
+          }}
+          onRenderFramePost={(ctx, scale) => drawLabels(ctx, labels.current, scale, palette)}
           onNodeHover={(node) => {
             hoveredId.current = node ? String(node.id) : null;
           }}
