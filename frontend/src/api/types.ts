@@ -374,7 +374,6 @@ export interface ObjectInput {
   construction_status?: ConstructionStatus;
   stalled_since?: string | null;
   prior_violations?: string | null;
-  is_demo?: boolean;
 }
 
 export interface ObjectListParams {
@@ -396,8 +395,8 @@ export interface DocumentInput {
   number?: string;
   issued_at?: string;
   issuer?: string;
+  /** `checked_at` / `checked_by` are set by the server */
   check_status: CheckStatus;
-  checked_at?: string;
   check_source?: CheckSource;
   note?: string;
 }
