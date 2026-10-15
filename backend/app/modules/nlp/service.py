@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
 import httpx
-from rapidfuzz import fuzz, utils
+from rapidfuzz import fuzz, process, utils
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
@@ -31,8 +31,16 @@ logger = logging.getLogger(__name__)
 
 ACCOUNT_CONFIDENCE = 1.0
 PHONE_CONFIDENCE = 0.9
-# Below this similarity a name is noise: no tentative link is proposed.
-MIN_NAME_SIMILARITY = 0.5
+# Below this similarity a name is noise: no tentative link is proposed. The similarity of a name is the share
+# of its distinctive words found in the text, so this keeps "three of four words" (0.75) and drops two of three.
+MIN_NAME_SIMILARITY = 0.75
+# A word of the name counts as found when some word of the text is this similar to it (0..100): a typo or an
+# ending passes, a different name (Самал / Самат is 80) does not.
+WORD_MATCH = 85
+# Words that every residential complex has: "ЖК" in the text must not link a post to every "ЖК Нур".
+GENERIC_NAME_WORDS = frozenset(
+    {"жк", "мжк", "жилой", "комплекс", "дом", "квартал", "микрорайон", "мкр", "residence", "residences", "complex"}
+)
 # Two objects whose similarity differs by less than this are indistinguishable by name.
 AMBIGUITY_MARGIN = 0.05
 MIN_NAME_LENGTH = 3
@@ -155,18 +163,31 @@ def _normalize(value: str) -> str:
     return str(utils.default_process(value.replace("ё", "е").replace("Ё", "Е")))
 
 
+def _name_words(name: str) -> list[str]:
+    """The distinctive words of an object name: without the generic ones and single characters."""
+    words = (word for word in _normalize(name).split() if word not in GENERIC_NAME_WORDS and len(word) > 1)
+    return list(dict.fromkeys(words))
+
+
 def _score_names(objects: list[ConstructionObject], text: str) -> list[_NameScore]:
-    """Similarity of every object's name or alias to the text, best first."""
-    query = _normalize(text)
+    """Share of the distinctive words of every object's name or alias that the text contains, best first.
+
+    Every word is scored by its best match among the words of the text; a word below `WORD_MATCH` scores 0,
+    so a name is strong only when all of its distinctive words are found.
+    """
+    words = sorted(set(_normalize(text).split()))
     scores: list[_NameScore] = []
     for obj in objects:
         best: _NameScore | None = None
         for name in (obj.name, *obj.aliases):
-            normalized = _normalize(name)
-            if len(normalized) < MIN_NAME_LENGTH:
+            name_words = _name_words(name)
+            if not name_words or max(len(word) for word in name_words) < MIN_NAME_LENGTH:
                 continue
-            similarity = fuzz.token_set_ratio(normalized, query) / 100
-            candidate = _NameScore(obj.id, similarity, len(normalized.split()))
+            total = 0.0
+            for word in name_words:
+                found = process.extractOne(word, words, scorer=fuzz.ratio, score_cutoff=WORD_MATCH)
+                total += found[1] / 100 if found else 0.0
+            candidate = _NameScore(obj.id, total / len(name_words), len(name_words))
             if best is None or (candidate.similarity, candidate.name_tokens) > (best.similarity, best.name_tokens):
                 best = candidate
         if best is not None:

@@ -170,13 +170,13 @@ def test_link_by_name_and_alias(db: Session, world: World) -> None:
 
 
 def test_weak_name_match_is_proposed_but_needs_verification(db: Session, world: World) -> None:
-    obj = make_object(db, world.ust, "Жилой комплекс Алатау Парк Резиденс")
-    ad = add_ad(db, world.ust, "Алатау скоро")
+    obj = make_object(db, world.ust, "Жилой комплекс Алатау Парк Сити Плаза")
+    ad = add_ad(db, world.ust, "ЖК Алатау Парк Сити скоро")  # three of the four distinctive words
 
     service.link_ad(db, ad)
 
     assert ad.object_id == obj.id and ad.link_method is LinkMethod.name
-    assert ad.link_confidence is not None and 0.5 <= ad.link_confidence < 0.8
+    assert ad.link_confidence == 0.75
     assert ad.status is AdStatus.verification
 
 
