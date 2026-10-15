@@ -140,6 +140,7 @@ class EvidenceKind(StrEnum):
     photo = "photo"
     document_scan = "document_scan"
     pdf = "pdf"
+    registry_response = "registry_response"
 
 
 class LockMode(StrEnum):

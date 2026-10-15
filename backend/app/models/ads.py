@@ -77,6 +77,7 @@ class AdPost(IdMixin, TimestampMixin, Base):
     removed_detected_at: Mapped[datetime | None]
     capture_status: Mapped[CaptureStatus | None] = mapped_column(enum_type(CaptureStatus, "capture_status"))
     capture_error: Mapped[str | None] = mapped_column(Text)
+    is_demo: Mapped[bool] = mapped_column(server_default="false")
 
 
 class Phrase(IdMixin, TimestampMixin, Base):

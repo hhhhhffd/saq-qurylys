@@ -155,6 +155,10 @@ class Complaint(IdMixin, TimestampMixin, Base):
         enum_type(ComplaintStatus, "complaint_status"), server_default=ComplaintStatus.new.value
     )
     confirmed_payments: Mapped[bool] = mapped_column(server_default="false")
+    # Checked by an analyst; a collective complaint counts for R4 only once verified (SPEC 6.1).
+    is_verified: Mapped[bool] = mapped_column(server_default="false")
+    verified_by: Mapped[int | None] = fk("app_user.id", nullable=True)
+    verified_at: Mapped[datetime | None]
 
 
 class LinkedEntity(IdMixin, TimestampMixin, Base):
