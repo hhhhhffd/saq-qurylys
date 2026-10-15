@@ -1,7 +1,15 @@
-import { Avatar, Menu, Text } from '@mantine/core';
 import { IconLogout } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/auth/useAuth';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useEnum } from '@/i18n/useEnum';
 
 function initials(name: string): string {
@@ -20,32 +28,29 @@ export function UserMenu() {
   if (!user) return null;
 
   return (
-    <Menu position="bottom-end" width={240} withinPortal>
-      <Menu.Target>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
         <button
           type="button"
           aria-label={t('header.userMenu')}
-          style={{ border: 0, background: 'none', padding: 0, borderRadius: '50%' }}
+          className="rounded outline-none focus-visible:ring-1 focus-visible:ring-focus"
         >
-          <Avatar color="ink" size={30} radius="xl">
-            {initials(user.full_name || user.username)}
+          <Avatar>
+            <AvatarFallback>{initials(user.full_name || user.username)}</AvatarFallback>
           </Avatar>
         </button>
-      </Menu.Target>
-      <Menu.Dropdown>
-        <Menu.Label>
-          <Text size="sm" fw={600} c="var(--text)" truncate>
-            {user.full_name || user.username}
-          </Text>
-          <Text size="xs" c="dimmed">
-            {e('role', user.role)}
-          </Text>
-        </Menu.Label>
-        <Menu.Divider />
-        <Menu.Item leftSection={<IconLogout size={16} />} onClick={logout}>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel className="flex flex-col gap-0.5">
+          <span className="truncate text-sm font-semibold tracking-normal text-text normal-case">{user.full_name || user.username}</span>
+          <span className="text-xs font-normal tracking-normal text-text-3 normal-case">{e('role', user.role)}</span>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={logout}>
+          <IconLogout />
           {t('auth.logout')}
-        </Menu.Item>
-      </Menu.Dropdown>
-    </Menu>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

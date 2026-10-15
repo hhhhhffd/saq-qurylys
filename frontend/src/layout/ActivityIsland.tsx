@@ -1,6 +1,4 @@
 import { useEffect, useReducer, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { VisuallyHidden } from '@mantine/core';
-import { useReducedMotion } from '@/lib/hooks';
 import {
   IconArrowRight,
   IconArrowsExchange,
@@ -15,9 +13,11 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { useActivityFeed } from '@/api/hooks/activity';
 import type { ActivityEvent } from '@/api/types';
+import StarBorder from '@/components/fx/StarBorder';
 import { zoneColor } from '@/components/zoneColor';
 import { useEnum } from '@/i18n/useEnum';
-import classes from './ActivityIsland.module.css';
+import { cn } from '@/lib/utils';
+import { useReducedMotion } from '@/lib/hooks';
 
 /** How long an event stays open; shorter when others wait, and after the pointer leaves. */
 const OPEN_MS = 6000;
@@ -28,7 +28,7 @@ const MAX_WAITING = 5;
 const SCORE_DELAY_MS = 320;
 const SCORE_TWEEN_MS = 760;
 
-/** Sizes in px; the stylesheet repeats the two heights. */
+/** Sizes in px; the classes of the island repeat the two heights (h-8, h-12). */
 const IDLE_WIDTH = 132;
 const IDLE_HEIGHT = 32;
 const OPEN_WIDTH = 400;
@@ -146,11 +146,14 @@ function ScoreShift({ event, instant }: { event: ActivityEvent; instant: boolean
   }, [instant, event.zone_after, from, to]);
 
   return (
-    <span className={`${classes.score} tnum`} aria-hidden>
-      <span className={classes.scoreFrom}>{from}</span>
-      <IconArrowRight size={13} stroke={2} />
-      <span className={classes.scoreTo}>{instant ? to : counted}</span>
-      <span className={classes.zoneDot} style={{ background: zoneColor(instant ? event.zone_after : zone) }} />
+    <span className="inline-flex flex-none items-center gap-1.5 text-base font-semibold tabular-nums" aria-hidden>
+      <span className="font-medium text-text-3">{from}</span>
+      <IconArrowRight size={13} stroke={2} className="text-text-3" />
+      <span className="min-w-[2ch] text-right text-text">{instant ? to : counted}</span>
+      <span
+        className="ml-1 size-2 rounded-full ring-[3px] ring-text/10 transition-colors duration-700"
+        style={{ background: zoneColor(instant ? event.zone_after : zone) }}
+      />
     </span>
   );
 }
@@ -282,13 +285,25 @@ export function ActivityIsland() {
     : undefined;
 
   return (
-    <div ref={slotRef} className={classes.slot}>
-      <VisuallyHidden role="status" aria-live="polite" aria-atomic="true" data-testid="activity-live-region">
+    <div ref={slotRef} className="pointer-events-none min-w-0 flex-[1_1_0] self-stretch">
+      <div role="status" aria-live="polite" aria-atomic="true" data-testid="activity-live-region" className="sr-only">
         {open && content ? content.announcement : ''}
-      </VisuallyHidden>
+      </div>
       {geometry && (
         <div
-          className={classes.island}
+          className={cn(
+            'group pointer-events-none absolute left-1/2 h-8 w-(--w-idle) rounded-2xl bg-surface-raised shadow-[0_0_0_1px_var(--border-strong),0_6px_18px_rgba(0,0,0,0.35)]',
+            'top-[calc(var(--mid)-16px)] [transform:translateX(calc(-50%_+_var(--shift-idle)))]',
+            'transition-[width,height,top,transform,box-shadow] duration-[400ms] ease-[cubic-bezier(0.32,0.72,0,1)]',
+            'data-[open=true]:pointer-events-auto data-[open=true]:top-[calc(var(--mid)-24px)] data-[open=true]:h-12 data-[open=true]:w-(--w-open) data-[open=true]:rounded-3xl',
+            'data-[open=true]:[transform:translateX(calc(-50%_+_var(--shift-open)))] data-[open=true]:shadow-glow',
+            'data-[open=true]:duration-[580ms] data-[open=true]:ease-[cubic-bezier(0.3,1.35,0.4,1)]',
+            // Not enough room in the header row (narrow screens, long navigation): the open island hangs below the header.
+            'data-[open=true]:data-[place=below]:top-[calc(100%+8px)]',
+            // Entering the red zone: a red edge and a soft red glow instead of the pink one, nothing that blinks.
+            'data-[alert=true]:shadow-[0_0_0_1px_color-mix(in_srgb,var(--zone-red)_62%,transparent),0_8px_28px_-6px_color-mix(in_srgb,var(--zone-red)_45%,transparent)]',
+            'motion-reduce:transition-none',
+          )}
           style={style}
           data-open={open}
           data-place={geometry.inBand ? 'band' : 'below'}
@@ -306,33 +321,83 @@ export function ActivityIsland() {
           }}
           onBlur={() => setFocused(false)}
         >
-          <span className={classes.idle} aria-hidden title={feed.isError ? t('offline') : undefined}>
-            <span className={classes.liveDot} />
-            <span className={classes.idleLabel}>{t('idle')}</span>
-          </span>
-          {shown && content && (
-            <button
-              type="button"
-              className={classes.event}
-              inert={!open}
-              aria-label={content.announcement}
-              onClick={() => {
-                dispatch({ type: 'close' });
-                void navigate(content.target);
-              }}
+          {/* The pill clips its content; the glow of the border (below) bleeds out of it. */}
+          <div className="absolute inset-0 overflow-hidden rounded-[inherit]">
+            <span
+              className={cn(
+                'absolute top-0 left-1/2 flex h-8 w-(--w-idle) -translate-x-1/2 items-center justify-center gap-2',
+                'transition-opacity delay-[140ms] duration-[260ms] group-data-[open=true]:opacity-0 group-data-[open=true]:delay-0 group-data-[open=true]:duration-100',
+              )}
+              aria-hidden
+              title={feed.isError ? t('offline') : undefined}
             >
-              <span key={shown.id} className={classes.content}>
-                <span className={classes.icon}>{content.icon}</span>
-                <span className={classes.text}>
-                  <span className={classes.title}>{content.title}</span>
-                  <span className={classes.detail}>
-                    <span className={classes.detailText}>{content.detail}</span>
-                    {shown.is_demo === true && <span className={classes.demo}>{tc('demo.badge')}</span>}
-                  </span>
-                </span>
-                {shown.kind === 'score_changed' && <ScoreShift event={shown} instant={reduced} />}
+              <span
+                className={cn(
+                  'size-1.5 flex-none animate-pulse rounded-full bg-primary shadow-[0_0_8px_var(--accent-glow)] motion-reduce:animate-none',
+                  'group-data-[offline=true]:animate-none group-data-[offline=true]:bg-transparent group-data-[offline=true]:shadow-none group-data-[offline=true]:ring-[1.5px] group-data-[offline=true]:ring-text-3',
+                )}
+              />
+              {/* Too little room for the word: the dot alone. */}
+              <span className="truncate font-heading text-3xs font-semibold tracking-wider text-text-2 uppercase group-data-[compact=true]:hidden">
+                {t('idle')}
               </span>
-            </button>
+            </span>
+            {shown && content && (
+              <button
+                type="button"
+                // Laid out at the final width so the text does not reflow while the island grows; the pill clips it.
+                className={cn(
+                  'absolute top-0 left-1/2 m-0 h-12 w-(--w-open) -translate-x-1/2 cursor-pointer rounded-3xl border-0 bg-transparent p-0 text-left text-inherit',
+                  'opacity-0 blur-[6px] transition-[opacity,filter] duration-150 ease-linear',
+                  'group-data-[open=true]:opacity-100 group-data-[open=true]:blur-none group-data-[open=true]:delay-[130ms] group-data-[open=true]:duration-300',
+                  'focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-focus',
+                  'motion-reduce:blur-none motion-reduce:delay-0 motion-reduce:duration-200',
+                )}
+                inert={!open}
+                aria-label={content.announcement}
+                onClick={() => {
+                  dispatch({ type: 'close' });
+                  void navigate(content.target);
+                }}
+              >
+                {/* Replaced when the next event takes over. */}
+                <span
+                  key={shown.id}
+                  className="flex size-full animate-in items-center gap-2.5 py-0 pr-4 pl-2 duration-300 fade-in-0 slide-in-from-bottom-1 motion-reduce:animate-none"
+                >
+                  <span className="grid size-8 flex-none place-items-center rounded-full bg-primary/16 text-accent-text transition-colors duration-[400ms] group-data-[alert=true]:bg-zone-red/40 group-data-[alert=true]:text-zone-red-ink [&_svg]:size-4">
+                    {content.icon}
+                  </span>
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="truncate text-sm leading-tight font-semibold text-text">{content.title}</span>
+                    <span className="flex min-w-0 items-center gap-1.5 text-xs leading-snug text-text-2">
+                      <span className="truncate">{content.detail}</span>
+                      {/* Stays whole when a long name is cut. */}
+                      {shown.is_demo === true && (
+                        <span className="flex-none rounded-sm border border-border-strong px-1 text-3xs font-semibold tracking-wider uppercase">
+                          {tc('demo.badge')}
+                        </span>
+                      )}
+                    </span>
+                  </span>
+                  {shown.kind === 'score_changed' && <ScoreShift event={shown} instant={reduced} />}
+                </span>
+              </button>
+            )}
+          </div>
+          {open && (
+            <StarBorder
+              as="div"
+              aria-hidden
+              radius={24}
+              duration={5}
+              hover="none"
+              clickPulse={false}
+              backgroundColor="transparent"
+              borderColor="transparent"
+              color={content?.alert ? 'var(--zone-red)' : 'var(--accent)'}
+              className="pointer-events-none absolute inset-0 p-0"
+            />
           )}
         </div>
       )}

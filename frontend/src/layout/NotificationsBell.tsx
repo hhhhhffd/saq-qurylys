@@ -1,13 +1,15 @@
-import { ActionIcon, Badge, Button, Indicator, Popover, ScrollArea, Text } from '@mantine/core';
 import { IconBell } from '@tabler/icons-react';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useMarkAllNotificationsRead, useMarkNotificationRead, useNotifications } from '@/api/hooks/misc';
 import type { AppNotification } from '@/api/types';
 import { useAuth } from '@/auth/useAuth';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useEnum } from '@/i18n/useEnum';
 import { useFormat } from '@/i18n/useFormat';
-import classes from './NotificationsBell.module.css';
 
 /** Where a notification leads, by the entity it references. */
 function targetPath(notification: AppNotification): string | null {
@@ -61,55 +63,51 @@ export function NotificationsBell() {
   };
 
   return (
-    <Popover position="bottom-end" width={360} withinPortal>
-      <Popover.Target>
-        <Indicator
-          label={data.length > 99 ? '99+' : data.length}
-          disabled={data.length === 0}
-          size={16}
-          color="red"
-          offset={5}
-        >
-          <ActionIcon aria-label={t('header.notifications')} size="lg" radius="xl">
-            <IconBell size={20} stroke={1.6} />
-          </ActionIcon>
-        </Indicator>
-      </Popover.Target>
-      <Popover.Dropdown p={0}>
-        <div className={classes.head}>
-          <Text fw={600} size="sm">
-            {t('header.notifications')}
-          </Text>
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="icon" aria-label={t('header.notifications')} className="relative">
+          <IconBell />
           {data.length > 0 && (
-            <Button variant="subtle" size="compact-xs" onClick={() => markAll.mutate()} loading={markAll.isPending}>
+            <Badge
+              variant="default"
+              className="pointer-events-none absolute -top-1 -right-1 h-4 min-w-4 rounded-full bg-primary px-1 text-primary-foreground tabular-nums"
+            >
+              {data.length > 99 ? '99+' : data.length}
+            </Badge>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-[min(360px,calc(100vw-2rem))] gap-0 p-0">
+        <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-1.5">
+          <span className="font-heading text-2xs font-bold tracking-wider text-text uppercase">{t('header.notifications')}</span>
+          {data.length > 0 && (
+            <Button variant="ghost" size="xs" onClick={() => markAll.mutate()} loading={markAll.isPending}>
               {t('header.markAllRead')}
             </Button>
           )}
         </div>
         {data.length === 0 ? (
-          <Text size="sm" c="dimmed" ta="center" py="lg">
-            {t('header.noNotifications')}
-          </Text>
+          <p className="m-0 py-6 text-center text-sm text-text-3">{t('header.noNotifications')}</p>
         ) : (
-          <ScrollArea.Autosize mah={420}>
-            <ul className={classes.list}>
+          <ScrollArea className="max-h-[420px] [&>[data-slot=scroll-area-viewport]]:max-h-[420px]">
+            <ul className="m-0 list-none p-0">
               {data.map((notification) => (
                 <li key={notification.id}>
-                  <button type="button" className={classes.item} onClick={() => open(notification)}>
-                    <span className={classes.title}>{e('notification_kind', kindOf(notification))}</span>
-                    {subjectOf(notification) && (
-                      <Badge variant="default" size="sm">
-                        {subjectOf(notification)}
-                      </Badge>
-                    )}
-                    <span className={`${classes.time} tnum`}>{dateTime(notification.created_at)}</span>
+                  <button
+                    type="button"
+                    className="flex w-full cursor-pointer flex-col items-start gap-1 border-b border-border px-3 py-2 text-left transition-colors hover:bg-hover focus-visible:bg-hover focus-visible:outline-none"
+                    onClick={() => open(notification)}
+                  >
+                    <span className="text-sm font-semibold text-text">{e('notification_kind', kindOf(notification))}</span>
+                    {subjectOf(notification) && <Badge variant="outline">{subjectOf(notification)}</Badge>}
+                    <span className="text-xs text-text-3 tabular-nums">{dateTime(notification.created_at)}</span>
                   </button>
                 </li>
               ))}
             </ul>
-          </ScrollArea.Autosize>
+          </ScrollArea>
         )}
-      </Popover.Dropdown>
+      </PopoverContent>
     </Popover>
   );
 }

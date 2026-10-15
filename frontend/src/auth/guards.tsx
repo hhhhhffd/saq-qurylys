@@ -1,9 +1,8 @@
 import type { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router';
-import { Button } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
-import { LoadingBlock } from '@/components/QueryState';
-import { ErrorBlock } from '@/components/QueryState';
+import { ErrorBlock, LoadingBlock } from '@/components/QueryState';
+import { Button } from '@/components/ui/button';
 import { useAuth } from './useAuth';
 
 export function RequireAuth({ children }: { children: ReactNode }) {
@@ -13,18 +12,18 @@ export function RequireAuth({ children }: { children: ReactNode }) {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100dvh', display: 'grid', placeItems: 'center' }}>
+      <div className="grid min-h-dvh place-items-center">
         <LoadingBlock />
       </div>
     );
   }
   if (error) {
     return (
-      <div style={{ minHeight: '100dvh', display: 'grid', placeItems: 'center' }}>
+      <div className="grid min-h-dvh place-items-center">
         <div>
           <ErrorBlock error={error} onRetry={retry} />
-          <div style={{ textAlign: 'center' }}>
-            <Button variant="subtle" size="xs" onClick={logout}>
+          <div className="text-center">
+            <Button variant="ghost" size="xs" onClick={logout}>
               {t('auth.logout')}
             </Button>
           </div>
