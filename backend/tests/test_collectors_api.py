@@ -7,10 +7,14 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.collectors import lock as collect_lock
 from app.config import get_settings
 from app.models import AuditLog, SourceAccount
 from app.models.enums import Platform
-from tests.conftest import World, auth
+from tests.conftest import World, auth, make_object
+from tests.support_collect import collect_locks  # noqa: F401
+
+pytestmark = pytest.mark.usefixtures("collect_locks")
 
 ACCOUNTS = "/api/v1/source-accounts"
 OLX_SEARCH = "https://www.olx.kz/nedvizhimost/q-novostroyka/"
@@ -112,6 +116,30 @@ def test_collect_now_is_refused_while_the_collector_is_off(
     assert response.status_code == 409 and response.json()["detail"]["code"] == "collector_disabled"
     assert sent_tasks == []
     assert db.scalars(select(AuditLog).where(AuditLog.action == "source_account.collect")).all() == []
+
+
+def test_collect_now_is_refused_while_the_account_is_being_collected(
+    client: TestClient,
+    db: Session,
+    world: World,
+    sent_tasks: list[tuple[str, tuple[object, ...]]],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    switch_on(monkeypatch, "collect_telegram_enabled")
+    busy = add_account(db, world, Platform.telegram, "busy_demo")
+    free = add_account(db, world, Platform.telegram, "free_demo")
+    headers = auth(world.users["mio_ust"])
+
+    with collect_lock.hold(busy.id) as acquired:  # a run of the worker is under way
+        assert acquired
+        refused = client.post(f"{ACCOUNTS}/{busy.id}/collect", headers=headers)
+        assert client.post(f"{ACCOUNTS}/{free.id}/collect", headers=headers).status_code == 202
+
+    assert refused.status_code == 409 and refused.json()["detail"]["code"] == "collect_in_progress"
+    assert sent_tasks == [("collect.source", (free.id,))]
+    # Once the run is over the button works again, and the refused click left no trace.
+    assert client.post(f"{ACCOUNTS}/{busy.id}/collect", headers=headers).status_code == 202
+    assert len(db.scalars(select(AuditLog).where(AuditLog.action == "source_account.collect")).all()) == 2
 
 
 def test_an_aggregator_search_needs_the_collector_of_its_own_site(
@@ -238,3 +266,41 @@ def test_accounts_of_other_platforms_are_created_as_before(client: TestClient, w
 
     assert telegram.json()["handle"] == "alatau_news" and instagram.json()["handle"] == "alatau_zhk"
     assert telegram.json()["last_error"] is None and telegram.json()["last_error_at"] is None
+
+
+def test_a_saved_search_of_an_aggregator_cannot_be_bound_to_an_object(
+    client: TestClient, db: Session, world: World
+) -> None:
+    headers = auth(world.users["mio_ust"])
+    obj = make_object(db, world.ust, "Жилой комплекс Нур Плаза")
+
+    refused = client.post(
+        ACCOUNTS,
+        headers=headers,
+        json={"platform": "aggregator", "handle": "poisk", "url": OLX_SEARCH, "object_id": obj.id},
+    )
+
+    assert refused.status_code == 422 and refused.json()["detail"]["code"] == "aggregator_object_not_allowed"
+    assert db.scalars(select(SourceAccount).where(SourceAccount.platform == Platform.aggregator)).all() == []
+    created = client.post(
+        ACCOUNTS, headers=headers, json={"platform": "aggregator", "handle": "poisk", "url": OLX_SEARCH}
+    )
+    assert created.status_code == 201 and created.json()["object_id"] is None
+    url = f"{ACCOUNTS}/{created.json()['id']}"
+    patched = client.patch(url, headers=headers, json={"object_id": obj.id})
+    assert patched.status_code == 422 and patched.json()["detail"]["code"] == "aggregator_object_not_allowed"
+    # Clearing is allowed (a search bound before this rule), and so is an update that leaves the object alone.
+    assert client.patch(url, headers=headers, json={"object_id": None, "is_watched": False}).status_code == 200
+
+
+def test_accounts_of_a_single_publisher_are_still_bound_to_an_object(
+    client: TestClient, db: Session, world: World
+) -> None:
+    headers = auth(world.users["mio_ust"])
+    obj = make_object(db, world.ust, "Жилой комплекс Нур Плаза")
+
+    created = client.post(
+        ACCOUNTS, headers=headers, json={"platform": "telegram", "handle": "nur_plaza", "object_id": obj.id}
+    )
+
+    assert created.status_code == 201 and created.json()["object_id"] == obj.id

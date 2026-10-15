@@ -120,6 +120,12 @@ def to_utf16_offsets(text: str, offsets: Sequence[int]) -> list[int]:
     return [len(text[:offset].encode("utf-16-le")) // 2 for offset in offsets]
 
 
+def strip_ocr_marker(text: str) -> str:
+    """Replace the OCR marker sequence in third-party text by a plain paragraph break. Text that carried it would be
+    shown as recognised text and cut off by the next OCR run."""
+    return text.replace(OCR_MARKER, "\n\n")
+
+
 def split_ocr(text: str) -> tuple[str, str | None]:
     """(the publication's own text, the text read from its photos or None)."""
     own, marker, recognised = text.partition(OCR_MARKER)

@@ -18,11 +18,15 @@ import type {
 } from '../types';
 
 const PENDING_POLL_MS = 3000;
+// A worker that has not finished in this time is not going to: the status stays on the row but is not polled for.
+const PENDING_MAX_AGE_MS = 10 * 60_000;
 // The worker collects after the request is queued; the page shows the outcome once it had time to finish.
 const COLLECT_REFRESH_MS = 10_000;
 
-/** A worker is still capturing the page or reading the photos of the publication. */
-const isProcessing = (ad: AdRow) => ad.capture_status === 'pending' || ad.ocr_status === 'pending';
+/** A worker is still capturing the page or reading the photos of the publication (and was asked to recently). */
+const isProcessing = (ad: AdRow) =>
+  (ad.capture_status === 'pending' || ad.ocr_status === 'pending') &&
+  Date.now() - new Date(ad.created_at).getTime() < PENDING_MAX_AGE_MS;
 
 export function useAds(params: AdListParams) {
   return useQuery({

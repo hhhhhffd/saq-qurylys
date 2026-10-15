@@ -116,3 +116,26 @@ def test_a_collected_post_of_an_account_bound_by_staff_counts_at_once(db: Sessio
     service.link_ad(db, ad)
 
     assert (ad.object_id, ad.link_method, ad.status) == (obj.id, LinkMethod.account, AdStatus.captured)
+
+
+def test_a_saved_search_bound_to_an_object_does_not_link_what_it_finds(db: Session, world: World) -> None:
+    obj = make_object(db, world.ust, "Жилой комплекс Нур Плаза")
+    other = make_object(db, world.ust, "Жилой комплекс Самал Парк")
+    search = SourceAccount(
+        platform=Platform.aggregator, handle="poisk", object_id=obj.id, territory_id=world.ust.id
+    )  # bound before the rule that forbids it
+    db.add(search)
+    db.flush()
+    stranger = add_ad(db, world.ust, "Квартира в Самал Парк", origin=AdOrigin.collector, source_account_id=search.id)
+    nameless = add_ad(db, world.ust, "Продаётся квартира", origin=AdOrigin.collector, source_account_id=search.id)
+
+    service.link_ad(db, stranger)
+    service.link_ad(db, nameless)
+
+    # The listing is one of anybody's: it is linked by what it says, and as a guess a person has to confirm.
+    assert (stranger.object_id, stranger.link_method, stranger.status) == (
+        other.id,
+        LinkMethod.name,
+        AdStatus.verification,
+    )
+    assert (nameless.object_id, nameless.link_method) == (None, None)

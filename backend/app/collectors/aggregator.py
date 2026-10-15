@@ -42,7 +42,9 @@ def check_search_url(url: str) -> None:
 
 class AggregatorCollector:
     platform = Platform.aggregator
-    capture_urls = True
+    # A listing page shows the name and contacts of the seller, which the system does not keep (SPEC 10.1): the parsed
+    # text and the downloaded photos are the copy.
+    capture_urls = False
 
     def __init__(self, sites: dict[str, SiteCollector]) -> None:
         # Only the enabled sites: a search on another one is skipped.

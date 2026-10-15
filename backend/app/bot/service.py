@@ -32,7 +32,7 @@ from app.models.enums import (
 from app.modules.ads import service as ads_service
 from app.modules.ads.urls import detect_platform, is_http_url
 from app.modules.nlp.service import GENERIC_NAME_WORDS
-from app.modules.nlp.text import extract_links
+from app.modules.nlp.text import extract_links, strip_ocr_marker
 from app.modules.objects.service import territory_today
 from app.modules.risk import engine
 from app.modules.signals.notifications import add_notifications, users_covering_territory
@@ -196,7 +196,7 @@ def submit_citizen_report(
 
     The citizen is not identified: no author, no Telegram id. Raises `EmptyReportError` when there is nothing to store.
     """
-    text = text.strip()[:TEXT_MAX_CHARS]
+    text = strip_ocr_marker(text.strip())[:TEXT_MAX_CHARS]
     usable = _usable_photos(photos)
     if not (text or url or usable):
         raise EmptyReportError
@@ -230,7 +230,7 @@ def submit_citizen_report(
     )
     ad_id = ad.id
     session.commit()
-    if not ads_service.dispatch_pipeline(ad_id, capture=url is not None, requested_by=None) and url is not None:
+    if not ads_service.dispatch_pipeline(ad_id, capture=url is not None, requested_by=None):
         ads_service.mark_capture_unqueued(session, ad)
     return ReportResult(ad_id=ad_id, photos_saved=len(usable))
 

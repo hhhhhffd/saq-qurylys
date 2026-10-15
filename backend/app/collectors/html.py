@@ -1,4 +1,5 @@
-"""HTML to plain text for the collectors, keeping line breaks and link addresses."""
+"""HTML to plain text for the collectors, keeping line breaks. The text is what a reader sees: the addresses behind
+links are returned separately (`link_urls`), so that the text equals the one of a capture or of the re-check."""
 
 import re
 from urllib.parse import urlsplit
@@ -14,10 +15,6 @@ def _is_web_url(value: str) -> bool:
     return urlsplit(value).scheme in {"http", "https"}
 
 
-def _without_scheme(url: str) -> str:
-    return url.split("://", 1)[-1].removeprefix("www.").rstrip("/")
-
-
 def _collect(node: LexborNode, parts: list[str]) -> None:
     for child in node.iter(include_text=True):
         tag = child.tag
@@ -28,15 +25,8 @@ def _collect(node: LexborNode, parts: list[str]) -> None:
         elif tag in {"script", "style"}:
             continue
         else:
-            start = len(parts)
             _collect(child, parts)
-            if tag == "a":
-                href = (child.attributes.get("href") or "").strip()
-                shown = "".join(parts[start:])
-                # A link whose visible text is the address itself, or a relative one (hashtags), adds nothing.
-                if _is_web_url(href) and _without_scheme(href) not in shown:
-                    parts.append(f" ({href})")
-            elif tag in _BLOCK_TAGS:
+            if tag in _BLOCK_TAGS:
                 parts.append("\n")
 
 
@@ -46,7 +36,7 @@ def clean_text(text: str) -> str:
 
 
 def node_text(node: LexborNode) -> str:
-    """Plain text of an element: `<br>` and block tags become line breaks, links keep their address."""
+    """Plain text of an element: `<br>` and block tags become line breaks, links show only their text."""
     parts: list[str] = []
     _collect(node, parts)
     return clean_text("".join(parts))
@@ -56,6 +46,12 @@ def fragment_text(html: str) -> str:
     """Plain text of an HTML fragment such as an OLX description."""
     body = LexborHTMLParser(html).body
     return node_text(body) if body is not None else ""
+
+
+def fragment_links(html: str) -> list[str]:
+    """Web addresses of the links in an HTML fragment."""
+    body = LexborHTMLParser(html).body
+    return link_urls(body) if body is not None else []
 
 
 def link_urls(node: LexborNode) -> list[str]:

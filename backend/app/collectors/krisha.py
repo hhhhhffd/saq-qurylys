@@ -12,7 +12,7 @@ import httpx
 from selectolax.lexbor import LexborHTMLParser, LexborNode
 
 from app.collectors.base import CollectedPost, CollectorError, IsKnown
-from app.collectors.html import clean_text, node_text
+from app.collectors.html import clean_text, link_urls, node_text
 from app.collectors.http import Fetcher
 from app.models import SourceAccount
 from app.models.enums import Platform
@@ -82,8 +82,12 @@ def parse_detail(html: str, listing_id: str) -> CollectedPost | None:
         if name and value:
             lines.append(f"{name}: {value}")
     text = "\n".join(line for line in lines if line)
-    if description := _text_of(tree, ".offer__description .text .a-text"):
-        text = f"{text}\n\n{description}"
+    links: list[str] = []
+    description_node = tree.css_first(".offer__description .text .a-text")
+    if description_node is not None:
+        links = link_urls(description_node)
+        if description := node_text(description_node):
+            text = f"{text}\n\n{description}"
     scripts = _scripts(tree)
     url = listing_url(listing_id)
     return CollectedPost(
@@ -91,6 +95,7 @@ def parse_detail(html: str, listing_id: str) -> CollectedPost | None:
         text=clean_text(text),
         url=url,
         published_at=_added_at(scripts),
+        links=links,
         media_urls=_photo_urls(scripts),
     )
 

@@ -39,20 +39,14 @@ def recheck_due() -> None:
     objects_changed([*removed_objects, *refreshed_objects])
 
 
-def _dispatch_new_posts(created: list[tuple[int, bool]]) -> None:
-    for ad_post_id, capture in created:
-        service.dispatch_pipeline(ad_post_id, capture=capture, requested_by=None)
-
-
+# The pipeline of every new post is queued by the collection itself, right after the post is saved.
 @celery_app.task(name="collect.run_all")
 def run_all() -> None:
     with get_sessionmaker()() as session:
-        created = service.run_collectors(session)
-    _dispatch_new_posts(created)
+        service.run_collectors(session)
 
 
 @celery_app.task(name="collect.source")
 def collect_source(source_id: int) -> None:
     with get_sessionmaker()() as session:
-        created = service.collect_source(session, source_id)
-    _dispatch_new_posts(created)
+        service.collect_source(session, source_id)

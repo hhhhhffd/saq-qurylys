@@ -629,6 +629,8 @@ export interface AdRow {
   origin: AdOrigin;
   /** null when the publication has no photos to read */
   ocr_status: OcrStatus | null;
+  /** when the publication was entered (collected, reported or captured) */
+  created_at: string;
 }
 
 export interface AdDetail extends AdRow {

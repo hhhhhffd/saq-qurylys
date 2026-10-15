@@ -62,6 +62,7 @@ class AdRow(ORMModel):
     origin: AdOrigin
     # NULL when the post has no photos to read.
     ocr_status: OcrStatus | None
+    created_at: datetime
 
 
 class PhraseHitOut(ORMModel):
