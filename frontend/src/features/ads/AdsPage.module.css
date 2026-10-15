@@ -1,0 +1,30 @@
+.feed {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: opacity var(--dur) var(--ease);
+}
+
+.stale {
+  opacity: 0.6;
+}
+
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+}
+
+.pinned {
+  margin-bottom: 20px;
+}
+
+.pinnedHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-size: 0.8125rem;
+}
