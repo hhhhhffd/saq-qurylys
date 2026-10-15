@@ -11,7 +11,7 @@ Principles of the model:
 """
 
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 from typing import Any
 
@@ -118,7 +118,6 @@ class ObjectFact:
     forecast_completion: date | None
     stalled_since: date | None
     readiness_actual_pct: int | None
-    readiness_claimed_pct: int | None
 
 
 @dataclass(frozen=True)
@@ -279,10 +278,20 @@ def _r4(data: ScoringInput) -> FactorOutcome:
     )
 
 
-def _r5(data: ScoringInput, settings: AppSettings) -> FactorOutcome:
-    """Both values need a source with a date: a publication with a confirmed claim and a photo inspection."""
-    claimed, actual = data.obj.readiness_claimed_pct, data.obj.readiness_actual_pct
+def claimed_readiness(data: ScoringInput) -> tuple[int | None, list[AdFact]]:
+    """The highest readiness claimed by the publications in `data` (confirmed claims of confirmed links) and them."""
     claim_ads = [ad for ad in data.ads if ad.claimed_readiness_pct is not None]
+    return max(
+        (ad.claimed_readiness_pct for ad in claim_ads if ad.claimed_readiness_pct is not None), default=None
+    ), claim_ads
+
+
+def _r5(data: ScoringInput, settings: AppSettings) -> FactorOutcome:
+    """Both values need a source with a date: a publication with a confirmed claim and a photo inspection.
+    The claim is read from the publications themselves, not from the object's aggregate, which may include
+    publications whose link was never confirmed."""
+    claimed, claim_ads = claimed_readiness(data)
+    actual = data.obj.readiness_actual_pct
     inspection = data.latest_inspection
     sourced = claimed is not None and actual is not None and bool(claim_ads) and inspection is not None
     gap = claimed - actual if claimed is not None and actual is not None else None
@@ -347,7 +356,8 @@ def _r6(data: ScoringInput, settings: AppSettings, today: date) -> tuple[FactorO
 # ---------------------------------------------------------------- "needs check" flags
 
 
-def _needs_check(data: ScoringInput, status: LegalBasisStatus) -> list[dict[str, Any]]:
+def _needs_check(data: ScoringInput, linked: ScoringInput, status: LegalBasisStatus) -> list[dict[str, Any]]:
+    """`data` is everything loaded for the object; `linked` only has publications whose link a person confirmed."""
     flags: list[dict[str, Any]] = []
     if status is LegalBasisStatus.unknown:
         flags.append({"code": LEGAL_BASIS_UNKNOWN, "detail": {"checks": document_statuses(data.documents)}})
@@ -359,9 +369,10 @@ def _needs_check(data: ScoringInput, status: LegalBasisStatus) -> list[dict[str,
                 "detail": {"count": len(unverified), "complaint_ids": unverified[:MAX_EVIDENCE_REFS]},
             }
         )
-    if data.obj.readiness_claimed_pct is not None and data.latest_inspection is None:
-        flags.append({"code": READINESS_UNVERIFIED, "detail": {"claimed_pct": data.obj.readiness_claimed_pct}})
-    pending = [(ad.id, hit.id) for ad in data.ads for hit in ad.hits if hit_kind(hit) == HIT_AI_HYPOTHESIS]
+    claimed, _ = claimed_readiness(linked)
+    if claimed is not None and data.latest_inspection is None:
+        flags.append({"code": READINESS_UNVERIFIED, "detail": {"claimed_pct": claimed}})
+    pending = [(ad.id, hit.id) for ad in linked.ads for hit in ad.hits if hit_kind(hit) == HIT_AI_HYPOTHESIS]
     if pending:
         flags.append(
             {
@@ -384,19 +395,22 @@ def _needs_check(data: ScoringInput, status: LegalBasisStatus) -> list[dict[str,
 
 
 def compute_facts(data: ScoringInput, settings: AppSettings, today: date) -> Facts:
+    # A publication whose link to the object nobody confirmed (status `verification`) may belong to another
+    # building: it only raises the `link_unverified` flag and takes no part in R2, R3 and R5.
+    linked = replace(data, ads=[ad for ad in data.ads if ad.status is not AdStatus.verification])
     status = legal_basis_status(data.documents)
     r6, stalled, delayed = _r6(data, settings, today)
     return Facts(
         legal_basis_status=status,
         outcomes={
             R1: _r1(data, status),
-            R2: _r2(data, settings),
-            R3: _r3(data, settings),
+            R2: _r2(linked, settings),
+            R3: _r3(linked, settings),
             R4: _r4(data),
-            R5: _r5(data, settings),
+            R5: _r5(linked, settings),
             R6: r6,
         },
-        needs_check=_needs_check(data, status),
+        needs_check=_needs_check(data, linked, status),
         stalled=stalled,
         delayed=delayed,
     )

@@ -60,6 +60,7 @@ def add_ad(
         url=f"https://example.kz/p/{_counter['ad']}",
         text="Бронь квартир",
         object_id=obj.id,
+        territory_id=obj.territory_id,
         published_at=published_at,
         captured_at=published_at,
         payment_schemes=list(payment_schemes),

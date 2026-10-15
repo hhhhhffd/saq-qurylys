@@ -61,7 +61,12 @@ def load_scoring_input(
     ).all()
     hits_by_ad: dict[int, list[engine.HitFact]] = defaultdict(list)
     if ad_rows:
-        for hit in session.scalars(select(PhraseHit).where(PhraseHit.ad_post_id.in_([row.id for row in ad_rows]))):
+        # Ordered, so the evidence list of a breakdown is the same on every calculation.
+        for hit in session.scalars(
+            select(PhraseHit)
+            .where(PhraseHit.ad_post_id.in_([row.id for row in ad_rows]))
+            .order_by(PhraseHit.ad_post_id, PhraseHit.start, PhraseHit.id)
+        ):
             hits_by_ad[hit.ad_post_id].append(
                 engine.HitFact(
                     id=hit.id,
@@ -94,7 +99,6 @@ def load_scoring_input(
             forecast_completion=obj.forecast_completion,
             stalled_since=obj.stalled_since,
             readiness_actual_pct=obj.readiness_actual_pct,
-            readiness_claimed_pct=obj.readiness_claimed_pct,
         ),
         documents=documents,
         ads=[
@@ -130,12 +134,7 @@ def recalculate(
     run one after another and the "entered red" decision is made once. `FOR NO KEY UPDATE` is enough for
     that and, unlike `FOR UPDATE`, does not block other transactions adding documents or complaints.
     """
-    obj = session.scalar(
-        select(ConstructionObject)
-        .where(ConstructionObject.id == object_id)
-        .with_for_update(key_share=True)
-        .execution_options(populate_existing=True)
-    )
+    obj = signals.lock_object(session, object_id)
     if obj is None:
         return None
     # Taken after the lock: a calculation that waited for another one must not look older than its result.

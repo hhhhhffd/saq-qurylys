@@ -6,10 +6,12 @@ from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import event, select
 from sqlalchemy.orm import Session
 
 from app.models import (
+    AdPost,
     AppUser,
     AuditLog,
     ConstructionObject,
@@ -30,15 +32,17 @@ from app.models.enums import (
     LegalBasisStatus,
     NotificationKind,
     PhraseCategory,
+    Platform,
     Role,
     ScoreTrigger,
     SignalOrigin,
     SignalStatus,
     Zone,
 )
+from app.modules.nlp import service as nlp
 from app.modules.risk import engine, service, tasks
 from app.modules.settings.service import save_settings
-from tests.conftest import World, make_object
+from tests.conftest import World, auth, make_object
 from tests.support_risk import (
     NOW,
     add_ad,
@@ -325,13 +329,92 @@ def test_confirmed_payment_scheme_is_a_money_offer(db: Session, world: World) ->
     assert factor(result, engine.R2)["detail"]["payment_schemes"] == ["installment"]
 
 
-def test_unverified_link_is_counted_but_flagged(db: Session, world: World) -> None:
+def test_unverified_link_is_flagged_but_not_counted(db: Session, world: World) -> None:
     obj = make_object(db, world.ust)
     confirmed_basis(db, obj)
-    add_ad(db, obj, status=AdStatus.verification)
+    add_ad(db, obj, status=AdStatus.verification, hits=DEPOSIT, payment_schemes=("booking",))
     result = recalc(db, obj)
-    assert factor(result, engine.R3)["triggered"] is True
+    assert factor(result, engine.R3)["triggered"] is False
+    assert factor(result, engine.R2)["triggered"] is False
     assert flags(result) == ["link_unverified"]
+    assert (result.risk_score.score, obj.key_status) == (0, KeyStatus.ok)
+
+
+def test_an_unrelated_ad_guessed_onto_an_object_cannot_turn_it_red(db: Session, world: World) -> None:
+    """Review repro: a short object name is fuzzy-matched by an advertisement for another building."""
+    target = make_object(db, world.ust, name="ЖК Нур")
+    add_document(db, target, DocType.guarantee, CheckStatus.not_found)
+    add_document(db, target, DocType.dsu_permit, CheckStatus.not_found)
+    ad = AdPost(
+        platform=Platform.instagram,
+        external_id="repro-1",
+        text="Продаётся квартира в ЖК Ромашка, бронь от 100 000 тг",
+        territory_id=world.ust.id,
+        published_at=NOW,
+    )
+    db.add(ad)
+    db.flush()
+    nlp.analyze_ad(db, ad)
+    nlp.link_ad(db, ad)
+    db.flush()
+    assert (ad.object_id, ad.status) == (target.id, AdStatus.verification)
+
+    result = recalc(db, target)
+
+    assert (result.risk_score.score, result.risk_score.zone) == (35, Zone.yellow)  # R1 only: no money offer counts
+    assert result.entered_red is False and cards(db, target) == []
+    assert flags(result) == ["link_unverified"]
+
+    ad.status = AdStatus.captured  # an analyst confirms the link
+    db.flush()
+    confirmed = recalc(db, target)
+    assert (confirmed.risk_score.score, confirmed.risk_score.zone) == (70, Zone.red)
+    assert len(cards(db, target)) == 1
+
+
+def test_confirming_the_link_through_the_api_queues_a_rescore_and_changes_the_zone(
+    client: TestClient, db: Session, world: World, sent_tasks: list
+) -> None:
+    obj = make_object(db, world.ust)
+    add_document(db, obj, DocType.guarantee, CheckStatus.not_found)
+    add_document(db, obj, DocType.dsu_permit, CheckStatus.not_found)
+    ad = add_ad(db, obj, status=AdStatus.verification, hits=DEPOSIT)
+    headers = auth(world.users["mio_ust"])
+    assert client.post(f"/api/v1/objects/{obj.id}/recalculate", headers=headers).json()["zone"] == "yellow"
+    sent_tasks.clear()
+
+    response = client.patch(f"/api/v1/ads/{ad.id}", headers=headers, json={"status": "captured"})
+
+    assert response.status_code == 200, response.text
+    assert ("risk.recalc_object", (obj.id,)) in sent_tasks
+    assert client.post(f"/api/v1/objects/{obj.id}/recalculate", headers=headers).json()["zone"] == "red"
+
+    # Linking a publication to another object (a person's decision) confirms it there and rescoring both.
+    sent_tasks.clear()
+    other = make_object(db, world.ust, "ЖК Другой")
+    client.patch(f"/api/v1/ads/{ad.id}", headers=headers, json={"object_id": other.id})
+    assert {args for name, args in sent_tasks if name == "risk.recalc_object"} == {(obj.id,), (other.id,)}
+
+
+def test_hits_of_a_publication_are_listed_in_text_order(db: Session, world: World) -> None:
+    obj = make_object(db, world.ust)
+    ad = add_ad(db, obj)
+    # Inserted out of order: the later phrase first (smaller id), the earlier one afterwards.
+    for start, text in ((40, "внести задаток"), (5, "бронь")):
+        db.add(
+            PhraseHit(
+                ad_post_id=ad.id,
+                category=PhraseCategory.deposit,
+                matched_text=text,
+                start=start,
+                end=start + len(text),
+                weight=10,
+                detected_by=DetectedBy.dictionary,
+            )
+        )
+    db.flush()
+    fragments = [ref["fragment"] for ref in factor(recalc(db, obj), engine.R2)["evidence"]]
+    assert fragments == ["бронь", "внести задаток"]
 
 
 def test_r2_evidence_quotes_the_phrase_of_the_publication(db: Session, world: World) -> None:

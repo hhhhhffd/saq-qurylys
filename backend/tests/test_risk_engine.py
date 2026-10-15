@@ -61,7 +61,6 @@ def make_input(**overrides: Any) -> ScoringInput:
             forecast_completion=None,
             stalled_since=None,
             readiness_actual_pct=None,
-            readiness_claimed_pct=None,
         ),
         documents=[],
         ads=[],
@@ -282,11 +281,73 @@ def test_r3_needs_a_linked_publication_and_a_building_that_is_not_completed() ->
     assert not factor(evaluate(completed), engine.R3)["triggered"]
 
 
-def test_r3_counts_publications_whose_link_is_unverified_but_flags_them() -> None:
-    result = evaluate(make_input(documents=[GUARANTEE_CONFIRMED], ads=[AdFact(1, status=AdStatus.verification)]))
-    assert factor(result, engine.R3)["triggered"]
+UNLINKED = AdStatus.verification  # the link to the object was not confirmed by a person
+
+
+def test_a_publication_with_an_unconfirmed_link_only_raises_the_link_flag() -> None:
+    result = evaluate(make_input(documents=[GUARANTEE_CONFIRMED], ads=[AdFact(1, status=UNLINKED)]))
+    assert not factor(result, engine.R3)["triggered"]
+    assert factor(result, engine.R3)["detail"]["count"] == 0
+    assert result.score == 0 and result.key_status is KeyStatus.ok
     assert flags(result) == [engine.LINK_UNVERIFIED]
     assert result.needs_check[0]["detail"] == {"count": 1, "ad_post_ids": [1]}
+
+
+def test_an_unconfirmed_link_takes_no_part_in_r2_or_the_red_zone() -> None:
+    # Scenario B, except that the only advertisement is linked to the object by a guess nobody confirmed.
+    unrelated = AdFact(55, hits=(DEPOSIT_HIT,), payment_schemes=("booking",), status=UNLINKED)
+    result = evaluate(make_input(documents=BOTH_NOT_FOUND, ads=[unrelated]))
+    assert not factor(result, engine.R2)["triggered"]
+    assert factor(result, engine.R2)["evidence"] == []
+    assert (result.score, result.zone) == (35, Zone.yellow)  # R1 only
+    assert result.key_status is KeyStatus.no_legal_basis
+    assert flags(result) == [engine.LINK_UNVERIFIED]
+
+    confirmed = evaluate(make_input(documents=BOTH_NOT_FOUND, ads=[replace(unrelated, status=AdStatus.captured)]))
+    assert (confirmed.score, confirmed.zone) == (70, Zone.red)  # the analyst confirms the link: red
+
+
+def test_only_publications_with_a_confirmed_link_count_when_both_kinds_exist() -> None:
+    ads = [AdFact(1, status=UNLINKED), AdFact(2, status=AdStatus.captured), AdFact(3, status=AdStatus.removed_saved)]
+    result = evaluate(make_input(documents=[GUARANTEE_CONFIRMED], ads=ads))
+    item = factor(result, engine.R3)
+    assert item["triggered"] and item["detail"]["count"] == 2
+    assert item["evidence"] == [{"type": "ad_post", "id": 2}, {"type": "ad_post", "id": 3}]
+    assert flags(result) == [engine.LINK_UNVERIFIED]
+
+
+def test_ai_hypotheses_of_unconfirmed_links_are_not_reported_as_pending() -> None:
+    guess = HitFact(PhraseCategory.deposit, DetectedBy.llm, None, id=7)
+    result = evaluate(make_input(documents=[GUARANTEE_CONFIRMED], ads=[AdFact(5, hits=(guess,), status=UNLINKED)]))
+    assert flags(result) == [engine.LINK_UNVERIFIED]
+
+
+def test_an_unconfirmed_link_does_not_carry_a_readiness_claim() -> None:
+    # R5 reads the claim from the publications with a confirmed link, not from the object's aggregate.
+    claim = AdFact(11, claimed_readiness_pct=95, status=UNLINKED)
+    data = make_input(
+        documents=[GUARANTEE_CONFIRMED],
+        readiness_actual_pct=30,
+        ads=[claim],
+        latest_inspection=InspectionFact(21, TODAY),
+    )
+    assert not factor(evaluate(data), engine.R5)["triggered"]
+    assert flags(evaluate(data)) == [engine.LINK_UNVERIFIED]  # no readiness_unverified: nothing confirmed to verify
+    confirmed = replace(data, ads=[replace(claim, status=AdStatus.captured)])
+    assert factor(evaluate(confirmed), engine.R5)["triggered"]
+
+
+def test_r5_uses_the_highest_claim_of_the_confirmed_links() -> None:
+    ads = [
+        AdFact(1, claimed_readiness_pct=40),
+        AdFact(2, claimed_readiness_pct=70),
+        AdFact(3, claimed_readiness_pct=99, status=UNLINKED),
+    ]
+    data = make_input(
+        documents=[GUARANTEE_CONFIRMED], readiness_actual_pct=30, ads=ads, latest_inspection=InspectionFact(21, TODAY)
+    )
+    item = factor(evaluate(data), engine.R5)
+    assert item["triggered"] and (item["detail"]["claimed_pct"], item["detail"]["gap_pp"]) == (70, 40)
 
 
 # ---------------------------------------------------------------- R4: verified collective complaint
@@ -325,7 +386,6 @@ def test_r4_evidence_and_detail() -> None:
 def _r5_input(claimed: int | None, actual: int | None, *, ad: bool = True, inspection: bool = True) -> ScoringInput:
     return make_input(
         documents=[GUARANTEE_CONFIRMED],
-        readiness_claimed_pct=claimed,
         readiness_actual_pct=actual,
         ads=[AdFact(11, claimed_readiness_pct=claimed)] if ad else [],
         latest_inspection=InspectionFact(21, TODAY - timedelta(days=3)) if inspection else None,
@@ -455,7 +515,6 @@ def test_score_is_the_sum_of_triggered_weights_and_clamped() -> None:
         documents=BOTH_NOT_FOUND,
         ads=[AdFact(55, hits=(DEPOSIT_HIT,), claimed_readiness_pct=90)],
         complaints=[complaint(1)],
-        readiness_claimed_pct=90,
         readiness_actual_pct=30,
         latest_inspection=InspectionFact(21, TODAY),
         construction_status=ConstructionStatus.stalled,
@@ -497,7 +556,6 @@ def test_a_high_score_without_r1_and_r2_stays_yellow() -> None:
     data = make_input(
         ads=[AdFact(55, hits=(DEPOSIT_HIT,), claimed_readiness_pct=90)],
         complaints=[complaint(1)],
-        readiness_claimed_pct=90,
         readiness_actual_pct=30,
         latest_inspection=InspectionFact(21, TODAY),
         construction_status=ConstructionStatus.stalled,

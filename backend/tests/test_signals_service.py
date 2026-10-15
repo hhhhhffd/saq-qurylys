@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app import storage
 from app.models import AppUser, Developer, Holiday, Notification, RiskScore, SignalCard, SignalCounter
 from app.models.enums import (
+    AdStatus,
     CheckSource,
     CheckStatus,
     ConstructionStatus,
@@ -287,6 +288,16 @@ def test_measures_follow_the_unknown_basis_and_the_stalled_object(db: Session, w
     card = service.create_card(db, obj, SignalOrigin.manual, world.users["mio_ust"], now=NOW)
     assert card.sections["legal_basis_status"] == "unknown"
     assert card.sections["proposed_measures"] == ["request_documents", "site_inspection"]
+
+
+def test_publications_with_an_unconfirmed_link_are_not_put_on_the_card(db: Session, world: World) -> None:
+    obj = make_object(db, world.ust)
+    confirmed = add_ad(db, obj, hits=BOOKING)
+    add_ad(db, obj, hits=BOOKING, status=AdStatus.verification)  # may belong to another building
+    risk.recalculate(db, obj.id, ScoreTrigger.event, NOW)
+    card = service.create_card(db, obj, SignalOrigin.manual, world.users["mio_ust"], now=NOW)
+    assert [item["ad_post_id"] for item in card.sections["publications"]] == [confirmed.id]
+    assert [flag["code"] for flag in card.sections["needs_check"]] == ["legal_basis_unknown", "link_unverified"]
 
 
 def test_covert_contract_categories_become_contract_types(db: Session, world: World) -> None:

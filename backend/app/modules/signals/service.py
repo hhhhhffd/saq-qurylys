@@ -36,6 +36,7 @@ from app.models import (
     Territory,
 )
 from app.models.enums import (
+    AdStatus,
     ConstructionStatus,
     EvidenceKind,
     NotificationKind,
@@ -126,7 +127,11 @@ def breakdown_parts(breakdown: Any) -> tuple[list[dict[str, Any]], list[dict[str
 def _hit_entries(session: Session, ad_ids: list[int]) -> dict[int, list[dict[str, Any]]]:
     """Phrase hits of publications as facts or AI hypotheses; rejected ones are left out."""
     entries: dict[int, list[dict[str, Any]]] = {ad_id: [] for ad_id in ad_ids}
-    for hit in session.scalars(select(PhraseHit).where(PhraseHit.ad_post_id.in_(ad_ids)).order_by(PhraseHit.id)):
+    for hit in session.scalars(
+        select(PhraseHit)
+        .where(PhraseHit.ad_post_id.in_(ad_ids))
+        .order_by(PhraseHit.ad_post_id, PhraseHit.start, PhraseHit.id)
+    ):
         kind = hit_kind(HitFact(category=hit.category, detected_by=hit.detected_by, confirmed=hit.confirmed, id=hit.id))
         if kind != HIT_REJECTED:
             entries[hit.ad_post_id].append(
@@ -157,7 +162,11 @@ def build_sections(session: Session, obj: ConstructionObject, review_days: int, 
     documents = session.scalars(select(Document).where(Document.object_id == obj.id).order_by(Document.id)).all()
     ads = session.scalars(
         select(AdPost)
-        .where(AdPost.object_id == obj.id, now - timedelta(days=window_days) <= AD_TIMESTAMP)
+        .where(
+            AdPost.object_id == obj.id,
+            AdPost.status != AdStatus.verification,  # a link nobody confirmed is not evidence about this object
+            now - timedelta(days=window_days) <= AD_TIMESTAMP,
+        )
         .order_by(AdPost.max_phrase_weight.desc(), AD_TIMESTAMP.desc(), AdPost.id.desc())
         .limit(MAX_PUBLICATIONS)
     ).all()
@@ -259,16 +268,45 @@ def build_sections(session: Session, obj: ConstructionObject, review_days: int, 
 # ---------------------------------------------------------------- creation and editing
 
 
-def has_open_card(session: Session, object_id: int) -> bool:
-    """A card that is being prepared or waits for the receiving body; the auto-draft rule keys on this."""
-    return (
-        session.scalar(
-            select(SignalCard.id)
-            .where(SignalCard.object_id == object_id, SignalCard.status.in_(OPEN_STATUSES))
-            .limit(1)
-        )
-        is not None
+def lock_object(session: Session, object_id: int) -> ConstructionObject | None:
+    """Take the object row lock that serialises everything deciding about the object's open card: score
+    recalculations (which draft a card on entering red) and the manual creation of a card. `FOR NO KEY UPDATE`
+    is enough for that and, unlike `FOR UPDATE`, does not block other transactions adding documents or
+    complaints (they take FOR KEY SHARE)."""
+    return session.scalar(
+        select(ConstructionObject)
+        .where(ConstructionObject.id == object_id)
+        .with_for_update(key_share=True)
+        .execution_options(populate_existing=True)
     )
+
+
+def open_card(session: Session, object_id: int) -> SignalCard | None:
+    """A card that is being prepared or waits for the receiving body; the auto-draft rule keys on this."""
+    return session.scalar(
+        select(SignalCard)
+        .where(SignalCard.object_id == object_id, SignalCard.status.in_(OPEN_STATUSES))
+        .order_by(SignalCard.id)
+        .limit(1)
+    )
+
+
+def has_open_card(session: Session, object_id: int) -> bool:
+    return open_card(session, object_id) is not None
+
+
+def create_manual_card(session: Session, obj: ConstructionObject, user: AppUser, request: Request | None) -> SignalCard:
+    """A card made by an officer. At most one card per object is open at a time: with the object locked, the
+    check cannot race a recalculation that drafts a card for an object that has just turned red."""
+    lock_object(session, obj.id)
+    existing = open_card(session, obj.id)
+    if existing is not None:
+        raise api_error(
+            409,
+            "signal_open_exists",
+            f"У объекта уже есть открытая сигнальная карточка {existing.number}: продолжите работу с ней",
+        )
+    return create_card(session, obj, SignalOrigin.manual, user, request)
 
 
 def create_card(

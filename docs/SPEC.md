@@ -120,10 +120,10 @@ API: префикс `/api/v1`, JSON, даты ISO 8601 (UTC в БД, отобр�
 | code | Метка | Условие срабатывания | Вес |
 |---|---|---|---|
 | `r1_no_legal_basis` | R1 | `legal_basis_status = absent_established` | +35 |
-| `r2_money_offer` | R2 | за `ad_window_days` у связанной публикации есть словарная формулировка (не отклонённая аналитиком) или подтверждённая LLM-формулировка категорий `booking|down_payment|deposit|installment|preliminary_contract|covert_contract`, либо подтверждённая схема `payment_schemes` | +25 |
-| `r3_active_ads` | R3 | за `ad_window_days` есть хотя бы одна связанная публикация, объект не `completed` | +10 |
+| `r2_money_offer` | R2 | за `ad_window_days` у связанной публикации с подтверждённой привязкой (статус не `verification`) есть словарная формулировка (не отклонённая аналитиком) или подтверждённая LLM-формулировка категорий `booking|down_payment|deposit|installment|preliminary_contract|covert_contract`, либо подтверждённая схема `payment_schemes` | +25 |
+| `r3_active_ads` | R3 | за `ad_window_days` есть хотя бы одна связанная публикация с подтверждённой привязкой (статус не `verification`), объект не `completed` | +10 |
 | `r4_collective_complaint` | R4 | есть обращение `is_collective=true` и `is_verified=true` со статусом ≠ `closed` | +15 |
-| `r5_readiness_mismatch` | R5 | `readiness_claimed_pct − readiness_actual_pct ≥ readiness_gap_pp` (по умолчанию 20), оба значения имеют источник и дату (подтверждённая публикация и фотофиксация) | +10 |
+| `r5_readiness_mismatch` | R5 | `readiness_claimed_pct − readiness_actual_pct ≥ readiness_gap_pp` (по умолчанию 20), оба значения имеют источник и дату (связанная публикация с подтверждённой привязкой — статус не `verification` — и фотофиксация) | +10 |
 | `r6_stalled_or_delayed` | R6 | `construction_status=stalled` и `stalled_since` не позже чем `stalled_days` назад, или просрочка: `forecast_completion − planned_completion ≥ significant_delay_days` (по умолчанию 90) либо `planned_completion` прошла более `significant_delay_days` назад и объект не `completed` | +5 |
 
 Балл = min(100, сумма весов активных сработавших факторов). Отрицательных факторов нет.
