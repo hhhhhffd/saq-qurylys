@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@mantine/core';
-import { IconArrowLeft, IconFilePlus, IconPencil, IconRefresh } from '@tabler/icons-react';
+import { IconArrowLeft, IconFilePlus, IconPencil, IconRefresh, IconTopologyStar3 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router';
 import { useRecalculateObject } from '@/api/hooks/objects';
@@ -18,6 +18,7 @@ import classes from './ObjectHeader.module.css';
 
 export function ObjectHeader({ object }: { object: ObjectDetail }) {
   const { t } = useTranslation('objects');
+  const { t: tGraph } = useTranslation('graph');
   const { dateTime } = useFormat();
   const keyStatusLabel = useKeyStatusLabel();
   const { canEditRegistry, canManageSignals } = useAuth();
@@ -42,6 +43,14 @@ export function ObjectHeader({ object }: { object: ObjectDetail }) {
           <h1 className={classes.title}>{object.name}</h1>
         </div>
         <div className={classes.actions}>
+          <Button
+            component={Link}
+            to={`/graph?object_id=${object.id}`}
+            variant="default"
+            leftSection={<IconTopologyStar3 size={16} />}
+          >
+            {tGraph('open')}
+          </Button>
           {canEditRegistry && (
             <Button
               variant="default"

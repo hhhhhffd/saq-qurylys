@@ -3,7 +3,7 @@
 Reference data (territories, risk factors, phrases, settings) and the initial admin are always
 created when missing and never overwritten. Optional files in app/seed_data/ are described in
 app/seed_data/README.md. `--pilot` additionally imports the public snapshot of real objects of the pilot city,
-`--demo` loads demo users and the fictional demo_objects.json.
+`--demo` loads demo users and the fictional demo_objects.json and demo_network.json.
 """
 
 import argparse
@@ -70,6 +70,8 @@ from app.worker.celery_app import celery_app
 logger = logging.getLogger("app.seed")
 
 SEED_DATA_DIR = Path(__file__).parent / "seed_data"
+# The story "one phone for three": three developers behind one phone and one advertising account (SPEC 10.3).
+DEMO_NETWORK_FILE = "demo_network.json"
 REGION_CODE = "vko"
 CITY_CODE = "ust-kamenogorsk"
 # Since 2024-03-01 Kazakhstan uses a single UTC+5 time zone; IANA keeps the Asia/Almaty zone for it.
@@ -567,15 +569,15 @@ def _add_demo_object(session: Session, item: DemoObject) -> int:
     return obj.id
 
 
-def seed_demo_objects(session: Session) -> list[int]:
-    path = SEED_DATA_DIR / "demo_objects.json"
+def seed_demo_objects(session: Session, filename: str = "demo_objects.json") -> list[int]:
+    path = SEED_DATA_DIR / filename
     if not path.exists():
         logger.warning("%s not found: no demo objects loaded", path)
         return []
     try:
         data = DemoData.model_validate_json(path.read_text(encoding="utf-8"))
     except ValidationError as exc:
-        raise SystemExit(f"demo_objects.json is invalid:\n{exc}") from exc
+        raise SystemExit(f"{filename} is invalid:\n{exc}") from exc
 
     for developer in data.developers:
         if session.scalar(select(Developer.id).where(Developer.bin == developer.bin)) is None:
@@ -663,7 +665,7 @@ def run(demo: bool, pilot: bool = False) -> None:
 
     with factory() as session:
         credentials = seed_demo_users(session)
-        object_ids = seed_demo_objects(session)
+        object_ids = seed_demo_objects(session) + seed_demo_objects(session, DEMO_NETWORK_FILE)
         object_ids += seed_demo_versions(session)
         ads = [
             (row.id, row.object_id)

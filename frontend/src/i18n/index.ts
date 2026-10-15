@@ -13,6 +13,7 @@ export const namespaces = [
   'objects',
   'objectForms',
   'ads',
+  'graph',
   'signals',
   'admin',
   'activity',

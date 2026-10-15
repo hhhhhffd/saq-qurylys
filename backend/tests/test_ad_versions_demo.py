@@ -98,7 +98,7 @@ def test_loading_the_demo_publication_again_adds_nothing(db: Session, demo: list
         db.scalar(select(func.count()).select_from(model))
         for model in (ConstructionObject, AdPost, AdPostVersion, Evidence)
     ]
-    assert db.scalar(select(func.count()).select_from(Developer).where(Developer.bin == "992140000101")) == 1
+    assert db.scalar(select(func.count()).select_from(Developer).where(Developer.bin == "992740000104")) == 1
 
 
 def test_existing_demo_scenarios_keep_their_scores_next_to_the_new_publication(db: Session, demo: list[int]) -> None:
@@ -124,7 +124,7 @@ def test_the_new_object_shares_no_phone_or_name_with_the_existing_demo(db: Sessi
     """A phone or a name of the new object found elsewhere would re-link other ads to it and move other scores."""
     [new_object_id] = seed_versions.seed_demo_versions(db)
     new_ad = _publication(db)
-    new_developer = db.scalars(select(Developer).where(Developer.bin == "992140000101")).one()
+    new_developer = db.scalars(select(Developer).where(Developer.bin == "992740000104")).one()
     new_phones = {
         *new_ad.phones,
         *new_developer.phones,

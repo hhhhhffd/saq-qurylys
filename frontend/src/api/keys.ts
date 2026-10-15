@@ -1,4 +1,4 @@
-import type { AdListParams, ObjectListParams, SignalListParams } from './types';
+import type { AdListParams, GraphParams, ObjectListParams, SignalListParams } from './types';
 
 export const qk = {
   me: ['me'] as const,
@@ -30,4 +30,6 @@ export const qk = {
   notifications: ['notifications'] as const,
   activity: ['activity'] as const,
   audit: (entityType: string, entityId: number) => ['audit', entityType, entityId] as const,
+  graph: (params: GraphParams) => ['graph', params] as const,
+  sourceSuggestions: ['source-suggestions'] as const,
 };

@@ -20,6 +20,7 @@ from app.modules.dashboard.router import router as dashboard_router
 from app.modules.developers.router import router as developers_router
 from app.modules.documents.router import router as documents_router
 from app.modules.evidence.router import router as evidence_router
+from app.modules.graph.router import router as graph_router
 from app.modules.holidays.router import router as holidays_router
 from app.modules.inspections.router import router as inspections_router
 from app.modules.linked_entities.router import router as linked_entities_router
@@ -102,6 +103,7 @@ for module_router in (
     activity_router,
     # Implemented by other modules; routers are empty stubs until then.
     dashboard_router,
+    graph_router,
     ads_router,
     nlp_router,
     risk_router,
