@@ -144,19 +144,30 @@ def find_object_by_name(
     session: Session, territory_id: int, names: list[str], lat: float | None, lon: float | None
 ) -> ConstructionObject | None:
     wanted = {normalize_name(name) for name in names} - {""}
-    for obj in session.scalars(_live_objects(territory_id).order_by(ConstructionObject.id)):
-        known = {normalize_name(value) for value in (obj.name, *obj.aliases)}
-        if not wanted & known:
+    # Columns only: the check needs no entity, and one row with an unreadable value must not stop the import.
+    candidates = session.execute(
+        select(
+            ConstructionObject.id,
+            ConstructionObject.name,
+            ConstructionObject.aliases,
+            ConstructionObject.lat,
+            ConstructionObject.lon,
+        )
+        .where(ConstructionObject.territory_id == territory_id, ConstructionObject.is_demo.is_(False))
+        .order_by(ConstructionObject.id)
+    )
+    for object_id, name, aliases, obj_lat, obj_lon in candidates:
+        if not wanted & {normalize_name(value) for value in (name, *aliases)}:
             continue
         near = (
-            obj.lat is None
-            or obj.lon is None
+            obj_lat is None
+            or obj_lon is None
             or lat is None
             or lon is None
-            or distance_m(obj.lat, obj.lon, lat, lon) <= SAME_NAME_RADIUS_M
+            or distance_m(obj_lat, obj_lon, lat, lon) <= SAME_NAME_RADIUS_M
         )
         if near:
-            return obj
+            return session.get(ConstructionObject, object_id)
     return None
 
 
