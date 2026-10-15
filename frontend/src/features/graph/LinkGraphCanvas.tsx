@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { ActionIcon } from '@mantine/core';
+import { Button } from '@/components/ui/button';
 import { useElementSize } from '@/lib/hooks';
 import { IconArrowsMaximize } from '@tabler/icons-react';
 import ForceGraph2D, { type ForceGraphMethods, type LinkObject, type NodeObject } from 'react-force-graph-2d';
@@ -8,7 +8,6 @@ import type { GraphEdge, GraphNode, GraphNodeType, LinkGraph } from '@/api/types
 import { prefersReducedMotion } from '@/features/map/mapStyle';
 import { formatPhone } from './graphModel';
 import { nodeFill, readGraphPalette, type GraphPalette } from './palette';
-import classes from './LinkGraphCanvas.module.css';
 
 /** The library replaces `source` and `target` of a link with the node objects, so the ids are not part of the type. */
 type EdgeData = Omit<GraphEdge, 'source' | 'target'>;
@@ -185,7 +184,7 @@ export function LinkGraphCanvas({ graph, highlight, seedId, onNodeClick, onBackg
   return (
     <div
       ref={ref}
-      className={classes.stage}
+      className="relative h-[clamp(340px,58dvh,600px)] overflow-hidden bg-surface-sunken lg:h-[min(72dvh,680px)]"
       role="group"
       aria-label={t('canvas.label', { nodes: graph.nodes.length, edges: graph.edges.length })}
     >
@@ -218,16 +217,16 @@ export function LinkGraphCanvas({ graph, highlight, seedId, onNodeClick, onBackg
           onBackgroundClick={onBackgroundClick}
         />
       )}
-      <ActionIcon
-        className={classes.fit}
-        variant="default"
-        size="lg"
+      <Button
+        className="absolute top-2.5 right-2.5 bg-surface-glass backdrop-blur-sm"
+        variant="secondary"
+        size="icon"
         aria-label={t('canvas.fit')}
         title={t('canvas.fit')}
         onClick={() => fgRef.current?.zoomToFit(reducedMotion ? 0 : FIT_MS, FIT_PADDING)}
       >
-        <IconArrowsMaximize size={18} stroke={1.7} />
-      </ActionIcon>
+        <IconArrowsMaximize />
+      </Button>
     </div>
   );
 }

@@ -20,10 +20,11 @@ export interface GraphPalette {
 
 export function readGraphPalette(): GraphPalette {
   return {
-    developer: readToken('--accent'),
-    phone: readToken('--link'),
-    account: readToken('--text-2'),
-    ad: readToken('--text-3'),
+    developer: readToken('--graph-developer'),
+    // Muted tones: pink is kept for the selection ring, so a chosen node stands out.
+    phone: readToken('--text-2'),
+    account: readToken('--text-3'),
+    ad: readToken('--text-disabled'),
     zone: {
       green: readToken('--zone-green'),
       yellow: readToken('--zone-yellow'),
@@ -32,9 +33,9 @@ export function readGraphPalette(): GraphPalette {
     },
     edge: readToken('--border-strong'),
     edgeFaint: readToken('--border'),
-    edgeStrong: readToken('--text-2'),
+    edgeStrong: readToken('--text-3'),
     ring: readToken('--accent'),
-    outline: readToken('--surface'),
+    outline: readToken('--bg'),
     text: readToken('--text'),
     labelBackground: readToken('--surface-raised'),
     font: readToken('--font-sans'),
