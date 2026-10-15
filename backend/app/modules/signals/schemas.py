@@ -92,6 +92,8 @@ class SignalDetail(SignalRow):
     review_days: int
     sent_at: datetime | None
     sent_by: int | None
+    # The immutable PDF of the card as it was sent (evidence of kind `pdf`); null until sent or if archiving failed.
+    sent_pdf_evidence_id: int | None
     return_comment: str | None
     response_text: str | None
     response_at: datetime | None

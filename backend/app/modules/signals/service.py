@@ -13,7 +13,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from fastapi import Request
-from sqlalchemy import Select, select
+from sqlalchemy import Select, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
@@ -36,6 +36,7 @@ from app.models import (
 )
 from app.models.enums import (
     ConstructionStatus,
+    EvidenceKind,
     NotificationKind,
     Recipient,
     Role,
@@ -371,6 +372,9 @@ def to_detail(session: Session, user: AppUser, view: CardView) -> SignalDetail:
         review_days=card.review_days or 0,
         sent_at=card.sent_at,
         sent_by=card.sent_by,
+        sent_pdf_evidence_id=session.scalar(
+            select(func.min(Evidence.id)).where(Evidence.signal_card_id == card.id, Evidence.kind == EvidenceKind.pdf)
+        ),
         return_comment=card.return_comment,
         response_text=card.response_text,
         response_at=card.response_at,
@@ -435,6 +439,19 @@ def confirm_and_send(
         session, addressees, NotificationKind.signal_sent, "signal_card", card.id, _payload(card, view.object_name)
     )
     return card
+
+
+def notify_archive_failed(session: Session, view: CardView, user: AppUser) -> None:
+    """Tell the sender that the sent PDF could not be archived. The dispatch itself stands; the notification
+    kind is the closest existing one (`capture_failed`), with `reason` telling it apart."""
+    add_notifications(
+        session,
+        [user],
+        NotificationKind.capture_failed,
+        "signal_card",
+        view.card.id,
+        {**_payload(view.card, view.object_name), "reason": "pdf_archive"},
+    )
 
 
 def return_card(session: Session, view: CardView, user: AppUser, comment: str, request: Request | None) -> SignalCard:

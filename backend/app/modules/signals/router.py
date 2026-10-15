@@ -6,9 +6,10 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request, Respons
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app import storage
 from app.deps import CurrentUser, PageDep, ScopeDep, SessionDep, require_roles
 from app.models import AppUser, SignalCard
-from app.models.enums import Recipient, Role, SignalOrigin, SignalStatus
+from app.models.enums import EvidenceKind, Recipient, Role, SignalOrigin, SignalStatus
 from app.modules.objects.service import get_object_in_scope
 from app.modules.settings.service import load_settings
 from app.modules.signals import mail, pdf, service
@@ -22,6 +23,7 @@ from app.modules.signals.schemas import (
     SignalRow,
 )
 from app.schemas import Page
+from app.storage import EvidenceLink
 
 logger = logging.getLogger(__name__)
 
@@ -33,19 +35,33 @@ OfficerUser = Annotated[AppUser, Depends(require_roles(Role.mio_officer))]
 ResponderUser = Annotated[AppUser, Depends(require_roles(Role.gask, Role.law_enforcement, Role.mio_officer))]
 
 
-def _queue_email(
+def _archive_and_mail(
     session: Session, background: BackgroundTasks, view: service.CardView, user: AppUser, recipient: Recipient
 ) -> None:
-    """E-mail the PDF to the receiving body's addresses after the dispatch is committed. A mail or rendering
-    problem is logged and never undoes the dispatch."""
-    emails = load_settings(session).recipient_emails.get(recipient, [])
-    if not (mail.smtp_enabled() and emails):
-        return
-    number = view.card.number
+    """After the dispatch is committed: render the PDF of the card as sent, keep it as immutable evidence
+    (OPEN_QUESTIONS #16) and mail it to the receiving body's addresses. None of this can undo the dispatch:
+    a failure is logged and, when the copy could not be archived, reported to the sender as a notification."""
+    card_id, number, locale = view.card.id, view.card.number, user.locale.value
+    sender_id = user.id
+    document: bytes | None = None
     try:
-        document = pdf.render_pdf(session, view, user.locale.value)
+        document = pdf.render_pdf(session, view, locale)
+        storage.put_evidence(
+            session,
+            document,
+            EvidenceKind.pdf,
+            "application/pdf",
+            link=EvidenceLink(signal_card_id=card_id),
+            created_by=sender_id,
+        )
+        session.commit()
     except Exception:
-        logger.exception("Could not render the PDF of %s for e-mail", number)
+        logger.exception("Could not archive the PDF of %s", number)
+        session.rollback()
+        service.notify_archive_failed(session, view, user)
+        session.commit()
+    emails = load_settings(session).recipient_emails.get(recipient, [])
+    if document is None or not (mail.smtp_enabled() and emails):
         return
     background.add_task(
         mail.send_email,
@@ -122,10 +138,9 @@ def confirm_and_send(
     """The only way a card leaves the system: a person with the MIO officer role confirms the dispatch."""
     view = service.get_card_view(session, user, scope, signal_id, lock=True)
     service.confirm_and_send(session, view, user, body.recipient, request)
-    detail = service.to_detail(session, user, view)
     session.commit()
-    _queue_email(session, background, view, user, body.recipient)
-    return detail
+    _archive_and_mail(session, background, view, user, body.recipient)
+    return service.to_detail(session, user, view)
 
 
 @router.post("/{signal_id}/return", response_model=SignalDetail)

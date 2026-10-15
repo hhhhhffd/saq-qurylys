@@ -1,5 +1,6 @@
 """Signal card API: lifecycle, role and territory rules, audit trail and notifications."""
 
+import hashlib
 import re
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
@@ -9,14 +10,18 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app import storage
 from app.calendar import add_working_days
-from app.models import AuditLog, ConstructionObject, Notification, SignalCard, Territory
-from app.models.enums import NotificationKind, SignalStatus, Zone
+from app.models import AuditLog, ConstructionObject, Evidence, Notification, SignalCard, Territory
+from app.models.enums import EvidenceKind, NotificationKind, SignalStatus, Zone
 from app.modules.settings.service import save_settings
 from app.modules.signals import pdf, router
 from app.modules.signals.service import local_today
 from tests.conftest import World, auth, make_object
 from tests.support_risk import add_complaint, red_object
+
+# Sending archives the PDF in object storage, so every test that sends needs the bucket (and its cleanup).
+pytestmark = pytest.mark.usefixtures("bucket")
 
 API = "/api/v1/signals"
 NUMBER = re.compile(r"^SQ-\d{4}-\d{4,}$")
@@ -610,3 +615,130 @@ def test_a_mail_problem_never_undoes_the_dispatch(
     assert response.status_code == 200
     assert response.json()["status"] == "sent"
     assert smtp == []
+    assert kinds_for(db, world.users["mio_ust"].id) == [NotificationKind.capture_failed]
+
+
+# ---------------------------------------------------------------- archived PDF
+
+
+def stored_bytes(db: Session, evidence_id: int) -> bytes:
+    evidence = db.get_one(Evidence, evidence_id)
+    response = storage.open_evidence(evidence)
+    try:
+        return bytes(response.read())
+    finally:
+        response.close()
+        response.release_conn()
+
+
+def pdf_evidence(db: Session, signal_id: int) -> list[Evidence]:
+    return list(
+        db.scalars(select(Evidence).where(Evidence.signal_card_id == signal_id, Evidence.kind == EvidenceKind.pdf))
+    )
+
+
+def test_sending_archives_the_pdf_as_evidence(client: TestClient, db: Session, world: World) -> None:
+    card = create(client, world, make_object(db, world.ust))
+    assert card["sent_pdf_evidence_id"] is None
+    mio = auth(world.users["mio_ust"])
+
+    sent = send(client, world, card["id"])
+
+    assert sent.status_code == 200, sent.text
+    evidence_id = sent.json()["sent_pdf_evidence_id"]
+    assert evidence_id is not None
+    [evidence] = pdf_evidence(db, card["id"])
+    assert evidence.id == evidence_id
+    assert (evidence.content_type, evidence.created_by) == ("application/pdf", world.users["mio_ust"].id)
+    assert (evidence.ad_post_id, evidence.document_id, evidence.inspection_id) == (None, None, None)
+    data = stored_bytes(db, evidence_id)
+    assert data.startswith(b"%PDF-")
+    assert len(data) == evidence.size_bytes
+    assert hashlib.sha256(data).hexdigest() == evidence.sha256
+    assert client.get(f"{API}/{card['id']}", headers=mio).json()["sent_pdf_evidence_id"] == evidence_id
+    listed = client.get(f"/api/v1/evidence/{evidence_id}", headers=mio)
+    assert (listed.status_code, listed.json()["kind"]) == (200, "pdf")
+
+
+def test_the_archived_copy_is_the_one_that_was_mailed(
+    client: TestClient, db: Session, world: World, smtp: list
+) -> None:
+    save_settings(db, {"recipient_emails": {"mio": [], "gask": ["g@example.kz"], "law_enforcement": []}})
+    card = create(client, world, make_object(db, world.ust))
+
+    evidence_id = send(client, world, card["id"]).json()["sent_pdf_evidence_id"]
+
+    [(_to, _subject, _body, attachment)] = smtp
+    assert attachment is not None
+    assert attachment[1] == stored_bytes(db, evidence_id)
+
+
+def test_the_archived_copy_is_open_to_the_addressee_only(client: TestClient, db: Session, world: World) -> None:
+    card = create(client, world, make_object(db, world.ust))
+    evidence_id = send(client, world, card["id"], "gask").json()["sent_pdf_evidence_id"]
+    url = f"/api/v1/evidence/{evidence_id}/content"
+
+    for who, status in (("gask", 200), ("mio_ust", 200), ("admin", 200), ("law", 404), ("mio_semey", 404)):
+        assert client.get(url, headers=auth(world.users[who])).status_code == status, who
+    assert client.get(url, headers=auth(world.users["gask"])).content == stored_bytes(db, evidence_id)
+
+
+def test_gask_sees_the_archived_pdf_id_in_the_card(client: TestClient, db: Session, world: World) -> None:
+    card = create(client, world, make_object(db, world.ust))
+    evidence_id = send(client, world, card["id"]).json()["sent_pdf_evidence_id"]
+    assert (
+        client.get(f"{API}/{card['id']}", headers=auth(world.users["gask"])).json()["sent_pdf_evidence_id"]
+        == evidence_id
+    )
+
+
+@pytest.mark.parametrize("broken", ["render", "store"])
+def test_a_failed_archive_does_not_undo_the_dispatch_and_tells_the_sender(
+    client: TestClient, db: Session, world: World, monkeypatch: pytest.MonkeyPatch, broken: str
+) -> None:
+    def fail(*args: object, **kwargs: object) -> None:
+        raise RuntimeError("storage is down")
+
+    monkeypatch.setattr(
+        pdf if broken == "render" else storage, "render_pdf" if broken == "render" else "put_evidence", fail
+    )
+    obj = make_object(db, world.ust)
+    card = create(client, world, obj)
+
+    response = send(client, world, card["id"], "gask")
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert (body["status"], body["recipient"], body["sent_pdf_evidence_id"]) == ("sent", "gask", None)
+    assert db.get_one(SignalCard, card["id"]).status is SignalStatus.sent
+    assert pdf_evidence(db, card["id"]) == []
+    notice = db.scalars(
+        select(Notification).where(
+            Notification.user_id == world.users["mio_ust"].id, Notification.kind == NotificationKind.capture_failed
+        )
+    ).one()
+    assert (notice.entity_type, notice.entity_id) == ("signal_card", card["id"])
+    assert notice.payload["reason"] == "pdf_archive"
+    assert notice.payload["number"] == card["number"]
+    assert kinds_for(db, world.users["gask"].id) == [NotificationKind.signal_sent]  # the dispatch went through
+
+
+def test_a_failed_upload_still_mails_the_card(
+    client: TestClient, db: Session, world: World, smtp: list, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    save_settings(db, {"recipient_emails": {"mio": [], "gask": ["g@example.kz"], "law_enforcement": []}})
+
+    def down(*args: object, **kwargs: object) -> None:
+        raise RuntimeError("storage is down")
+
+    monkeypatch.setattr(storage, "put_evidence", down)
+    card = create(client, world, make_object(db, world.ust))
+    assert send(client, world, card["id"]).json()["sent_pdf_evidence_id"] is None
+    assert len(smtp) == 1
+
+
+def test_only_the_first_dispatch_is_archived(client: TestClient, db: Session, world: World) -> None:
+    card = create(client, world, make_object(db, world.ust))
+    send(client, world, card["id"])
+    assert send(client, world, card["id"]).status_code == 409
+    assert len(pdf_evidence(db, card["id"])) == 1
