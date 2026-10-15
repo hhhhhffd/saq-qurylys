@@ -126,7 +126,8 @@ Rules:
   demo data. `platform: "outdoor"` ads have no URL and carry `lat`/`lon`.
 - Enum values: `doc_type`, `check_status`, `check_source`, `source`, `status`, `kind`, `platform`,
   `payment_schemes` and `construction_status` use the codes from `docs/SPEC.md` section 3.
-- After loading, every new ad is sent through `nlp.analyze` -> `nlp.link` -> `risk.recalc_object` (Celery tasks
+- After loading, every new ad is sent through `nlp.analyze` -> `nlp.link` (-> `nlp.llm_extract` when `LLM_ENABLED=true`;
+  its findings are hypotheses and do not change the score) -> `risk.recalc_object` (Celery tasks
   addressed by name, one chain per ad), and objects without ads are rescored with `risk.recalc_object` directly.
   Nothing happens when `EVENTS_ENABLED=false`.
 

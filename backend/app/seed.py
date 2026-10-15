@@ -619,20 +619,24 @@ def run_pilot(session_factory: sessionmaker[Session]) -> None:
 
 
 def dispatch_demo_processing(ads: list[tuple[int, int]], objects_without_ads: list[int]) -> None:
-    """Queue what turns the loaded demo data into scored objects.
+    """Queue what turns the loaded demo data into scored objects (the pipeline of SPEC 5).
 
-    Every ad goes through `nlp.analyze` -> `nlp.link` and then its object is rescored (`risk.recalc_object`), so
-    phrase hits exist before the score is calculated. Tasks are addressed by name: they live in other modules.
-    Objects without ads are rescored right away. Does nothing when events are disabled.
+    Every ad goes through `nlp.analyze` -> `nlp.link` (-> `nlp.llm_extract` when `LLM_ENABLED`) and then its object
+    is rescored (`risk.recalc_object`), so phrase hits exist before the score is calculated. A finding of the LLM
+    is only a hypothesis until a person confirms it, so it does not change the score. Tasks are addressed by name:
+    they live in other modules. Objects without ads are rescored right away. Does nothing when events are disabled.
     """
-    if not get_settings().events_enabled:
+    settings = get_settings()
+    if not settings.events_enabled:
         return
     for ad_post_id, object_id in ads:
+        steps = [("nlp.analyze", "nlp", ad_post_id), ("nlp.link", "nlp", ad_post_id)]
+        if settings.llm_enabled:
+            steps.append(("nlp.llm_extract", "nlp", ad_post_id))
+        steps.append(("risk.recalc_object", "score", object_id))
         try:
             chain(
-                celery_app.signature("nlp.analyze", args=[ad_post_id], queue="nlp", immutable=True),
-                celery_app.signature("nlp.link", args=[ad_post_id], queue="nlp", immutable=True),
-                celery_app.signature("risk.recalc_object", args=[object_id], queue="score", immutable=True),
+                *(celery_app.signature(name, args=[arg], queue=queue, immutable=True) for name, queue, arg in steps)
             ).apply_async(retry=False)
         except Exception:
             logger.exception(

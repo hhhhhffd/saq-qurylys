@@ -234,6 +234,7 @@ def test_loaded_ads_go_through_nlp_before_their_object_is_rescored(monkeypatch: 
     recorder = _Recorder()
     rescored: list[list[int]] = []
     monkeypatch.setattr(get_settings(), "events_enabled", True)
+    monkeypatch.setattr(get_settings(), "llm_enabled", False)
     monkeypatch.setattr(seed, "chain", recorder.chain)
     monkeypatch.setattr(seed, "objects_changed", lambda ids: rescored.append(list(ids)))
 
@@ -246,6 +247,23 @@ def test_loaded_ads_go_through_nlp_before_their_object_is_rescored(monkeypatch: 
     ]
     assert [chain[0][1] for chain in recorder.chains] == [(11,), (12,), (13,)]
     assert rescored == [[3, 4]]
+
+
+def test_llm_extraction_joins_the_chain_when_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
+    recorder = _Recorder()
+    monkeypatch.setattr(get_settings(), "events_enabled", True)
+    monkeypatch.setattr(get_settings(), "llm_enabled", True)
+    monkeypatch.setattr(seed, "chain", recorder.chain)
+    monkeypatch.setattr(seed, "objects_changed", lambda ids: None)
+
+    seed.dispatch_demo_processing([(11, 1)], objects_without_ads=[])
+
+    assert [step[0] for step in recorder.chains[0]] == [
+        "nlp.analyze",
+        "nlp.link",
+        "nlp.llm_extract",
+        "risk.recalc_object",
+    ]
 
 
 def test_nothing_is_queued_while_events_are_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
