@@ -134,6 +134,34 @@ Rules:
 `--demo` also creates users `demo_admin`, `demo_mio` (Усть-Каменогорск), `demo_gask` (Усть-Каменогорск) and
 `demo_police` (whole region). Their password is `DEMO_USER_PASSWORD` if set, otherwise random and printed once.
 
+## `demo_history.json` (only with `--demo`)
+
+Older dated facts of the demo objects, for the time machine of the map (SPEC 10.5). Fictional, like the rest of the demo
+data. Applied once, to the objects that `--demo` has just created (matched by `name`); repeating it adds nothing.
+Unknown keys are rejected. Per object:
+
+- `ads`: older publications, same fields as in `demo_objects.json`. They are dated 32 to 175 days back, so they lie
+  outside the analysis window (30 days) and do not change a current score.
+- `complaints`: older complaints, same fields as in `demo_objects.json` (keep them unverified or closed).
+- `document_checks`: `{"doc_type", "checked_at"}` moves the check date of a document the object already has; its status
+  is not touched, so the legal basis of today stays the same.
+- `complaint_verifications`: `{"external_id", "verified_at"}` moves the verification time of a verified complaint the
+  object already has.
+
+After the facts are loaded, the ads of these objects are analysed (the dictionary hits are what R2 reads) and
+`replay_history` runs the risk engine for every new demo object over the last 26 weeks, weekly, at UTC midnight:
+`risk_score` rows with `trigger=replay`. Nothing is painted by hand. Stage and readiness are the current ones: there is
+no history of them (OPEN_QUESTIONS 34). The story of the three control scenarios:
+
+| Object | Replayed zones, oldest to newest |
+|---|---|
+| ЖК «Золотая осень» (B) | green, yellow once a paid booking shows up, red once both legal-basis checks are on record |
+| ЖК «Северный бриз» (A) | green, then yellow for 14 weeks (bookings, basis never checked) |
+| ЖК «Тихая гавань» (C) | green, a month of yellow while an installment ad ran, green again |
+
+`python -m app.seed --replay-history` recomputes the replayed history of every object in the database (also the real
+ones), in the same way; the demo seed does it by itself for new demo objects.
+
 ## `pilot/ust-kamenogorsk-public-2026-10-13.json` (only with `--pilot`, optional)
 
 A snapshot of public data collected on 2026-10-13 (third-party data, not verified by SAQ): 26 residential complexes

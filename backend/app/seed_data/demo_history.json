@@ -1,0 +1,83 @@
+{
+  "objects": [
+    {
+      "name": "ЖК «Северный бриз»",
+      "ads": [
+        {"platform": "instagram", "url": "https://example.invalid/instagram/severny_briz_demo/h1", "external_id": "demo-hist-severny_briz_demo-h1", "author": "severny_briz_demo", "published_at": "-158d", "text": "ЖК «Северный бриз»: старт проекта! Приглашаем на презентацию макетов и планировок в офис продаж. Телефон: +7 700 000 01 01", "phones": ["+7 700 000 01 01"]},
+        {"platform": "telegram", "url": "https://example.invalid/telegram/severny_briz_demo/h2", "external_id": "demo-hist-severny_briz_demo-h2", "author": "severny_briz_demo", "published_at": "-127d", "text": "Северный бриз: показываем планировки и отвечаем на вопросы о проекте. Приходите в офис продаж. +7 700 000 01 01", "phones": ["+7 700 000 01 01"]},
+        {"platform": "instagram", "url": "https://example.invalid/instagram/severny_briz_demo/h3", "external_id": "demo-hist-severny_briz_demo-h3", "author": "severny_briz_demo", "published_at": "-95d", "text": "Бронирование квартир в ЖК «Северный бриз» открыто: закрепите квартиру за собой, бронь — 30 000 ₸. Телефон отдела продаж: +7 700 000 01 01", "phones": ["+7 700 000 01 01"]},
+        {"platform": "telegram", "url": "https://example.invalid/telegram/severny_briz_demo/h4", "external_id": "demo-hist-severny_briz_demo-h4", "author": "severny_briz_demo", "published_at": "-66d", "text": "Северный бриз: платная бронь остаётся в силе. Забронируйте квартиру онлайн, остальное — после подписания договора. +7 700 000 01 01", "phones": ["+7 700 000 01 01"]},
+        {"platform": "instagram", "url": "https://example.invalid/instagram/severny_briz_demo/h5", "external_id": "demo-hist-severny_briz_demo-h5", "author": "severny_briz_demo", "published_at": "-36d", "text": "ЖК «Северный бриз»: забронировать квартиру можно до конца месяца, бронь — 40 000 ₸. Звоните: +7 700 000 01 01", "phones": ["+7 700 000 01 01"]}
+      ]
+    },
+    {
+      "name": "ЖК «Золотая осень»",
+      "ads": [
+        {"platform": "instagram", "url": "https://example.invalid/instagram/zolotaya_osen_demo/h1", "external_id": "demo-hist-zolotaya_osen_demo-h1", "author": "zolotaya_osen_demo", "published_at": "-143d", "text": "ЖК «Золотая осень»: старт проекта у парка! Презентация макетов в офисе продаж. +7 700 000 02 01", "phones": ["+7 700 000 02 01"]},
+        {"platform": "telegram", "url": "https://example.invalid/telegram/zolotaya_osen_demo/h2", "external_id": "demo-hist-zolotaya_osen_demo-h2", "author": "zolotaya_osen_demo", "published_at": "-109d", "text": "Золотая осень: фото с площадки — котлован готов. Подробности по телефону: +7 700 000 02 01", "phones": ["+7 700 000 02 01"]},
+        {"platform": "instagram", "url": "https://example.invalid/instagram/zolotaya_osen_demo/h3", "external_id": "demo-hist-zolotaya_osen_demo-h3", "author": "zolotaya_osen_demo", "published_at": "-66d", "text": "ЖК «Золотая осень»: забронируйте квартиру онлайн — бронь 30 000 ₸, цена фиксируется. +7 700 000 02 01", "phones": ["+7 700 000 02 01"]},
+        {"platform": "telegram", "url": "https://example.invalid/telegram/zolotaya_osen_demo/h4", "external_id": "demo-hist-zolotaya_osen_demo-h4", "author": "zolotaya_osen_demo", "published_at": "-36d", "text": "Золотая осень: внесите задаток 50 000 ₸ — и стоимость квартиры фиксируется до конца месяца. +7 700 000 02 01", "phones": ["+7 700 000 02 01"]}
+      ],
+      "document_checks": [
+        {"doc_type": "guarantee", "checked_at": "-61d"},
+        {"doc_type": "dsu_permit", "checked_at": "-55d"}
+      ]
+    },
+    {
+      "name": "ЖК «Тихая гавань»",
+      "ads": [
+        {"platform": "website", "url": "https://example.invalid/website/tihaya-gavan/h1", "external_id": "demo-hist-tihaya-gavan-h1", "author": "tihaya-gavan", "published_at": "-164d", "text": "ЖК «Тихая гавань» у набережной: проект квартала, закрытый двор, подземный паркинг. Запись на просмотр: +7 700 000 03 01", "phones": ["+7 700 000 03 01"]},
+        {"platform": "instagram", "url": "https://example.invalid/instagram/tihaya_gavan_demo/h2", "external_id": "demo-hist-tihaya_gavan_demo-h2", "author": "tihaya_gavan_demo", "published_at": "-129d", "text": "Тихая гавань: показываем ход строительства — фото фасада. Запись на просмотр квартир: +7 700 000 03 01", "phones": ["+7 700 000 03 01"]},
+        {"platform": "telegram", "url": "https://example.invalid/telegram/tihaya_gavan_demo/h3", "external_id": "demo-hist-tihaya_gavan_demo-h3", "author": "tihaya_gavan_demo", "published_at": "-101d", "text": "ЖК «Тихая гавань»: рассрочка от застройщика на 12 месяцев. Подробности: +7 700 000 03 01", "phones": ["+7 700 000 03 01"]},
+        {"platform": "website", "url": "https://example.invalid/website/tihaya-gavan/h4", "external_id": "demo-hist-tihaya-gavan-h4", "author": "tihaya-gavan", "published_at": "-69d", "text": "ЖК «Тихая гавань»: ипотека Отбасы банка, просторные планировки. Запись на просмотр: +7 700 000 03 01", "phones": ["+7 700 000 03 01"]},
+        {"platform": "instagram", "url": "https://example.invalid/instagram/tihaya_gavan_demo/h5", "external_id": "demo-hist-tihaya_gavan_demo-h5", "author": "tihaya_gavan_demo", "published_at": "-41d", "text": "Тихая гавань: день открытых дверей в субботу, покажем квартиры и двор. +7 700 000 03 01", "phones": ["+7 700 000 03 01"]}
+      ],
+      "complaints": [
+        {"received_at": "-88d", "source": "manual", "external_id": "DEMO-H-0201", "is_collective": false, "signatories_count": 1, "summary": "Вопрос о порядке оплаты и сроках сдачи; ответ дан, обращение закрыто.", "status": "closed"}
+      ]
+    },
+    {
+      "name": "ЖК «Тополиная аллея»",
+      "ads": [
+        {"platform": "telegram", "url": "https://example.invalid/telegram/topolinaya_alleya_demo/h1", "external_id": "demo-hist-topolinaya_alleya_demo-h1", "author": "topolinaya_alleya_demo", "published_at": "-36d", "text": "ЖК «Тополиная аллея»: идёт монтаж каркаса, свежие фото со стройки. Запись на экскурсию: +7 700 000 04 01", "phones": ["+7 700 000 04 01"]}
+      ],
+      "complaint_verifications": [
+        {"external_id": "EO-DEMO-0103", "verified_at": "-25d"}
+      ]
+    },
+    {
+      "name": "ЖК «Хрустальный город»",
+      "ads": [
+        {"platform": "website", "url": "https://example.invalid/website/hrustalny-gorod/h1", "external_id": "demo-hist-hrustalny-gorod-h1", "author": "hrustalny-gorod", "published_at": "-150d", "text": "ЖК «Хрустальный город»: новый квартал у реки — проект и планировки на сайте. Телефон: +7 700 000 13 01", "phones": ["+7 700 000 13 01"]},
+        {"platform": "website", "url": "https://example.invalid/website/hrustalny-gorod/h2", "external_id": "demo-hist-hrustalny-gorod-h2", "author": "hrustalny-gorod", "published_at": "-64d", "text": "ЖК «Хрустальный город»: заключаем инвестиционный договор на квартиры в строящемся доме — фиксированная цена. Оформление за один визит: +7 700 000 13 01", "phones": ["+7 700 000 13 01"]},
+        {"platform": "telegram", "url": "https://example.invalid/telegram/hrustalny_gorod_demo/h3", "external_id": "demo-hist-hrustalny_gorod_demo-h3", "author": "hrustalny_gorod_demo", "published_at": "-38d", "text": "Хрустальный город: зарезервировать квартиру можно по договору резерва — 50 000 ₸. Подробности: +7 700 000 13 01", "phones": ["+7 700 000 13 01"]}
+      ],
+      "document_checks": [
+        {"doc_type": "guarantee", "checked_at": "-46d"},
+        {"doc_type": "dsu_permit", "checked_at": "-45d"}
+      ]
+    },
+    {
+      "name": "ЖК «Звёздный путь»",
+      "ads": [
+        {"platform": "telegram", "url": "https://example.invalid/telegram/zvezdny_put_demo/h1", "external_id": "demo-hist-zvezdny_put_demo-h1", "author": "zvezdny_put_demo", "published_at": "-97d", "text": "ЖК «Звёздный путь»: фото со стройплощадки, монтаж перекрытий идёт по графику. +7 700 000 08 01", "phones": ["+7 700 000 08 01"]},
+        {"platform": "instagram", "url": "https://example.invalid/instagram/zvezdny_put_demo/h2", "external_id": "demo-hist-zvezdny_put_demo-h2", "author": "zvezdny_put_demo", "published_at": "-71d", "text": "Звёздный путь: новости строительства и ответы на вопросы дольщиков. +7 700 000 08 01", "phones": ["+7 700 000 08 01"]}
+      ]
+    },
+    {
+      "name": "ЖК «Лазурный берег»",
+      "ads": [
+        {"platform": "instagram", "url": "https://example.invalid/instagram/lazurny_bereg_demo/h1", "external_id": "demo-hist-lazurny_bereg_demo-h1", "author": "lazurny_bereg_demo", "published_at": "-99d", "text": "ЖК «Лазурный берег»: фото котлована и первых этажей. Презентация проекта: +7 700 000 11 01", "phones": ["+7 700 000 11 01"]},
+        {"platform": "instagram", "url": "https://example.invalid/instagram/lazurny_bereg_demo/h2", "external_id": "demo-hist-lazurny_bereg_demo-h2", "author": "lazurny_bereg_demo", "published_at": "-62d", "text": "Лазурный берег: рассрочка от застройщика на 18 месяцев, первый взнос от 20%. Покажем квартиры: +7 700 000 11 01", "phones": ["+7 700 000 11 01"]},
+        {"platform": "telegram", "url": "https://example.invalid/telegram/lazurny_bereg_demo/h3", "external_id": "demo-hist-lazurny_bereg_demo-h3", "author": "lazurny_bereg_demo", "published_at": "-34d", "text": "ЖК «Лазурный берег»: беспроцентная рассрочка до конца месяца. Звоните: +7 700 000 11 01", "phones": ["+7 700 000 11 01"]}
+      ]
+    },
+    {
+      "name": "ЖК «Новая эра»",
+      "ads": [
+        {"platform": "telegram", "url": "https://example.invalid/telegram/novaya_era_demo/h1", "external_id": "demo-hist-novaya_era_demo-h1", "author": "novaya_era_demo", "published_at": "-85d", "text": "Новая эра: продолжаем строительство, фото с площадки. Приходите на день открытых дверей. +7 700 000 07 01", "phones": ["+7 700 000 07 01"]},
+        {"platform": "telegram", "url": "https://example.invalid/telegram/novaya_era_demo/h2", "external_id": "demo-hist-novaya_era_demo-h2", "author": "novaya_era_demo", "published_at": "-47d", "text": "Новая эра: срок сдачи уточняется, работы идут. Запись на экскурсию на объект: +7 700 000 07 01", "phones": ["+7 700 000 07 01"]}
+      ]
+    }
+  ]
+}
