@@ -13,8 +13,10 @@ from sqlalchemy.orm import Session
 
 from app import storage
 from app.models import AdPost, Notification
-from app.models.enums import CaptureStatus, EvidenceKind, NotificationKind, Platform
+from app.models.enums import AdOrigin, AdVersionSource, CaptureStatus, EvidenceKind, NotificationKind, Platform
 from app.modules.ads.urls import UnsafeUrlError, detect_platform, ensure_public_url, telegram_embed_url
+from app.modules.ads.versions import record_version
+from app.modules.nlp.text import split_ocr
 from app.storage import EvidenceLink
 
 logger = logging.getLogger(__name__)
@@ -29,6 +31,9 @@ MIN_BODY_CHARS = 40
 MAX_ERROR_CHARS = 500
 # Their pages carry the caption of the post in the description; Telegram posts come from the embed widget.
 _CAPTION_IN_DESCRIPTION = frozenset({Platform.instagram, Platform.tiktok})
+# Platforms whose captured text is the post itself. On other pages it is the whole page, with menus and counters
+# that change on their own, so it cannot be compared with the saved text.
+_POST_TEXT_PLATFORMS = _CAPTION_IN_DESCRIPTION | {Platform.telegram}
 
 # `widget`: the page is the embed widget of a single Telegram post, whose message and time are the post's own.
 _EXTRACT_SCRIPT = """
@@ -242,13 +247,16 @@ def capture_ad(
     try:
         captured = page_capture(url)
         link = EvidenceLink(ad_post_id=ad.id)
+        screenshot_id: int | None = None
         for data, kind, content_type in (
             (captured.png, EvidenceKind.screenshot_png, "image/png"),
             (captured.mhtml, EvidenceKind.archive_mhtml, "multipart/related"),
         ):
-            storage.put_evidence(
+            evidence = storage.put_evidence(
                 session, data, kind, content_type, captured.final_url, link=link, created_by=requested_by
             )
+            if kind is EvidenceKind.screenshot_png:
+                screenshot_id = evidence.id
     except Exception as exc:
         session.rollback()
         error = (str(exc).splitlines() or [""])[0][:MAX_ERROR_CHARS] or type(exc).__name__
@@ -275,6 +283,14 @@ def capture_ad(
     now = datetime.now(UTC)
     if not (ad.text or "").strip():
         ad.text = captured.text or None
+    elif (
+        captured.text
+        and split_ocr(ad.text or "")[0].strip()
+        and ad.platform in _POST_TEXT_PLATFORMS
+        and ad.origin is not AdOrigin.citizen  # a citizen's note is their own words, not the text of the post
+    ):
+        # The saved text stays the original; what the page says now, when it differs, is a later version.
+        record_version(session, ad, captured.text, AdVersionSource.capture, now, screenshot_id)
     if ad.published_at is None:
         ad.published_at = captured.published_at
     ad.captured_at = now
