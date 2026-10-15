@@ -134,6 +134,24 @@ Rules:
 `--demo` also creates users `demo_admin`, `demo_mio` (Усть-Каменогорск), `demo_gask` (Усть-Каменогорск) and
 `demo_police` (whole region). Their password is `DEMO_USER_PASSWORD` if set, otherwise random and printed once.
 
+## `demo_network.json` (only with `--demo`)
+
+The story "один телефон на троих" (SPEC 10.3), in the same format and with the same fictional-data rules as
+`demo_objects.json` (it is read by the same loader, `seed_demo_objects(session, "demo_network.json")`, and is loaded right
+after it). Three developers (BIN `99214…`, `99234…`, `99254…`), one ЖК each, one sales phone `+7 700 000 20 01` on all
+three objects and one advertising account, `instagram.com/prime_estate_demo`, named on two of the cards and in the texts of
+all four ads. Their own phones are `+7 700 000 21 00`, `22 00`, `23 00`. Nothing here is shared with `demo_objects.json`
+(a test checks phones, BINs, names, cadastral numbers, distance between points and that every score there stays as it was):
+
+| Object | Score / zone |
+|---|---|
+| ЖК «Ривьера Парк» | 70 red (guarantee and MIO permit not found + «внесите депозит») |
+| ЖК «Меридиан Сити» | 35 yellow (guarantee confirmed + «рассрочка от застройщика») |
+| ЖК «Малахитовый сад» | 10 green (guarantee confirmed + ordinary advertising) |
+
+The link graph then shows two findings (the phone and the account, three developers each), and `prime_estate_demo` is
+offered as a candidate source until someone accepts or dismisses it.
+
 ## `pilot/ust-kamenogorsk-public-2026-10-13.json` (only with `--pilot`, optional)
 
 A snapshot of public data collected on 2026-10-13 (third-party data, not verified by SAQ): 26 residential complexes

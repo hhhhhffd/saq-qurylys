@@ -1,0 +1,205 @@
+{
+  "developers": [
+    {
+      "bin": "992140000101",
+      "name": "ТОО «Лиман Девелопмент Демо»",
+      "director": "Беков Б. Б.",
+      "founders": ["Беков Б. Б."],
+      "authorized_company": null,
+      "phones": ["+7 700 000 21 00"]
+    },
+    {
+      "bin": "992340000102",
+      "name": "ТОО «Вектор Групп Демо»",
+      "director": "Сеитова С. С.",
+      "founders": ["Сеитова С. С.", "Мамин М. М."],
+      "authorized_company": null,
+      "phones": ["+7 700 000 22 00"]
+    },
+    {
+      "bin": "992540000103",
+      "name": "ТОО «Атлант Инвест Демо»",
+      "director": "Дюсенов Д. Д.",
+      "founders": ["Дюсенов Д. Д."],
+      "authorized_company": null,
+      "phones": ["+7 700 000 23 00"]
+    }
+  ],
+  "objects": [
+    {
+      "name": "ЖК «Ривьера Парк»",
+      "aliases": ["Ривьера Парк"],
+      "territory_code": "ust-kamenogorsk",
+      "district": "Ахмирово",
+      "developer_bin": "992140000101",
+      "address": "ул. Прибрежная, 4",
+      "cadastral_number": "05-999-021-2101",
+      "land_purpose": "для строительства многоквартирного жилого комплекса",
+      "lat": 49.95,
+      "lon": 82.515,
+      "planned_completion": "+600d",
+      "forecast_completion": "+600d",
+      "construction_status": "active",
+      "documents": [
+        {
+          "doc_type": "guarantee",
+          "number": null,
+          "issued_at": null,
+          "issuer": "АО «КЖК»",
+          "check_status": "not_found",
+          "check_source": "housing_portal",
+          "note": "Гарантия АО «КЖК»: договор по объекту в реестре Жилищного портала не найден.",
+          "checked_at": "-6d"
+        },
+        {
+          "doc_type": "dsu_permit",
+          "number": null,
+          "issued_at": null,
+          "issuer": "МИО",
+          "check_status": "not_found",
+          "check_source": "mio_registry",
+          "note": "Разрешение МИО: по ответу акимата не выдавалось.",
+          "checked_at": "-5d"
+        }
+      ],
+      "inspections": [
+        {
+          "inspected_at": "-16d",
+          "readiness_pct": 8,
+          "lat": 49.95,
+          "lon": 82.515,
+          "note": "Котлован, строительная техника на площадке не замечена."
+        }
+      ],
+      "linked_entities": [
+        {"kind": "phone", "value": "+77000002001", "note": "Офис продаж"},
+        {"kind": "ad_account", "value": "https://instagram.com/prime_estate_demo", "note": "Реклама ведётся из этого аккаунта"}
+      ],
+      "ads": [
+        {
+          "platform": "instagram",
+          "url": "https://example.invalid/instagram/prime_estate_demo/p21",
+          "external_id": "demo-prime_estate_demo-p21",
+          "author": "prime_estate_demo",
+          "published_at": "-2d",
+          "text": "ЖК «Ривьера Парк»: цена, как на старте! Внесите депозит 100 000 ₸ — и стоимость квартиры фиксируется. Запись: +7 700 000 20 01. Мы в Instagram: https://instagram.com/prime_estate_demo",
+          "phones": ["+7 700 000 20 01"],
+          "is_outdoor": false
+        },
+        {
+          "platform": "telegram",
+          "url": "https://example.invalid/telegram/prime_estate_demo/22",
+          "external_id": "demo-prime_estate_demo-22",
+          "author": "prime_estate_demo",
+          "published_at": "-7d",
+          "text": "Ривьера Парк у воды: остались последние квартиры с видом на реку. Звоните: +7 700 000 20 01. Все новости: https://instagram.com/prime_estate_demo",
+          "phones": ["+7 700 000 20 01"],
+          "is_outdoor": false
+        }
+      ]
+    },
+    {
+      "name": "ЖК «Меридиан Сити»",
+      "aliases": ["Меридиан Сити"],
+      "territory_code": "ust-kamenogorsk",
+      "district": "Согра",
+      "developer_bin": "992340000102",
+      "address": "ул. Меридианная, 11",
+      "cadastral_number": "05-999-022-2202",
+      "land_purpose": "для строительства многоквартирного жилого комплекса",
+      "lat": 50.03,
+      "lon": 82.76,
+      "planned_completion": "+420d",
+      "forecast_completion": "+420d",
+      "construction_status": "active",
+      "documents": [
+        {
+          "doc_type": "guarantee",
+          "number": "ДПГ-26-16-902/412",
+          "issued_at": "-210d",
+          "issuer": "АО «КЖК»",
+          "check_status": "confirmed",
+          "check_source": "housing_portal",
+          "note": null,
+          "checked_at": "-10d"
+        }
+      ],
+      "inspections": [
+        {
+          "inspected_at": "-11d",
+          "readiness_pct": 41,
+          "lat": 50.03,
+          "lon": 82.76,
+          "note": "Монолитный каркас до 6-го этажа."
+        }
+      ],
+      "linked_entities": [
+        {"kind": "phone", "value": "+77000002001", "note": "Офис продаж"},
+        {"kind": "ad_account", "value": "https://instagram.com/prime_estate_demo", "note": "Реклама ведётся из этого аккаунта"}
+      ],
+      "ads": [
+        {
+          "platform": "telegram",
+          "url": "https://example.invalid/telegram/prime_estate_demo/23",
+          "external_id": "demo-prime_estate_demo-23",
+          "author": "prime_estate_demo",
+          "published_at": "-4d",
+          "text": "Меридиан Сити — рассрочка от застройщика на 36 месяцев, первый взнос от 20%. Покажем квартиры и условия: +7 700 000 20 01. Мы в Instagram: https://instagram.com/prime_estate_demo",
+          "phones": ["+7 700 000 20 01"],
+          "is_outdoor": false
+        }
+      ]
+    },
+    {
+      "name": "ЖК «Малахитовый сад»",
+      "aliases": ["Малахитовый сад"],
+      "territory_code": "ust-kamenogorsk",
+      "district": "Меновное",
+      "developer_bin": "992540000103",
+      "address": "ул. Садовая, 7",
+      "cadastral_number": "05-999-023-2303",
+      "land_purpose": "для строительства многоквартирного жилого комплекса",
+      "lat": 49.92,
+      "lon": 82.56,
+      "planned_completion": "+500d",
+      "forecast_completion": "+490d",
+      "construction_status": "active",
+      "documents": [
+        {
+          "doc_type": "guarantee",
+          "number": "ДПГ-26-16-903/157",
+          "issued_at": "-190d",
+          "issuer": "АО «КЖК»",
+          "check_status": "confirmed",
+          "check_source": "housing_portal",
+          "note": null,
+          "checked_at": "-13d"
+        }
+      ],
+      "inspections": [
+        {
+          "inspected_at": "-12d",
+          "readiness_pct": 22,
+          "lat": 49.92,
+          "lon": 82.56,
+          "note": "Монолитные работы по 2-му этажу."
+        }
+      ],
+      "linked_entities": [
+        {"kind": "phone", "value": "+77000002001", "note": "Офис продаж"}
+      ],
+      "ads": [
+        {
+          "platform": "website",
+          "url": "https://example.invalid/website/malahitovy-sad/page",
+          "external_id": "demo-malahitovy-sad-page",
+          "author": "malahitovy-sad",
+          "published_at": "-5d",
+          "text": "ЖК «Малахитовый сад»: тихий район, закрытый двор, ипотека Отбасы банка. Консультация: +7 700 000 20 01. Мы в Instagram: https://instagram.com/prime_estate_demo",
+          "phones": ["+7 700 000 20 01"],
+          "is_outdoor": false
+        }
+      ]
+    }
+  ]
+}

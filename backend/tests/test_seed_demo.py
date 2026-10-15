@@ -1,4 +1,5 @@
 import json
+import math
 import re
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
@@ -12,11 +13,15 @@ from app import seed
 from app.config import get_settings
 from app.models import AdPost, Complaint, ConstructionObject, Developer, District, Document, PhraseHit
 from app.models.enums import CheckStatus, DocType, PhraseCategory, ScoreTrigger, Zone
+from app.modules.graph.service import build_graph
+from app.modules.graph.suggestions import list_suggestions
 from app.modules.nlp.service import analyze_ad
 from app.modules.risk.service import recalculate
+from app.scope import TerritoryScope
 
 DEMO_FILE = seed.SEED_DATA_DIR / "demo_objects.json"
 DEMO = json.loads(DEMO_FILE.read_text(encoding="utf-8"))
+NETWORK = json.loads((seed.SEED_DATA_DIR / seed.DEMO_NETWORK_FILE).read_text(encoding="utf-8"))
 
 # Expected outcome of the case model (SPEC 6): score and zone per demo object. A, B and C are the control
 # scenarios of the case (6.6).
@@ -40,12 +45,28 @@ EXPECTED: dict[str, tuple[int, Zone]] = {
 }
 
 
+# The story "one phone for three" (SPEC 10.3): a red, a yellow and a green object of three developers.
+NETWORK_EXPECTED: dict[str, tuple[int, Zone]] = {
+    "ЖК «Ривьера Парк»": (70, Zone.red),  # no legal basis established + a deposit
+    "ЖК «Меридиан Сити»": (35, Zone.yellow),  # confirmed guarantee, but an installment offer
+    "ЖК «Малахитовый сад»": (10, Zone.green),  # confirmed guarantee + ordinary advertising
+}
+NETWORK_PHONE = "+77000002001"
+NETWORK_ACCOUNT = "instagram/prime_estate_demo"
+
+
 @pytest.fixture
 def demo(db: Session) -> list[int]:
     seed.seed_reference(db)
     seed.load_districts(db)
     seed.seed_demo_users(db)
     return seed.seed_demo_objects(db)
+
+
+@pytest.fixture
+def network(db: Session, demo: list[int]) -> list[int]:
+    """The network loaded after the control scenarios, as `python -m app.seed --demo` does."""
+    return seed.seed_demo_objects(db, seed.DEMO_NETWORK_FILE)
 
 
 def _by_name(db: Session, name: str) -> ConstructionObject:
@@ -273,3 +294,136 @@ def test_nothing_is_queued_while_events_are_disabled(monkeypatch: pytest.MonkeyP
     monkeypatch.setattr(seed, "chain", fail)
     monkeypatch.setattr(seed, "objects_changed", fail)
     seed.dispatch_demo_processing([(1, 1)], objects_without_ads=[2])  # EVENTS_ENABLED=false in tests
+
+
+def _score_everything(db: Session, object_ids: list[int]) -> dict[str, tuple[int, Zone]]:
+    for ad in db.scalars(select(AdPost)):
+        analyze_ad(db, ad)
+    result: dict[str, tuple[int, Zone]] = {}
+    for object_id in object_ids:
+        recalculate(db, object_id, ScoreTrigger.manual)
+        obj = db.get(ConstructionObject, object_id)
+        assert obj is not None and obj.zone is not None and obj.score is not None
+        result[obj.name] = (obj.score, obj.zone)
+    return result
+
+
+def test_network_file_is_fictional_and_isolated_from_the_other_demo_data() -> None:
+    assert len(NETWORK["developers"]) == len(NETWORK["objects"]) == 3
+    own_phones: set[str] = set()
+    for developer in NETWORK["developers"]:
+        assert re.fullmatch(r"99[0-9]{10}", developer["bin"]), "fictional BINs start with 99"
+        assert all(re.fullmatch(r"\+7 700 000 \d\d \d\d", phone) for phone in developer["phones"])
+        own_phones.update(developer["phones"])
+    ads = [ad for obj in NETWORK["objects"] for ad in obj["ads"]]
+    for obj in NETWORK["objects"]:
+        assert obj["documents"] and obj["inspections"] and obj["linked_entities"] and obj["developer_bin"]
+        for entity in obj["linked_entities"]:
+            assert entity["kind"] != "phone" or re.fullmatch(r"\+7700000\d{4}", entity["value"])
+            if entity["kind"] == "phone":
+                own_phones.add(entity["value"])
+    for ad in ads:
+        assert ad["url"] is None or ad["url"].startswith("https://example.invalid/")
+        assert re.fullmatch(r"-([1-9]|1\d|20)d", ad["published_at"])
+        assert re.search(r"\+7 700 000 \d\d \d\d", ad["text"])
+    assert len(ads) >= 3
+
+    existing_phones = {phone.replace(" ", "") for developer in DEMO["developers"] for phone in developer["phones"]}
+    existing_phones |= {entity["value"] for obj in DEMO["objects"] for entity in obj["linked_entities"]}
+    existing_phones |= {
+        phone.replace(" ", "") for obj in DEMO["objects"] for ad in obj["ads"] for phone in ad["phones"]
+    }
+    assert not {phone.replace(" ", "") for phone in own_phones} & existing_phones
+    assert {developer["bin"] for developer in NETWORK["developers"]}.isdisjoint(
+        developer["bin"] for developer in DEMO["developers"]
+    )
+    assert {obj["name"] for obj in NETWORK["objects"]}.isdisjoint(obj["name"] for obj in DEMO["objects"])
+    assert {obj["cadastral_number"] for obj in NETWORK["objects"]}.isdisjoint(
+        obj["cadastral_number"] for obj in DEMO["objects"]
+    )
+
+
+def test_network_is_marked_as_demo_and_loaded_once(db: Session, demo: list[int], network: list[int]) -> None:
+    assert len(network) == 3 and not set(network) & set(demo)
+    assert (
+        db.scalar(select(func.count()).select_from(ConstructionObject).where(ConstructionObject.is_demo.is_(False)))
+        == 0
+    )
+    assert db.scalar(select(func.count()).select_from(AdPost).where(AdPost.is_demo.is_(False))) == 0
+    assert seed.seed_demo_objects(db, seed.DEMO_NETWORK_FILE) == []
+    assert db.scalar(select(func.count()).select_from(Developer)) == len(DEMO["developers"]) + 3
+    for obj in db.scalars(select(ConstructionObject).where(ConstructionObject.id.in_(network))):
+        assert obj.district_id is not None, obj.name  # every point lies inside a district
+
+
+def test_network_objects_stay_away_from_the_other_demo_objects() -> None:
+    def kilometres(a: dict[str, Any], b: dict[str, Any]) -> float:
+        return math.hypot(
+            (a["lat"] - b["lat"]) * 111.2, (a["lon"] - b["lon"]) * 111.2 * math.cos(math.radians(a["lat"]))
+        )
+
+    for new in NETWORK["objects"]:
+        assert min(kilometres(new, old) for old in DEMO["objects"]) > 1.0, new["name"]
+
+
+def test_network_changes_no_control_scenario_and_no_other_demo_score(
+    db: Session, demo: list[int], network: list[int]
+) -> None:
+    result = _score_everything(db, [*demo, *network])
+
+    assert {name: result[name] for name in EXPECTED} == EXPECTED
+    assert result["ЖК «Северный бриз»"] == (35, Zone.yellow)  # scenario A
+    assert result["ЖК «Золотая осень»"] == (70, Zone.red)  # scenario B
+    assert result["ЖК «Тихая гавань»"] == (10, Zone.green)  # scenario C
+    assert {name: result[name] for name in NETWORK_EXPECTED} == NETWORK_EXPECTED
+    zones = [result[name][1] for name in EXPECTED]
+    assert (zones.count(Zone.green), zones.count(Zone.yellow), zones.count(Zone.red)) == (9, 5, 2)
+
+
+def test_network_ads_belong_to_the_network_objects_only(db: Session, demo: list[int], network: list[int]) -> None:
+    network_ads = list(db.scalars(select(AdPost).where(AdPost.object_id.in_(network))))
+    assert len(network_ads) == sum(len(obj["ads"]) for obj in NETWORK["objects"])
+    assert db.scalar(select(func.count()).select_from(AdPost)) == len(network_ads) + sum(
+        len(obj["ads"]) for obj in DEMO["objects"]
+    )
+    for ad in network_ads:
+        analyze_ad(db, ad)
+        assert ad.phones == [NETWORK_PHONE] and ad.links == ["https://instagram.com/prime_estate_demo"]
+    for ad in db.scalars(select(AdPost).where(AdPost.object_id.in_(demo))):
+        analyze_ad(db, ad)
+        assert NETWORK_PHONE not in ad.phones and not any("prime_estate_demo" in link for link in ad.links)
+
+
+def test_one_phone_and_one_account_tie_the_three_developers(db: Session, demo: list[int], network: list[int]) -> None:
+    new_developers = sorted(
+        db.scalars(select(Developer.id).where(Developer.bin.in_([d["bin"] for d in NETWORK["developers"]])))
+    )
+
+    # Straight after loading: the phone is on all three cards, the account on two of them.
+    findings = {finding.value: finding for finding in build_graph(db, TerritoryScope(ids=None)).findings}
+    assert set(findings) == {NETWORK_PHONE, NETWORK_ACCOUNT}
+    phone = findings[NETWORK_PHONE]
+    assert phone.kind == "shared_phone" and phone.label == "Один телефон у 3 застройщиков"
+    assert phone.developer_ids == new_developers and phone.object_ids == sorted(network)
+    assert len(findings[NETWORK_ACCOUNT].developer_ids) == 2
+
+    # After nlp.analyze reads the links of the texts, the third object's advertising names the account too.
+    for ad in db.scalars(select(AdPost)):
+        analyze_ad(db, ad)
+    findings = {finding.value: finding for finding in build_graph(db, TerritoryScope(ids=None)).findings}
+    assert set(findings) == {NETWORK_PHONE, NETWORK_ACCOUNT}  # nothing else of the demo is a finding
+    account = findings[NETWORK_ACCOUNT]
+    assert account.kind == "shared_account" and account.label == "Один аккаунт у 3 застройщиков"
+    for finding in findings.values():
+        assert finding.developer_ids == new_developers and finding.object_ids == sorted(network)
+
+
+def test_the_network_account_is_offered_as_a_source_candidate(db: Session, demo: list[int], network: list[int]) -> None:
+    for ad in db.scalars(select(AdPost)):
+        analyze_ad(db, ad)
+
+    [candidate] = list_suggestions(db, TerritoryScope(ids=None))
+
+    assert (candidate.platform, candidate.handle) == ("instagram", "prime_estate_demo")
+    assert candidate.posts_count == sum(len(obj["ads"]) for obj in NETWORK["objects"])
+    assert candidate.object_ids == sorted(network)
