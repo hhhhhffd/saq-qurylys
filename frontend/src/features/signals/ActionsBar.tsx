@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Button, Tooltip } from '@mantine/core';
 import { IconFileTypePdf } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { downloadFile } from '@/api/client';
@@ -7,6 +6,9 @@ import { useCloseSignal } from '@/api/hooks/signals';
 import { errorMessage } from '@/api/queryClient';
 import type { SignalDetail, SignalRecipient } from '@/api/types';
 import { useAuth } from '@/auth/useAuth';
+import { MovingBorder } from '@/components/fx/MovingBorder';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { confirmAction } from '@/lib/confirm';
 import { toast } from '@/lib/toast';
 import { ConfirmSendModal } from './ConfirmSendModal';
@@ -34,14 +36,13 @@ function DownloadButton({ path, filename, label }: { path: string; filename: str
 
   return (
     <Button
-      variant="default"
-      leftSection={<IconFileTypePdf size={16} />}
+      variant="secondary"
       loading={loading}
       // The label of the sent copy is long: it wraps on a narrow screen instead of widening the page.
-      maw="100%"
-      styles={{ root: { height: 'auto', minHeight: 36, paddingBlock: 6 }, label: { whiteSpace: 'normal' } }}
+      className="h-auto min-h-7 max-w-full py-1 whitespace-normal"
       onClick={() => void download()}
     >
+      <IconFileTypePdf />
       {label}
     </Button>
   );
@@ -87,16 +88,23 @@ export function ActionsBar({ detail, recipient, dirty }: Props) {
       )}
       {canReview && (
         <>
-          <Button variant="default" onClick={() => setDialog('return')}>
+          <Button variant="secondary" onClick={() => setDialog('return')}>
             {t('actions.return')}
           </Button>
-          <Tooltip label={sendBlocker} disabled={sendBlocker === null}>
-            <span>
-              <Button disabled={sendBlocker !== null} onClick={() => setDialog('send')}>
-                {t('actions.confirmSend')}
-              </Button>
-            </span>
-          </Tooltip>
+          {sendBlocker === null ? (
+            <MovingBorder>
+              <Button onClick={() => setDialog('send')}>{t('actions.confirmSend')}</Button>
+            </MovingBorder>
+          ) : (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button disabled>{t('actions.confirmSend')}</Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{sendBlocker}</TooltipContent>
+            </Tooltip>
+          )}
         </>
       )}
       {canRespond && <Button onClick={() => setDialog('respond')}>{t('actions.respond')}</Button>}

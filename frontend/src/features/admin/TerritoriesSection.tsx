@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Button } from '@mantine/core';
 import { IconPlus } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useTerritories } from '@/api/hooks/reference';
@@ -8,6 +7,7 @@ import { Chip } from '@/components/Chip';
 import { dataColumns } from '@/components/dataColumns';
 import { DataTable } from '@/components/DataTable';
 import { QueryBoundary } from '@/components/QueryState';
+import { Button } from '@/components/ui/button';
 import { useEnum } from '@/i18n/useEnum';
 import { toLatLon } from '@/lib/geo';
 import { ActionsHeader, EditButton, RowActions } from './RowActions';
@@ -15,7 +15,6 @@ import { SectionHeader } from './SectionHeader';
 import { TerritoryFormModal } from './TerritoryFormModal';
 import { territoryRows, type TerritoryRow } from './territoryTree';
 import { usePagedRows } from './usePagedRows';
-import classes from './AdminPage.module.css';
 
 const PAGE_SIZE = 50;
 const INDENT_PX = 20;
@@ -45,7 +44,7 @@ function TerritoriesTable({ tree, onEdit }: { tree: Territory[]; onEdit: (territ
     col.display({
       id: 'code',
       header: t('territories.columns.code'),
-      cell: ({ row }) => <span className={classes.mono}>{row.original.territory.code}</span>,
+      cell: ({ row }) => <span className="font-mono text-xs">{row.original.territory.code}</span>,
     }),
     col.display({
       id: 'timezone',
@@ -57,7 +56,7 @@ function TerritoriesTable({ tree, onEdit }: { tree: Territory[]; onEdit: (territ
       header: t('territories.columns.center'),
       cell: ({ row }) => {
         const center = toLatLon(row.original.territory);
-        return <span className="tnum faint">{center ? `${center.lat.toFixed(4)}, ${center.lon.toFixed(4)}` : '—'}</span>;
+        return <span className="text-text-3 tabular-nums">{center ? `${center.lat.toFixed(4)}, ${center.lon.toFixed(4)}` : '—'}</span>;
       },
     }),
     col.display({
@@ -100,7 +99,8 @@ export function TerritoriesSection() {
         title={t('territories.title')}
         description={t('territories.description')}
         actions={
-          <Button leftSection={<IconPlus size={16} />} onClick={() => setEditing({})}>
+          <Button onClick={() => setEditing({})}>
+            <IconPlus />
             {t('territories.add')}
           </Button>
         }

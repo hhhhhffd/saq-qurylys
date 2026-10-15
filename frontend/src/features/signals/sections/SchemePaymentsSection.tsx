@@ -1,12 +1,13 @@
-import { MultiSelect, TagsInput, Textarea } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import { Chip } from '@/components/Chip';
+import { MultiSelect } from '@/components/form/MultiSelect';
+import { TagsInput } from '@/components/form/TagsInput';
+import { TextArea } from '@/components/form/TextArea';
 import { KeyValue } from '@/components/KeyValue';
 import { Panel } from '@/components/Panel';
 import { useEnum, useEnumOptions } from '@/i18n/useEnum';
 import { PAYMENT_SCHEMES } from '../constants';
 import type { SignalDraft } from '../useSignalDraft';
-import classes from './Sections.module.css';
 
 interface Props {
   value: SignalDraft['scheme_payments'];
@@ -22,7 +23,7 @@ export function SchemePaymentsSection({ value, editable, onChange }: Props) {
   if (editable) {
     return (
       <Panel title={t('sections.scheme_payments')}>
-        <div className={classes.stack}>
+        <div className="flex flex-col gap-3.5">
           <MultiSelect
             label={t('schemePayments.paymentSchemes')}
             placeholder={t('schemePayments.paymentSchemesPlaceholder')}
@@ -37,12 +38,11 @@ export function SchemePaymentsSection({ value, editable, onChange }: Props) {
             value={value.contract_types}
             onChange={(next) => onChange({ ...value, contract_types: next })}
           />
-          <Textarea
+          <TextArea
             label={t('schemePayments.note')}
             placeholder={t('schemePayments.notePlaceholder')}
             value={value.confirmed_payments_note}
             onChange={(event) => onChange({ ...value, confirmed_payments_note: event.currentTarget.value })}
-            autosize
             minRows={3}
             maxRows={10}
           />
@@ -60,7 +60,7 @@ export function SchemePaymentsSection({ value, editable, onChange }: Props) {
             label: t('schemePayments.paymentSchemes'),
             value:
               value.payment_schemes.length > 0 && (
-                <div className={classes.chips}>
+                <div className="flex flex-wrap gap-1.5">
                   {value.payment_schemes.map((scheme) => (
                     <Chip key={scheme}>{e('payment_scheme', scheme)}</Chip>
                   ))}
@@ -71,7 +71,7 @@ export function SchemePaymentsSection({ value, editable, onChange }: Props) {
             label: t('schemePayments.contractTypes'),
             value:
               value.contract_types.length > 0 && (
-                <div className={classes.chips}>
+                <div className="flex flex-wrap gap-1.5">
                   {value.contract_types.map((type) => (
                     <Chip key={type} outline>
                       {type}
@@ -83,7 +83,7 @@ export function SchemePaymentsSection({ value, editable, onChange }: Props) {
           {
             label: t('schemePayments.note'),
             value: value.confirmed_payments_note && (
-              <p className={classes.multiline}>{value.confirmed_payments_note}</p>
+              <p className="break-words whitespace-pre-wrap">{value.confirmed_payments_note}</p>
             ),
           },
         ]}

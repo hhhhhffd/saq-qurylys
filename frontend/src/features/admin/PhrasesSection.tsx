@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Button, Select, TextInput, Tooltip } from '@mantine/core';
-import { IconPlus, IconRefresh, IconSearch } from '@tabler/icons-react';
+import { IconPlus, IconRefresh } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { usePhrases, useReanalyzePublications } from '@/api/hooks/reference';
 import type { Phrase } from '@/api/types';
@@ -8,6 +7,10 @@ import { Chip } from '@/components/Chip';
 import { dataColumns } from '@/components/dataColumns';
 import { DataTable } from '@/components/DataTable';
 import { QueryBoundary } from '@/components/QueryState';
+import { SelectInput } from '@/components/form/SelectInput';
+import { TextInput } from '@/components/form/TextInput';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useEnum, useEnumOptions } from '@/i18n/useEnum';
 import { confirmAction } from '@/lib/confirm';
 import { PhraseFormModal } from './PhraseFormModal';
@@ -15,7 +18,6 @@ import { ActionsHeader, EditButton, RowActions } from './RowActions';
 import { SectionHeader } from './SectionHeader';
 import { PHRASE_CATEGORIES } from './phraseCategories';
 import { usePagedRows } from './usePagedRows';
-import classes from './AdminPage.module.css';
 
 const PAGE_SIZE = 25;
 const MAX_VISIBLE_VARIANTS = 4;
@@ -52,7 +54,7 @@ function PhrasesTable({ phrases, onEdit }: { phrases: Phrase[]; onEdit: (phrase:
         const { variants } = row.original;
         const hidden = variants.length - MAX_VISIBLE_VARIANTS;
         return (
-          <div className={classes.chips}>
+          <div className="flex flex-wrap gap-1">
             {variants.slice(0, MAX_VISIBLE_VARIANTS).map((variant) => (
               <Chip key={variant} outline>
                 {variant}
@@ -71,7 +73,7 @@ function PhrasesTable({ phrases, onEdit }: { phrases: Phrase[]; onEdit: (phrase:
     col.display({
       id: 'weight',
       header: t('phrases.columns.weight'),
-      cell: ({ row }) => <span className="tnum">{row.original.weight}</span>,
+      cell: ({ row }) => <span className="tabular-nums">{row.original.weight}</span>,
     }),
     col.display({
       id: 'status',
@@ -92,18 +94,17 @@ function PhrasesTable({ phrases, onEdit }: { phrases: Phrase[]; onEdit: (phrase:
 
   return (
     <>
-      <div className={classes.toolbar}>
+      <div className="mb-3 flex flex-wrap items-end gap-3">
         <TextInput
-          className={classes.toolbarSearch}
+          className="max-w-90 min-w-60 flex-1"
           label={t('phrases.search')}
           value={search}
           onChange={(event) => {
             setSearch(event.currentTarget.value);
             setPageIndex(0);
           }}
-          leftSection={<IconSearch size={16} />}
         />
-        <Select
+        <SelectInput
           label={t('phrases.categoryFilter')}
           placeholder={t('phrases.allCategories')}
           data={enumOptions('phrase_category', PHRASE_CATEGORIES)}
@@ -113,6 +114,7 @@ function PhrasesTable({ phrases, onEdit }: { phrases: Phrase[]; onEdit: (phrase:
             setPageIndex(0);
           }}
           clearable
+          className="w-56"
         />
       </div>
       <DataTable
@@ -143,24 +145,28 @@ export function PhrasesSection() {
         description={t('phrases.description')}
         actions={
           <>
-            <Tooltip label={t('phrases.reanalyze.hint')} multiline w={280}>
-              <Button
-                variant="default"
-                leftSection={<IconRefresh size={16} />}
-                loading={reanalyze.isPending}
-                onClick={() =>
-                  confirmAction({
-                    title: t('phrases.reanalyze.confirmTitle'),
-                    message: t('phrases.reanalyze.confirmMessage'),
-                    confirmLabel: t('phrases.reanalyze.button'),
-                    onConfirm: () => reanalyze.mutate(),
-                  })
-                }
-              >
-                {t('phrases.reanalyze.button')}
-              </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="secondary"
+                  loading={reanalyze.isPending}
+                  onClick={() =>
+                    confirmAction({
+                      title: t('phrases.reanalyze.confirmTitle'),
+                      message: t('phrases.reanalyze.confirmMessage'),
+                      confirmLabel: t('phrases.reanalyze.button'),
+                      onConfirm: () => reanalyze.mutate(),
+                    })
+                  }
+                >
+                  <IconRefresh />
+                  {t('phrases.reanalyze.button')}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-70">{t('phrases.reanalyze.hint')}</TooltipContent>
             </Tooltip>
-            <Button leftSection={<IconPlus size={16} />} onClick={() => setEditing({})}>
+            <Button onClick={() => setEditing({})}>
+              <IconPlus />
               {t('phrases.add')}
             </Button>
           </>

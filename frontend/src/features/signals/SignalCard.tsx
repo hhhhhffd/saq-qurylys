@@ -29,7 +29,6 @@ import { PublicationsSection } from './sections/PublicationsSection';
 import { RiskFactorsSection } from './sections/RiskFactorsSection';
 import { RouteSection } from './sections/RouteSection';
 import { SchemePaymentsSection } from './sections/SchemePaymentsSection';
-import classes from './SignalCard.module.css';
 
 export function SignalCard({ detail }: { detail: SignalDetail }) {
   const { t } = useTranslation('signals');
@@ -56,15 +55,15 @@ export function SignalCard({ detail }: { detail: SignalDetail }) {
     );
 
   return (
-    <div className={classes.page}>
-      <Link to="/signals" className={classes.back}>
+    <div className="flex flex-col gap-4">
+      <Link to="/signals" className="inline-flex items-center gap-1 self-start text-sm text-link hover:underline">
         <IconArrowLeft size={16} aria-hidden />
         {t('detail.back')}
       </Link>
       <PageHeader
         title={detail.number}
         subtitle={
-          <span className={classes.badges}>
+          <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
             <SignalStatusChip status={status} />
             {detail.is_overdue && <Chip tone="red">{t('due.overdue')}</Chip>}
             <span>{e('origin', detail.origin)}</span>
@@ -105,7 +104,7 @@ export function SignalCard({ detail }: { detail: SignalDetail }) {
               value: isRecipient ? (
                 detail.object_name
               ) : (
-                <Link to={`/objects/${detail.object_id}`}>{detail.object_name}</Link>
+                <Link to={`/objects/${detail.object_id}`} className="text-link hover:underline">{detail.object_name}</Link>
               ),
             },
             { label: t('detail.fields.zone'), value: <ZoneBadge zone={detail.zone} size="md" /> },
@@ -121,14 +120,14 @@ export function SignalCard({ detail }: { detail: SignalDetail }) {
             { label: t('detail.fields.createdAt'), value: dateTime(detail.created_at) },
           ]}
         />
-        <ZoneDisclaimer className={classes.summaryFoot} />
+        <ZoneDisclaimer className="mt-3.5 border-t border-border pt-3" />
       </Panel>
 
       <ObjectDeveloperSection data={sections.object_developer} />
       <RiskFactorsSection sections={sections} linked={!isRecipient} />
       <PermitChecksSection items={sections.permit_checks} />
       <PublicationsSection items={sections.publications} showAdLinks={!isRecipient} />
-      <div className={classes.pair}>
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
         <SchemePaymentsSection
           value={draft.value.scheme_payments}
           editable={editable}

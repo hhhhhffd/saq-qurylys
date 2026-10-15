@@ -1,8 +1,13 @@
-import { Button, Group, Modal, Stack, Textarea } from '@mantine/core';
-import { useForm } from '@mantine/form';
+import { useMemo } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
+import { z } from 'zod';
 import { useRespondSignal } from '@/api/hooks/signals';
 import type { SignalDetail } from '@/api/types';
+import { TextArea } from '@/components/form/TextArea';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { MIN_RESPONSE_TEXT } from './constants';
 import { useApplySignal } from './useApplySignal';
 
@@ -17,21 +22,25 @@ export function ResponseModal({ opened, onClose, detail }: Props) {
   const { t: tc } = useTranslation();
   const respond = useRespondSignal();
   const apply = useApplySignal();
-  const form = useForm({
-    initialValues: { response: '' },
-    validate: {
-      response: (value) => (value.trim().length < MIN_RESPONSE_TEXT ? t('respond.tooShort', { count: MIN_RESPONSE_TEXT }) : null),
-    },
-  });
+  const schema = useMemo(
+    () => z.object({ response: z.string().trim().min(MIN_RESPONSE_TEXT, t('respond.tooShort', { count: MIN_RESPONSE_TEXT })) }),
+    [t],
+  );
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm({ resolver: zodResolver(schema), defaultValues: { response: '' } });
 
   const close = () => {
-    form.reset();
+    reset();
     onClose();
   };
 
-  const submit = form.onSubmit((values) =>
+  const submit = handleSubmit((values) =>
     respond.mutate(
-      { id: detail.id, response_text: values.response.trim() },
+      { id: detail.id, response_text: values.response },
       {
         onSuccess: (next) => {
           apply(next);
@@ -42,30 +51,32 @@ export function ResponseModal({ opened, onClose, detail }: Props) {
   );
 
   return (
-    <Modal opened={opened} onClose={close} title={t('actions.respond')}>
-      <form onSubmit={submit}>
-        <Stack gap="md">
-          <Textarea
+    <Dialog open={opened} onOpenChange={(open) => !open && close()}>
+      <DialogContent className="sm:max-w-lg" aria-describedby={undefined}>
+        <DialogHeader>
+          <DialogTitle>{t('actions.respond')}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={submit} noValidate className="grid gap-3">
+          <TextArea
             label={t('respond.label')}
             description={t('respond.description', { number: detail.number })}
             placeholder={t('respond.placeholder')}
-            withAsterisk
-            autosize
+            required
             minRows={5}
             maxRows={12}
-            data-autofocus
-            {...form.getInputProps('response')}
+            error={errors.response?.message}
+            {...register('response')}
           />
-          <Group justify="flex-end" gap="sm">
-            <Button variant="default" onClick={close} disabled={respond.isPending}>
+          <DialogFooter>
+            <Button type="button" variant="secondary" onClick={close} disabled={respond.isPending}>
               {tc('cancel')}
             </Button>
             <Button type="submit" loading={respond.isPending}>
               {t('actions.respond')}
             </Button>
-          </Group>
-        </Stack>
-      </form>
-    </Modal>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

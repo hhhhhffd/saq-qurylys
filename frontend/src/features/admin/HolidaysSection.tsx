@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Select } from '@mantine/core';
 import dayjs from 'dayjs';
 import { useTranslation } from 'react-i18next';
 import { useDeleteHoliday, useHolidays } from '@/api/hooks/reference';
@@ -8,6 +7,7 @@ import { Chip } from '@/components/Chip';
 import { dataColumns } from '@/components/dataColumns';
 import { DataTable } from '@/components/DataTable';
 import { QueryBoundary } from '@/components/QueryState';
+import { SelectInput } from '@/components/form/SelectInput';
 import { useEnum } from '@/i18n/useEnum';
 import { useFormat } from '@/i18n/useFormat';
 import { confirmAction } from '@/lib/confirm';
@@ -15,7 +15,6 @@ import { HolidayForm } from './HolidayForm';
 import { ActionsHeader, DeleteButton, RowActions } from './RowActions';
 import { SectionHeader } from './SectionHeader';
 import { usePagedRows } from './usePagedRows';
-import classes from './AdminPage.module.css';
 
 const PAGE_SIZE = 50;
 const YEARS_AROUND = 2;
@@ -44,12 +43,12 @@ function HolidaysTable({ holidays, year }: { holidays: Holiday[]; year: number }
     col.display({
       id: 'date',
       header: t('holidays.columns.date'),
-      cell: ({ row }) => <span className="tnum">{format.date(row.original.day)}</span>,
+      cell: ({ row }) => <span className="tabular-nums">{format.date(row.original.day)}</span>,
     }),
     col.display({
       id: 'weekday',
       header: t('holidays.columns.weekday'),
-      cell: ({ row }) => <span className="muted">{weekday.format(new Date(`${row.original.day}T00:00:00Z`))}</span>,
+      cell: ({ row }) => <span className="text-text-2">{weekday.format(new Date(`${row.original.day}T00:00:00Z`))}</span>,
     }),
     col.display({
       id: 'kind',
@@ -104,19 +103,18 @@ export function HolidaysSection() {
         title={t('holidays.title')}
         description={t('holidays.description')}
         actions={
-          <Select
-            aria-label={t('holidays.year')}
+          <SelectInput
+            label={<span className="sr-only">{t('holidays.year')}</span>}
             data={yearOptions}
             value={String(year)}
             onChange={(value) => value && setYear(Number(value))}
-            allowDeselect={false}
-            w={110}
+            className="w-28"
           />
         }
       />
       <QueryBoundary query={query}>
         {(holidays) => (
-          <div className={classes.stack}>
+          <div className="flex flex-col gap-7">
             <HolidayForm existingDays={new Set(holidays.map((holiday) => holiday.day))} onAdded={setYear} />
             <HolidaysTable holidays={holidays} year={year} />
           </div>

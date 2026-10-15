@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Button } from '@mantine/core';
 import { IconPlus } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useUsers } from '@/api/hooks/reference';
@@ -8,6 +7,7 @@ import { Chip } from '@/components/Chip';
 import { dataColumns } from '@/components/dataColumns';
 import { DataTable } from '@/components/DataTable';
 import { QueryBoundary } from '@/components/QueryState';
+import { Button } from '@/components/ui/button';
 import { useEnum } from '@/i18n/useEnum';
 import { useTerritoryList } from '@/lib/territories';
 import { ActionsHeader, EditButton, RowActions } from './RowActions';
@@ -15,7 +15,6 @@ import { SectionHeader } from './SectionHeader';
 import { UserFormModal } from './UserFormModal';
 import { territoryLabels } from './territoryTree';
 import { usePagedRows } from './usePagedRows';
-import classes from './AdminPage.module.css';
 
 const PAGE_SIZE = 50;
 const col = dataColumns<AdminUser>();
@@ -31,7 +30,7 @@ function UsersTable({ users, onEdit }: { users: AdminUser[]; onEdit: (user: Admi
     col.display({
       id: 'username',
       header: t('users.columns.username'),
-      cell: ({ row }) => <span className={classes.mono}>{row.original.username}</span>,
+      cell: ({ row }) => <span className="font-mono text-xs">{row.original.username}</span>,
     }),
     col.display({ id: 'full_name', header: t('users.columns.fullName'), cell: ({ row }) => row.original.full_name }),
     col.display({
@@ -95,7 +94,8 @@ export function UsersSection() {
         title={t('users.title')}
         description={t('users.description')}
         actions={
-          <Button leftSection={<IconPlus size={16} />} onClick={() => setEditing({})}>
+          <Button onClick={() => setEditing({})}>
+            <IconPlus />
             {t('users.add')}
           </Button>
         }

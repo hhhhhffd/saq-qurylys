@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Alert, Button, Loader } from '@mantine/core';
 import { IconAlertTriangle, IconRefresh } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useRegistrySyncStatus, useStartRegistrySync } from '@/api/hooks/reference';
@@ -9,9 +8,10 @@ import { Chip } from '@/components/Chip';
 import { KeyValue } from '@/components/KeyValue';
 import { Panel } from '@/components/Panel';
 import { QueryBoundary } from '@/components/QueryState';
+import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import { useFormat } from '@/i18n/useFormat';
 import { SectionHeader } from './SectionHeader';
-import classes from './AdminPage.module.css';
 
 const STAT_KEYS = [
   'fetched',
@@ -25,13 +25,13 @@ const STAT_KEYS = [
 function LastSync({ result }: { result: RegistrySyncResult | null }) {
   const { t } = useTranslation('admin');
   const { dateTime } = useFormat();
-  if (!result) return <p className="muted">{t('registry.last.none')}</p>;
+  if (!result) return <p className="text-text-2">{t('registry.last.none')}</p>;
 
   return (
     <>
-      <div className={classes.formRow}>
+      <div className="flex flex-wrap items-center gap-3">
         <Chip tone={result.ok ? 'green' : 'red'}>{result.ok ? t('registry.last.ok') : t('registry.last.failed')}</Chip>
-        <span className="muted tnum">
+        <span className="text-text-2 tabular-nums">
           {t('registry.last.startedAt')}: {dateTime(result.started_at)} · {t('registry.last.finishedAt')}:{' '}
           {dateTime(result.finished_at)}
         </span>
@@ -40,13 +40,13 @@ function LastSync({ result }: { result: RegistrySyncResult | null }) {
         columns={3}
         items={STAT_KEYS.map((key) => ({
           label: t(`registry.last.stats.${key}`),
-          value: <span className="tnum">{result[key]}</span>,
+          value: <span className="tabular-nums">{result[key]}</span>,
         }))}
       />
       {result.errors.length > 0 && (
         <div>
-          <h4>{t('registry.last.errors')}</h4>
-          <ul>
+          <h4 className="mb-1 text-xs font-bold tracking-wider uppercase">{t('registry.last.errors')}</h4>
+          <ul className="list-disc pl-5 text-sm text-zone-red-ink">
             {result.errors.map((error, index) => (
               <li key={index}>{error}</li>
             ))}
@@ -75,30 +75,34 @@ function SyncPanel({
   const globalAdmin = user?.territory_id === null;
 
   return (
-    <div className={classes.stack}>
-      <Alert color="yellow" icon={<IconAlertTriangle size={18} />} title={t('registry.warningTitle')}>
-        {t('registry.warning')}
-      </Alert>
+    <div className="flex flex-col gap-7">
+      <div role="note" className="flex items-start gap-2.5 rounded border border-zone-yellow/40 bg-zone-yellow-bg p-3 text-sm text-zone-yellow-ink">
+        <IconAlertTriangle size={18} aria-hidden className="mt-0.5 flex-none" />
+        <div>
+          <p className="font-heading text-xs font-bold tracking-wider uppercase">{t('registry.warningTitle')}</p>
+          <p className="mt-0.5">{t('registry.warning')}</p>
+        </div>
+      </div>
       <Panel
         title={t('registry.last.title')}
         actions={
           <Button
-            leftSection={running ? <Loader size="xs" color="white" /> : <IconRefresh size={16} />}
             loading={start.isPending}
             disabled={running || !globalAdmin}
             onClick={() => start.mutate(undefined, { onSuccess: onStart })}
           >
+            {running ? <Spinner /> : <IconRefresh />}
             {running ? t('registry.running') : t('registry.start')}
           </Button>
         }
       >
-        <div className={classes.panelStack}>
-          <div className={classes.formRow}>
-            <span className="muted">{t('registry.scheduled')}:</span>
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-text-2">{t('registry.scheduled')}:</span>
             <Chip tone={status.scheduled_enabled ? 'green' : 'neutral'}>
               {status.scheduled_enabled ? t('registry.scheduledOn') : t('registry.scheduledOff')}
             </Chip>
-            {!globalAdmin && <span className="muted">{t('registry.globalOnly')}</span>}
+            {!globalAdmin && <span className="text-text-2">{t('registry.globalOnly')}</span>}
           </div>
           <LastSync result={status.last_sync} />
         </div>

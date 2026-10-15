@@ -6,7 +6,6 @@ import { FactorEvidence } from '@/components/risk/FactorEvidence';
 import { LegalBasis } from '@/components/risk/LegalBasis';
 import { NeedsCheckList } from '@/components/risk/NeedsCheckList';
 import { useEnum } from '@/i18n/useEnum';
-import classes from './Sections.module.css';
 
 function signedWeight(weight: number): string {
   if (weight > 0) return `+${weight}`;
@@ -26,21 +25,28 @@ export function RiskFactorsSection({ sections, linked }: Props) {
   return (
     <Panel title={t('sections.risk_factors')}>
       {items.length === 0 ? (
-        <p className={classes.inlineEmpty}>{t('sections.empty')}</p>
+        <p className="text-text-3">{t('sections.empty')}</p>
       ) : (
-        <ul className={classes.factors}>
+        <ul className="m-0 flex list-none flex-col p-0">
           {items.map((item) => (
-            <li key={item.code} className={classes.factor}>
-              <span className={classes.factorName}>
-                <span className={classes.factorLabel}>{item.label}</span>
+            <li
+              key={item.code}
+              className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4 gap-y-1 border-b border-border py-2.5 first:pt-0 last:border-b-0 last:pb-0"
+            >
+              <span className="font-semibold">
+                <span className="mr-2 inline-block min-w-7 rounded-sm bg-primary px-1.5 text-center text-xs font-bold text-primary-foreground">
+                  {item.label}
+                </span>
                 {e('risk_factor', item.code)}
               </span>
-              <span className={classes.weight}>{signedWeight(item.weight)}</span>
-              <div className={classes.factorDetail}>
+              <span className="font-semibold tabular-nums">{signedWeight(item.weight)}</span>
+              <div className="col-span-full">
                 <FactorEvidence evidence={item.evidence} linked={linked} anchors={false} />
-                <details className={classes.factorMore}>
-                  <summary>{t('riskFactors.details')}</summary>
-                  <FactorDetail detail={item.detail} />
+                <details className="mt-2 text-xs">
+                  <summary className="cursor-pointer text-text-2 hover:text-text">{t('riskFactors.details')}</summary>
+                  <div className="mt-2">
+                    <FactorDetail detail={item.detail} />
+                  </div>
                 </details>
               </div>
             </li>

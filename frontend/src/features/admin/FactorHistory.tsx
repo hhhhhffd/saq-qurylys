@@ -32,7 +32,7 @@ function HistoryTable({ changes }: { changes: RiskFactorChange[] }) {
     col.display({
       id: 'at',
       header: t('factors.history.columns.at'),
-      cell: ({ row }) => <span className="tnum">{format.dateTime(row.original.changed_at)}</span>,
+      cell: ({ row }) => <span className="tabular-nums">{format.dateTime(row.original.changed_at)}</span>,
     }),
     col.display({
       id: 'factor',
@@ -43,7 +43,7 @@ function HistoryTable({ changes }: { changes: RiskFactorChange[] }) {
       id: 'weight',
       header: t('factors.history.columns.weight'),
       cell: ({ row }) => (
-        <span className="tnum">
+        <span className="tabular-nums">
           {transition(row.original.old_weight?.toString() ?? null, row.original.new_weight?.toString() ?? null)}
         </span>
       ),

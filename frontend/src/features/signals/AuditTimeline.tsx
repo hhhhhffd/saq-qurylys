@@ -6,7 +6,6 @@ import { useFormat } from '@/i18n/useFormat';
 import { auditActionKey } from './auditActions';
 import { auditDiff } from './auditDiff';
 import { formatPlain, humanizeKey } from './valueFormat';
-import classes from './AuditTimeline.module.css';
 
 const MAX_ROWS = 20;
 
@@ -44,43 +43,46 @@ export function AuditTimeline({ entries }: { entries: AuditEntry[] }) {
   return (
     <Panel title={t('audit.title')}>
       {entries.length === 0 ? (
-        <p className="faint">{t('audit.empty')}</p>
+        <p className="text-text-3">{t('audit.empty')}</p>
       ) : (
-        <ol className={classes.list}>
+        <ol className="relative m-0 flex list-none flex-col gap-2.5 p-0 pl-4 before:absolute before:top-1.5 before:bottom-1.5 before:left-[3px] before:w-px before:bg-border-strong">
           {[...entries].sort(byNewest).map((entry) => {
             const key = auditActionKey(entry.action);
             const rows = auditDiff(entry.before, entry.after);
             const user = entry.username ?? (entry.user_id === null ? t('audit.system') : `#${entry.user_id}`);
             return (
-              <li key={entry.id} className={classes.entry}>
-                <div className={classes.head}>
-                  <span className={classes.action}>{key ? t(`audit.actions.${key}`) : entry.action}</span>
-                  <span className={classes.meta}>
+              <li
+                key={entry.id}
+                className="relative min-w-0 before:absolute before:top-[5px] before:-left-4 before:size-[7px] before:rounded-full before:bg-surface before:ring-2 before:ring-text-3 first:before:bg-primary first:before:ring-primary"
+              >
+                <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
+                  <span className="text-sm font-semibold">{key ? t(`audit.actions.${key}`) : entry.action}</span>
+                  <span className="text-xs text-text-3 tabular-nums">
                     {user} · {dateTime(entry.at)}
                   </span>
                 </div>
                 {rows.length > 0 && (
-                  <details className={classes.changes}>
-                    <summary>{t('audit.changes', { count: rows.length })}</summary>
-                    <dl className={classes.rows}>
+                  <details className="mt-0.5 text-xs">
+                    <summary className="inline-block cursor-pointer text-link hover:underline">{t('audit.changes', { count: rows.length })}</summary>
+                    <dl className="mt-1.5 grid grid-cols-1 gap-x-3.5 gap-y-1 rounded border border-border bg-surface-sunken px-3 py-2 sm:grid-cols-[max-content_minmax(0,1fr)]">
                       {rows.slice(0, MAX_ROWS).map((row) => {
                         const field = row.path.split('.').pop() ?? row.path;
                         return (
-                          <div key={row.path} className={classes.row}>
-                            <dt>{t(`audit.fields.${field}`, { defaultValue: humanizeKey(field) })}</dt>
-                            <dd>
-                              <del className={classes.from}>{formatValue(field, row.before)}</del>
-                              <span className={classes.arrow} aria-hidden>
+                          <div key={row.path} className="contents">
+                            <dt className="text-text-2">{t(`audit.fields.${field}`, { defaultValue: humanizeKey(field) })}</dt>
+                            <dd className="m-0 break-words">
+                              <del className="text-text-3">{formatValue(field, row.before)}</del>
+                              <span className="mx-1.5 text-text-3" aria-hidden>
                                 →
                               </span>
-                              <ins className={classes.to}>{formatValue(field, row.after)}</ins>
+                              <ins className="no-underline">{formatValue(field, row.after)}</ins>
                             </dd>
                           </div>
                         );
                       })}
                     </dl>
                     {rows.length > MAX_ROWS && (
-                      <p className={classes.more}>{t('audit.more', { count: rows.length - MAX_ROWS })}</p>
+                      <p className="mt-1.5 text-text-3">{t('audit.more', { count: rows.length - MAX_ROWS })}</p>
                     )}
                   </details>
                 )}
