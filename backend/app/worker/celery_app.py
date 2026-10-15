@@ -2,7 +2,7 @@ import pkgutil
 
 from celery import Celery
 from celery.schedules import crontab
-from kombu import Queue
+from kombu import Exchange, Queue
 
 import app.modules
 from app.config import get_settings
@@ -28,7 +28,9 @@ celery_app.conf.update(
     # Fail fast when the API enqueues during a broker outage (default: ~20 s of retries per call).
     broker_transport_options={"socket_connect_timeout": 2, "max_retries": 1, "interval_start": 0, "interval_step": 0.2},
     task_default_queue="default",
-    task_queues=[Queue(name) for name in QUEUES],
+    # One direct exchange per queue; a bare Queue(name) would bind all queues to the shared "default" key
+    # and every message would be delivered to every queue.
+    task_queues=[Queue(name, Exchange(name, type="direct"), routing_key=name) for name in QUEUES],
     task_routes={
         "archive.capture": {"queue": "archive"},
         "nlp.analyze": {"queue": "nlp"},

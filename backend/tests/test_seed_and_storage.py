@@ -160,6 +160,8 @@ def test_celery_registers_contract_tasks_and_schedule() -> None:
         "notify",
         "default",
     }
+    # Each queue needs its own exchange/key, otherwise every message lands in every queue.
+    assert all(q.exchange.name == q.name == q.routing_key for q in celery_app.conf.task_queues)
 
 
 def test_evidence_link_requires_exactly_one_owner() -> None:
