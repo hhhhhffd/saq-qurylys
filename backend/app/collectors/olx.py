@@ -7,7 +7,7 @@ from typing import Any
 from urllib.parse import parse_qsl, unquote, urlsplit, urlunsplit
 
 from app.collectors.base import CollectedPost, CollectorError, IsKnown
-from app.collectors.html import fragment_text
+from app.collectors.html import fragment_links, fragment_text
 from app.collectors.http import Fetcher
 from app.models import SourceAccount
 from app.models.enums import Platform
@@ -78,7 +78,8 @@ def parse_offer(item: dict[str, Any]) -> CollectedPost | None:
     place = [(location.get(kind) or {}).get("name") for kind in ("city", "region")]
     lines.extend(others)
     lines.append(", ".join(name for name in place if name))
-    description = fragment_text(str(item.get("description") or ""))
+    description_html = str(item.get("description") or "")
+    description = fragment_text(description_html)
     text = "\n".join(line for line in lines if line)
     if description:
         text = f"{text}\n\n{description}"
@@ -92,6 +93,7 @@ def parse_offer(item: dict[str, Any]) -> CollectedPost | None:
         text=text,
         url=url,
         published_at=published_at,
+        links=fragment_links(description_html),
         media_urls=_photo_urls(item),
     )
 

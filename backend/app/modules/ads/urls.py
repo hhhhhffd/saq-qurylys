@@ -28,6 +28,8 @@ _INSTAGRAM_RESERVED = frozenset({"p", "reel", "reels", "tv", "explore", "stories
 _TIKTOK_VIDEO = re.compile(r"/video/(\d+)")
 _TELEGRAM_POST = re.compile(r"^/(?:s/)?([\w]{4,})/(\d+)/?$")
 _TELEGRAM_CHANNEL = re.compile(r"^/(?:s/)?([\w]{4,})(?:/|$)")
+# The address of an OLX offer ends with its own code, `...-ID<code>.html`; the words before it follow the title.
+_OLX_OFFER = re.compile(r"-(ID[A-Za-z0-9]+)\.html$")
 
 
 class UnsafeUrlError(ValueError):
@@ -72,13 +74,20 @@ def normalize_url(url: str) -> str:
 
 def external_id_for(platform: Platform, url: str) -> str:
     """Stable identifier of a publication: the platform's own post id when the URL has one, else the URL."""
-    _, path = split_url(url)
+    host, path = split_url(url)
     if platform is Platform.instagram and (match := _INSTAGRAM_POST.match(path)):
         return match.group(1)
     if platform is Platform.tiktok and (match := _TIKTOK_VIDEO.search(path)):
         return match.group(1)
     if platform is Platform.telegram and (match := _TELEGRAM_POST.match(path)):
         return f"{match.group(1).lower()}/{match.group(2)}"
+    if (
+        platform is Platform.aggregator
+        and (host == "olx.kz" or host.endswith(".olx.kz"))
+        and (match := _OLX_OFFER.search(path))
+    ):
+        # An edit of the title changes the words of the address, not the offer: the code identifies it.
+        return f"olx.kz/{match.group(1)}"
     normalized = normalize_url(url)
     if len(normalized) <= EXTERNAL_ID_MAX:
         return normalized

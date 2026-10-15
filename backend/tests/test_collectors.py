@@ -11,14 +11,16 @@ from app import collectors
 from app.collectors import base, krisha
 from app.collectors.aggregator import AggregatorCollector, check_search_url
 from app.collectors.base import CollectedPost, CollectorError
+from app.collectors.html import fragment_links, fragment_text
 from app.collectors.http import Fetcher
 from app.collectors.instagram import InstagramCollector
 from app.collectors.krisha import KrishaCollector
-from app.collectors.olx import OlxCollector, search_params
+from app.collectors.olx import OlxCollector, parse_offer, search_params
 from app.collectors.telegram import TelegramCollector
 from app.config import Settings, get_settings
 from app.models import SourceAccount
 from app.models.enums import Platform
+from app.modules.ads.urls import external_id_for
 
 FIXTURES = Path(__file__).parent / "fixtures" / "collectors"
 DELAY = 2.5
@@ -83,9 +85,9 @@ def test_telegram_messages_become_posts() -> None:
     assert [post.external_id for post in posts] == ["zhk_alatau_demo/101", "zhk_alatau_demo/102", "zhk_alatau_demo/103"]
     first, second, third = posts
     assert first.text == (
-        "Старт продаж! 🩵\nБронь квартир открыта.\n\nСайт: alatau.test\n"
-        "Условия: смотрите здесь (https://alatau.test/terms)\n#алатау"
+        "Старт продаж! 🩵\nБронь квартир открыта.\n\nСайт: alatau.test\nУсловия: смотрите здесь\n#алатау"
     )
+    # The text is what the reader sees; the addresses behind the words of the links are kept apart.
     assert first.links == ["https://alatau.test/", "https://alatau.test/terms"]
     assert first.media_urls == ["https://cdn.alatau.test/file/photo101.jpg"]
     assert first.url == "https://t.me/zhk_alatau_demo/101" and first.author == "ЖК Алатау (демо)"
@@ -219,7 +221,7 @@ def test_olx_offers_become_posts_without_seller_data() -> None:
     }
     # The address is the offer's own; the `reason` parameter of the search is not part of it.
     assert promoted.url == "https://www.olx.kz/d/obyavlenie/promo-kvartira-v-zhk-demo-IDabc1.html"
-    assert promoted.external_id == promoted.url
+    assert promoted.external_id == "olx.kz/IDabc1"
     assert promoted.text == (
         "Квартира в ЖК «Демо-Парк» от застройщика\nЦена: 18 900 000 тг.\nТип жилья: Новостройки\n"
         "Усть-Каменогорск, Восточно-Казахстанская область\n\n"
@@ -235,6 +237,44 @@ def test_olx_offers_become_posts_without_seller_data() -> None:
     for post in (promoted, fresh, old):
         assert post.author is None
         assert "Продавец" not in post.text and "Не хранить" not in post.text
+
+
+def test_link_text_is_what_the_reader_sees_and_the_addresses_are_kept_apart() -> None:
+    html = '<p>Условия: <a href="https://alatau.test/terms">смотрите здесь</a></p><p><a href="/rel">#тег</a></p>'
+
+    # No ` (address)` after the words of a link: a capture or a re-check of the page does not have it either.
+    assert fragment_text(html) == "Условия: смотрите здесь\n#тег"
+    assert fragment_links(html) == ["https://alatau.test/terms"]
+
+
+def test_olx_description_links_go_to_the_links_of_the_post() -> None:
+    item = {
+        "id": 1,
+        "url": "https://www.olx.kz/d/obyavlenie/x-IDabc9.html",
+        "title": "Квартира",
+        "description": 'Смотрите <a href="https://instagram.com/zhk_demo">нас</a> и <a href="https://t.me/zhk_demo">канал</a>',
+    }
+
+    post = parse_offer(item)
+
+    assert post is not None and post.text.endswith("Смотрите нас и канал")
+    assert post.links == ["https://instagram.com/zhk_demo", "https://t.me/zhk_demo"]
+
+
+def test_olx_offer_keeps_its_identity_when_the_title_and_the_address_words_change() -> None:
+    def offer(slug: str, title: str) -> CollectedPost:
+        post = parse_offer({"id": 900001, "url": f"https://www.olx.kz/d/obyavlenie/{slug}-IDabc1.html", "title": title})
+        assert post is not None
+        return post
+
+    before = offer("kvartira-v-zhk-demo", "Квартира в ЖК Демо")
+    after = offer("kvartira-v-zhk-demo-bron-10", "Квартира в ЖК Демо, бронь 10%")
+
+    assert before.external_id == after.external_id == "olx.kz/IDabc1"
+    # A person who pastes the address into «Зафиксировать по ссылке» gets the same key, so the offer is not stored twice.
+    pasted = "https://www.olx.kz/d/obyavlenie/kvartira-v-zhk-demo-bron-10-IDabc1.html?reason=extended_search&utm_x=1"
+    assert external_id_for(Platform.aggregator, pasted) == before.external_id
+    assert external_id_for(Platform.aggregator, "https://www.olx.kz/d/obyavlenie/x-IDabc2.html") != before.external_id
 
 
 def test_olx_returns_only_posts_newer_than_since_and_stops_paging() -> None:
@@ -320,6 +360,17 @@ def test_krisha_detail_page_becomes_a_post() -> None:
     ]
     assert post.author is None
     assert krisha.parse_detail("<html><title>Проверка браузера</title></html>", "1") is None
+
+
+def test_krisha_description_links_go_to_the_links_of_the_post() -> None:
+    html = fixture("krisha_detail.html").replace(
+        "Рассрочка от застройщика.", '<a href="https://instagram.com/zhk_demo">Рассрочка от застройщика</a>.'
+    )
+
+    post = krisha.parse_detail(html, "700001")
+
+    assert post is not None and post.text.endswith("Рассрочка от застройщика.")
+    assert post.links == ["https://instagram.com/zhk_demo"]
 
 
 def test_krisha_opens_details_only_of_unseen_listings_and_pages_on() -> None:
@@ -414,7 +465,8 @@ def test_aggregator_dispatches_by_the_site_of_the_address() -> None:
     assert len(list(both.collect(olx_account, LONG_AGO, never_known))) == 3
     assert len(olx_site_.requests) == 1 and krisha_site_.requests == []
     assert len(list(both.collect(krisha_account, LONG_AGO, never_known))) == 3
-    assert both.capture_urls is True and both.platform is Platform.aggregator
+    # A listing page shows the name and the contacts of the seller: its screenshot is not taken.
+    assert both.capture_urls is False and both.platform is Platform.aggregator
 
 
 def test_aggregator_skips_a_site_that_is_off_and_reports_a_foreign_address() -> None:
