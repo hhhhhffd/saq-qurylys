@@ -29,7 +29,8 @@ router = APIRouter(prefix="/signals", tags=["signals"])
 
 # Only an officer of the MIO prepares, sends and closes cards; admins read them (SPEC section 4).
 OfficerUser = Annotated[AppUser, Depends(require_roles(Role.mio_officer))]
-ReceivingUser = Annotated[AppUser, Depends(require_roles(Role.gask, Role.law_enforcement))]
+# The addressee answers: a receiving body, or a mio officer when the card is addressed to the MIO itself.
+ResponderUser = Annotated[AppUser, Depends(require_roles(Role.gask, Role.law_enforcement, Role.mio_officer))]
 
 
 def _queue_email(
@@ -140,7 +141,7 @@ def return_signal(
 
 @router.post("/{signal_id}/response", response_model=SignalDetail)
 def respond_to_signal(
-    signal_id: int, body: ResponseBody, session: SessionDep, user: ReceivingUser, scope: ScopeDep, request: Request
+    signal_id: int, body: ResponseBody, session: SessionDep, user: ResponderUser, scope: ScopeDep, request: Request
 ) -> SignalDetail:
     view = service.get_card_view(session, user, scope, signal_id, lock=True)
     service.respond(session, view, user, body.response_text, request)

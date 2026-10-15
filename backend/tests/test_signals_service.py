@@ -306,6 +306,16 @@ def test_notifications_follow_territory_and_recipient(db: Session, world: World)
     assert recipients == {world.users["mio_ust"].id, world.users["mio_region"].id, world.users["law"].id}
 
 
+def test_a_card_addressed_to_the_mio_warns_the_officers_of_the_territory(db: Session, world: World) -> None:
+    card = new_card(db, world)
+    send(db, world, card, recipient=Recipient.mio)
+    assert service.check_deadlines(db, datetime(2026, 10, 21, 1, tzinfo=UTC)) == 2
+    assert _kinds(db, card, NotificationKind.signal_overdue) == {
+        world.users["mio_ust"].id,
+        world.users["mio_region"].id,
+    }
+
+
 @pytest.mark.parametrize(
     "status", [SignalStatus.requires_confirmation, SignalStatus.returned, SignalStatus.responded, SignalStatus.closed]
 )

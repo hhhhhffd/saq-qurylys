@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 
 from app import audit
 from app.calendar import add_working_days, load_overrides, shift_working_days
-from app.errors import api_error
+from app.errors import api_error, forbidden
 from app.models import (
     AdPost,
     AppUser,
@@ -461,6 +461,14 @@ def return_card(session: Session, view: CardView, user: AppUser, comment: str, r
     return card
 
 
+def may_respond(user: AppUser, card: SignalCard) -> bool:
+    """A receiving body answers cards addressed to it; a card addressed to the MIO itself is answered by
+    a mio officer (OPEN_QUESTIONS #15)."""
+    if user.role is Role.mio_officer:
+        return card.recipient is Recipient.mio
+    return ROLE_RECIPIENT.get(user.role) == card.recipient
+
+
 def respond(
     session: Session,
     view: CardView,
@@ -470,6 +478,8 @@ def respond(
     now: datetime | None = None,
 ) -> SignalCard:
     card = view.card
+    if not may_respond(user, card):
+        raise forbidden("Результат по этой карточке вносит другой орган")
     if card.status is not SignalStatus.sent:
         raise invalid_status()
     before = audit.snapshot(card)
@@ -484,7 +494,7 @@ def respond(
     obj = _object(session, card)
     add_notifications(
         session,
-        users_covering_territory(session, obj.territory_id, {Role.mio_officer}),
+        users_covering_territory(session, obj.territory_id, {Role.mio_officer}, exclude_user_id=user.id),
         NotificationKind.signal_responded,
         "signal_card",
         card.id,

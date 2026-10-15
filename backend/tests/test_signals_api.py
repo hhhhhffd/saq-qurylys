@@ -354,6 +354,51 @@ def test_response_is_for_the_addressed_body_only(client: TestClient, db: Session
     assert again.json()["detail"]["code"] == "signal_invalid_status"
 
 
+def test_card_addressed_to_the_mio_is_answered_by_a_mio_officer(client: TestClient, db: Session, world: World) -> None:
+    card = create(client, world, make_object(db, world.ust))
+    signal_id = card["id"]
+    mio_ust, mio_region = world.users["mio_ust"], world.users["mio_region"]
+    answer = {"response_text": "Внутренняя проверка проведена"}
+
+    sent = send(client, world, signal_id, "mio")
+    assert sent.status_code == 200, sent.text
+    assert sent.json()["recipient"] == "mio"
+    # The other officers of the territory are asked to answer; the sender is not.
+    assert kinds_for(db, mio_region.id) == [NotificationKind.signal_sent]
+    assert kinds_for(db, mio_ust.id) == []
+    assert kinds_for(db, world.users["gask"].id) == [] and kinds_for(db, world.users["law"].id) == []
+
+    for who in ("gask", "law"):
+        assert post(client, world, who, f"/{signal_id}/response", answer).status_code == 404  # not their card
+    assert post(client, world, "admin", f"/{signal_id}/response", answer).status_code == 403
+    assert post(client, world, "mio_semey", f"/{signal_id}/response", answer).status_code == 404  # other territory
+    assert post(client, world, "mio_region", f"/{signal_id}/response", {"response_text": " "}).status_code == 422
+
+    answered = post(client, world, "mio_region", f"/{signal_id}/response", answer)
+    assert answered.status_code == 200, answered.text
+    assert (answered.json()["status"], answered.json()["responded_by"]) == ("responded", mio_region.id)
+    assert kinds_for(db, mio_ust.id) == [NotificationKind.signal_responded]
+    assert NotificationKind.signal_responded not in kinds_for(db, mio_region.id)  # the responder is not told
+    assert post(client, world, "mio_ust", f"/{signal_id}/response", answer).status_code == 409
+    assert post(client, world, "mio_ust", f"/{signal_id}/close").status_code == 200
+    assert "signal_card.respond" in audit_actions(db, signal_id)
+
+
+def test_the_sender_may_answer_a_card_addressed_to_the_mio(client: TestClient, db: Session, world: World) -> None:
+    card = create(client, world, make_object(db, world.ust))
+    send(client, world, card["id"], "mio")
+    response = post(client, world, "mio_ust", f"/{card['id']}/response", {"response_text": "Сделано"})
+    assert response.status_code == 200
+
+
+def test_a_mio_card_cannot_be_answered_before_it_is_sent(client: TestClient, db: Session, world: World) -> None:
+    card = create(client, world, make_object(db, world.ust))
+    client.patch(f"{API}/{card['id']}", headers=auth(world.users["mio_ust"]), json={"recipient": "mio"})
+    response = post(client, world, "mio_ust", f"/{card['id']}/response", {"response_text": "Рано"})
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "signal_invalid_status"
+
+
 def test_close_only_after_a_response(client: TestClient, db: Session, world: World) -> None:
     card = create(client, world, make_object(db, world.ust))
     assert post(client, world, "mio_ust", f"/{card['id']}/close").status_code == 409
