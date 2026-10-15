@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="{{ t.lang }}">
+<head>
+<meta charset="utf-8">
+<title>{{ t.title }} {{ number }}</title>
+<style>
+  @page {
+    size: A4;
+    margin: 30mm 15mm 26mm 15mm;
+    @top-center { content: element(page-header); width: 100%; }
+    @bottom-left { content: element(page-footer); width: 150mm; }
+    @bottom-right { content: "{{ t.page }} " counter(page) " {{ t.page_of }} " counter(pages); font-size: 8pt; color: #555; }
+  }
+  html { font-family: "DejaVu Sans", "Liberation Sans", sans-serif; font-size: 9.5pt; color: #1c1c1e; line-height: 1.35; }
+  #page-header { position: running(page-header); font-size: 8pt; color: #555; border-bottom: 0.5pt solid #999; padding-bottom: 2mm; }
+  #page-header .brand { font-weight: bold; color: #1c1c1e; }
+  #page-footer { position: running(page-footer); font-size: 8pt; color: #555; }
+  .disclaimer { margin: 1mm 0 0; font-style: italic; }
+  h1 { font-size: 16pt; margin: 0 0 3mm; }
+  h2 { font-size: 11.5pt; margin: 6mm 0 2mm; padding-bottom: 1mm; border-bottom: 0.5pt solid #bbb; break-after: avoid; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; vertical-align: top; padding: 1.2mm 2mm; border: 0.5pt solid #ccc; overflow-wrap: anywhere; }
+  th { background: #f0f0f2; font-weight: bold; }
+  table.kv th { width: 38%; }
+  tr { break-inside: avoid; }
+  .num { text-align: right; white-space: nowrap; }
+  .muted { color: #666; }
+  .zone { display: inline-block; padding: 0.3mm 2.5mm; border-radius: 2mm; font-weight: bold; color: #fff; }
+  .zone-red { background: #b3261e; }
+  .zone-yellow { background: #8a6d00; }
+  .zone-green { background: #2e6b3a; }
+  .detail { margin: 0; padding: 0; list-style: none; }
+  .evidence { margin-top: 2mm; }
+  .evidence table { font-size: 8pt; }
+  figure { margin: 2mm 0 0; break-inside: avoid; }
+  figure img { max-width: 100%; max-height: 190mm; object-fit: contain; border: 0.5pt solid #ccc; }
+  figcaption { font-size: 8pt; color: #555; margin-top: 1mm; }
+  .note { white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<div id="page-header">
+  <span class="brand">{{ t.product }}</span> &middot; {{ t.title }} {{ number }}
+  <p class="disclaimer">{{ t.disclaimer }}</p>
+</div>
+<div id="page-footer">
+  <p class="disclaimer">{{ t.disclaimer }}</p>
+</div>
+
+<h1>{{ t.title }} {{ number }}</h1>
+<table class="kv">
+  {% for label, value in meta %}
+  <tr><th>{{ label }}</th><td>{{ value }}</td></tr>
+  {% endfor %}
+  <tr>
+    <th>{{ t.meta.zone }}</th>
+    <td>{% if zone %}<span class="zone zone-{{ zone.code }}">{{ zone.label }}</span>{% else %}{{ t.empty }}{% endif %}</td>
+  </tr>
+  {% if zone and zone.score is not none %}
+  <tr><th>{{ t.meta.score }}</th><td>{{ zone.score }} / 100 &middot; {{ t.meta.scored_at }}: {{ zone.scored_at }}</td></tr>
+  {% endif %}
+</table>
+
+<h2>{{ t.sections.object_developer }}</h2>
+<table class="kv">
+  {% for label, value in object_developer %}
+  <tr><th>{{ label }}</th><td>{{ value }}</td></tr>
+  {% endfor %}
+</table>
+
+<h2>{{ t.sections.risk_factors }}</h2>
+{% if risk_factors %}
+<table>
+  <tr><th>{{ t.risk_factors.factor }}</th><th class="num">{{ t.risk_factors.weight }}</th><th>{{ t.risk_factors.detail }}</th></tr>
+  {% for factor in risk_factors %}
+  <tr>
+    <td>{{ factor.name }}</td>
+    <td class="num">{{ factor.weight }}</td>
+    <td>
+      <ul class="detail">
+        {% for key, value in factor.detail %}<li>{{ key }}: {{ value }}</li>{% endfor %}
+      </ul>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p class="muted">{{ t.risk_factors.none }}</p>
+{% endif %}
+
+<h2>{{ t.sections.permit_checks }}</h2>
+{% if permit_checks %}
+<table>
+  <tr>
+    <th>{{ t.permit_checks.doc_type }}</th><th>{{ t.permit_checks.number }}</th><th>{{ t.permit_checks.check_status }}</th>
+    <th>{{ t.permit_checks.source }}</th><th>{{ t.permit_checks.checked_at }}</th>
+  </tr>
+  {% for check in permit_checks %}
+  <tr>
+    <td>{{ check.doc_type }}</td><td>{{ check.number }}</td><td>{{ check.check_status }}</td>
+    <td>{{ check.source }}</td><td>{{ check.checked_at }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% for check in permit_checks if check.evidence %}
+<div class="evidence">
+  <strong>{{ check.doc_type }} {{ check.number }}</strong>
+  {% with files = check.evidence %}{% include "_evidence.html" %}{% endwith %}
+</div>
+{% endfor %}
+{% else %}
+<p class="muted">{{ t.permit_checks.none }}</p>
+{% endif %}
+
+<h2>{{ t.sections.publications }}</h2>
+{% if publications %}
+<table>
+  <tr>
+    <th>{{ t.publications.platform }}</th><th>{{ t.publications.url }}</th><th>{{ t.publications.published_at }}</th>
+    <th>{{ t.publications.captured_at }}</th><th>{{ t.publications.status }}</th>
+  </tr>
+  {% for ad in publications %}
+  <tr>
+    <td>{{ ad.platform }}</td><td>{{ ad.url }}</td><td>{{ ad.published_at }}</td><td>{{ ad.captured_at }}</td><td>{{ ad.status }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% for ad in publications if ad.evidence %}
+<div class="evidence">
+  <strong>{{ ad.platform }} #{{ ad.id }}</strong>
+  {% with files = ad.evidence %}{% include "_evidence.html" %}{% endwith %}
+</div>
+{% endfor %}
+{% else %}
+<p class="muted">{{ t.publications.none }}</p>
+{% endif %}
+
+<h2>{{ t.sections.scheme_payments }}</h2>
+<table class="kv">
+  {% for label, value in scheme_payments %}
+  <tr><th>{{ label }}</th><td class="note">{{ value }}</td></tr>
+  {% endfor %}
+</table>
+
+<h2>{{ t.sections.proposed_measures }}</h2>
+{% if measures %}
+<ul>{% for measure in measures %}<li>{{ measure }}</li>{% endfor %}</ul>
+{% else %}
+<p class="muted">{{ t.empty }}</p>
+{% endif %}
+
+<h2>{{ t.sections.route }}</h2>
+<table class="kv">
+  {% for label, value in route %}
+  <tr><th>{{ label }}</th><td>{{ value }}</td></tr>
+  {% endfor %}
+</table>
+
+<h2>{{ t.sections.note }}</h2>
+<p class="note">{{ note or t.empty }}</p>
+
+{% if response %}
+<h2>{{ t.sections.response }}</h2>
+<table class="kv">
+  <tr><th>{{ t.response.at }}</th><td>{{ response.at }}</td></tr>
+  <tr><th>{{ t.response.text }}</th><td class="note">{{ response.text }}</td></tr>
+</table>
+{% endif %}
+</body>
+</html>

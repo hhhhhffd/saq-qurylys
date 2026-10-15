@@ -1,0 +1,26 @@
+{# Evidence of one document or publication: a table of files and the embedded images. Expects `files`. #}
+<table>
+  <tr>
+    <th>{{ t.evidence.number }}</th><th>{{ t.evidence.kind }}</th><th>{{ t.evidence.captured_at }}</th>
+    <th>{{ t.evidence.sha256 }}</th>
+  </tr>
+  {% for item in files %}
+  <tr>
+    <td>{{ item.id }}</td><td>{{ item.kind }}</td><td>{{ item.captured_at }}</td><td>{{ item.sha256 }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% for item in files %}
+{% if item.image %}
+<figure>
+  <img src="{{ item.image }}" alt="{{ t.evidence.number }} {{ item.id }}">
+  <figcaption>
+    {{ t.evidence.number }} {{ item.id }} &middot; {{ item.kind }} &middot; {{ t.evidence.captured_at }}: {{ item.captured_at }}
+    &middot; {{ t.evidence.sha256 }}: {{ item.sha256 }}
+    {% if item.source_url %}<br>{{ t.evidence.source_url }}: {{ item.source_url }}{% endif %}
+  </figcaption>
+</figure>
+{% elif item.note %}
+<p class="muted">{{ t.evidence.number }} {{ item.id }}: {{ item.note }}</p>
+{% endif %}
+{% endfor %}
