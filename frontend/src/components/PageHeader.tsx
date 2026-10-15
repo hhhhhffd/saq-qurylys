@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import classes from './PageHeader.module.css';
 
 interface Props {
   title: ReactNode;
@@ -9,12 +8,12 @@ interface Props {
 
 export function PageHeader({ title, subtitle, actions }: Props) {
   return (
-    <div className={classes.root}>
-      <div className={classes.text}>
-        <h1>{title}</h1>
-        {subtitle && <p className={classes.subtitle}>{subtitle}</p>}
+    <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
+      <div className="min-w-0">
+        <h1 className="font-heading text-xl font-bold tracking-wide text-text">{title}</h1>
+        {subtitle && <p className="mt-1 text-sm text-text-2">{subtitle}</p>}
       </div>
-      {actions && <div className={classes.actions}>{actions}</div>}
+      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
   );
 }

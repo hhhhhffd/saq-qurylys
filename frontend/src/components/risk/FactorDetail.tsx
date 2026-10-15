@@ -2,7 +2,7 @@ import { Fragment } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useEnum, type EnumGroup } from '@/i18n/useEnum';
 import { useFormat } from '@/i18n/useFormat';
-import classes from './FactorDetail.module.css';
+import { cn } from '@/lib/utils';
 
 /** Groups that can hold a code found in a factor's `detail` payload. */
 const CODE_GROUPS: EnumGroup[] = [
@@ -39,7 +39,7 @@ function DetailValue({ value }: { value: unknown }) {
   if (Array.isArray(value)) {
     if (value.some(isObject)) {
       return (
-        <ul className={classes.list}>
+        <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
           {value.map((item, index) => (
             <li key={index}>
               <DetailValue value={item} />
@@ -55,19 +55,19 @@ function DetailValue({ value }: { value: unknown }) {
       </Fragment>
     ));
   }
-  if (isObject(value)) return <FactorDetail detail={value} />;
+  if (isObject(value)) return <FactorDetail detail={value} nested />;
   return String(value);
 }
 
 /** `detail` of a score factor as readable key/value pairs (nested objects such as R1 `checks` are indented). */
-export function FactorDetail({ detail }: { detail: object }) {
+export function FactorDetail({ detail, nested }: { detail: object; nested?: boolean }) {
   const { t } = useTranslation('objects');
   return (
-    <dl className={classes.root}>
+    <dl className={cn('m-0 grid grid-cols-[minmax(0,auto)_minmax(0,1fr)] gap-x-3.5 gap-y-1 text-xs', nested && 'border-l border-border pl-2.5')}>
       {Object.entries(detail).map(([key, value]) => (
         <Fragment key={key}>
-          <dt>{t(`card.breakdown.detailKeys.${key}`, { defaultValue: key.replace(/_/g, ' ') })}</dt>
-          <dd>
+          <dt className="text-text-3">{t(`card.breakdown.detailKeys.${key}`, { defaultValue: key.replace(/_/g, ' ') })}</dt>
+          <dd className="m-0 text-text [overflow-wrap:anywhere]">
             <DetailValue value={value} />
           </dd>
         </Fragment>

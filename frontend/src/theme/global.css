@@ -142,22 +142,6 @@
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-1);
   }
-
-  /* Route content enters with a short fade, no layout movement. */
-  .page-enter {
-    animation: page-enter 220ms var(--ease) both;
-  }
-}
-
-@keyframes page-enter {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -168,8 +152,5 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
-  }
-  .page-enter {
-    animation: none;
   }
 }

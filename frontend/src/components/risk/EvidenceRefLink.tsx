@@ -3,7 +3,7 @@ import { openFile } from '@/api/client';
 import type { EvidenceRef } from '@/api/types';
 import { useEnum } from '@/i18n/useEnum';
 import { anchorId, isAnchorType } from './anchors';
-import classes from './EvidenceRefLink.module.css';
+import { cn } from '@/lib/utils';
 
 interface Props {
   evidenceRef: EvidenceRef;
@@ -14,6 +14,9 @@ interface Props {
 }
 
 /** Chip that leads to the record a risk factor is based on. */
+const refClass = 'inline-flex items-center rounded-sm border border-border-strong px-1.5 py-px text-2xs leading-snug whitespace-nowrap';
+const interactiveClass = cn(refClass, 'cursor-pointer bg-transparent text-link no-underline transition-colors hover:bg-hover focus-visible:ring-1 focus-visible:ring-focus focus-visible:outline-none');
+
 export function EvidenceRefLink({ evidenceRef, linked = true, anchors = true }: Props) {
   const e = useEnum();
   const label = `${e('entity_type', evidenceRef.type)} #${evidenceRef.id}`;
@@ -21,14 +24,14 @@ export function EvidenceRefLink({ evidenceRef, linked = true, anchors = true }: 
   if (linked && evidenceRef.type === 'ad_post') {
     const hit = evidenceRef.phrase_hit_id ? `&hit=${evidenceRef.phrase_hit_id}` : '';
     return (
-      <Link className={classes.ref} to={`/ads?ad=${evidenceRef.id}${hit}`}>
+      <Link className={interactiveClass} to={`/ads?ad=${evidenceRef.id}${hit}`}>
         {label}
       </Link>
     );
   }
   if (anchors && isAnchorType(evidenceRef.type)) {
     return (
-      <a className={classes.ref} href={`#${anchorId(evidenceRef.type, evidenceRef.id)}`}>
+      <a className={interactiveClass} href={`#${anchorId(evidenceRef.type, evidenceRef.id)}`}>
         {label}
       </a>
     );
@@ -37,12 +40,12 @@ export function EvidenceRefLink({ evidenceRef, linked = true, anchors = true }: 
     return (
       <button
         type="button"
-        className={classes.ref}
+        className={interactiveClass}
         onClick={() => void openFile(`/evidence/${evidenceRef.id}/content`)}
       >
         {label}
       </button>
     );
   }
-  return <span className={classes.ref}>{label}</span>;
+  return <span className={cn(refClass, 'text-text-2')}>{label}</span>;
 }
