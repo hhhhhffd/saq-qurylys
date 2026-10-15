@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app import storage
 from app.deps import CurrentUser, PageDep, ScopeDep, SessionDep, require_roles
 from app.models import AppUser, SignalCard
-from app.models.enums import EvidenceKind, Recipient, Role, SignalOrigin, SignalStatus
+from app.models.enums import EvidenceKind, Recipient, Role, SignalStatus
 from app.modules.objects.service import get_object_in_scope
 from app.modules.settings.service import load_settings
 from app.modules.signals import mail, pdf, service
@@ -58,8 +58,13 @@ def _archive_and_mail(
     except Exception:
         logger.exception("Could not archive the PDF of %s", number)
         session.rollback()
-        service.notify_archive_failed(session, view, user)
-        session.commit()
+        try:
+            service.notify_archive_failed(session, view, user)
+            session.commit()
+        except Exception:
+            # The dispatch is committed and stands; being unable to tell the sender is only logged.
+            logger.exception("Could not notify the sender that the PDF of %s was not archived", number)
+            session.rollback()
     emails = load_settings(session).recipient_emails.get(recipient, [])
     if document is None or not (mail.smtp_enabled() and emails):
         return
@@ -103,7 +108,7 @@ def create_signal(
     body: CreateSignal, session: SessionDep, user: OfficerUser, scope: ScopeDep, request: Request
 ) -> SignalDetail:
     obj = get_object_in_scope(session, scope, body.object_id)
-    card = service.create_card(session, obj, SignalOrigin.manual, user, request)
+    card = service.create_manual_card(session, obj, user, request)
     detail = service.to_detail(session, user, service.get_card_view(session, user, scope, card.id))
     session.commit()
     return detail

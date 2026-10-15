@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import select
+from sqlalchemy import event, select
 from sqlalchemy.orm import Session
 
 from app import storage
@@ -15,7 +15,7 @@ from app.calendar import add_working_days
 from app.models import AuditLog, ConstructionObject, Evidence, Notification, SignalCard, Territory
 from app.models.enums import EvidenceKind, NotificationKind, SignalStatus, Zone
 from app.modules.settings.service import save_settings
-from app.modules.signals import pdf, router
+from app.modules.signals import pdf, router, service
 from app.modules.signals.service import local_today
 from tests.conftest import World, auth, make_object
 from tests.support_risk import add_complaint, red_object
@@ -90,6 +90,65 @@ def test_officer_creates_a_manual_card(client: TestClient, db: Session, world: W
     assert card["sections"]["legal_basis_status"] == "unknown"
     assert [flag["code"] for flag in card["sections"]["needs_check"]] == ["legal_basis_unknown"]
     assert [(entry["action"], entry["username"]) for entry in card["audit"]] == [("signal_card.create", "t_mio_ust")]
+
+
+@pytest.mark.parametrize("stage", ["draft", "returned", "sent"])
+def test_an_object_has_at_most_one_open_card(client: TestClient, db: Session, world: World, stage: str) -> None:
+    obj = make_object(db, world.ust)
+    card = create(client, world, obj)
+    if stage == "returned":
+        post(client, world, "mio_ust", f"/{card['id']}/return", {"comment": "Доработать"})
+    elif stage == "sent":
+        send(client, world, card["id"])
+
+    again = client.post(API, headers=auth(world.users["mio_ust"]), json={"object_id": obj.id})
+
+    assert again.status_code == 409, again.text
+    assert again.json()["detail"]["code"] == "signal_open_exists"
+    assert card["number"] in again.json()["detail"]["message"]
+    assert len(db.scalars(select(SignalCard).where(SignalCard.object_id == obj.id)).all()) == 1
+
+
+def test_a_new_card_is_allowed_once_the_previous_one_has_an_answer(
+    client: TestClient, db: Session, world: World
+) -> None:
+    obj = make_object(db, world.ust)
+    first = create(client, world, obj)
+    send(client, world, first["id"])
+    post(client, world, "gask", f"/{first['id']}/response", {"response_text": "ok"})  # responded: no longer open
+    second = create(client, world, obj)
+    assert second["number"] != first["number"]
+    assert client.post(API, headers=auth(world.users["mio_ust"]), json={"object_id": obj.id}).status_code == 409
+
+
+def test_an_automatic_draft_blocks_a_manual_card(client: TestClient, db: Session, world: World) -> None:
+    obj = red_object(db, world.ust)
+    headers = auth(world.users["mio_ust"])
+    client.post(f"/api/v1/objects/{obj.id}/recalculate", headers=headers)  # turns red and drafts a card
+    draft = db.scalars(select(SignalCard).where(SignalCard.object_id == obj.id)).one()
+
+    response = client.post(API, headers=headers, json={"object_id": obj.id})
+
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "signal_open_exists"
+    assert draft.number in response.json()["detail"]["message"]
+    assert len(db.scalars(select(SignalCard).where(SignalCard.object_id == obj.id)).all()) == 1
+
+
+def test_a_manual_card_takes_the_same_object_lock_as_a_recalculation(
+    client: TestClient, db: Session, world: World
+) -> None:
+    obj = make_object(db, world.ust)
+    statements: list[str] = []
+    event.listen(db.connection(), "before_cursor_execute", lambda *args: statements.append(args[2]))
+    create(client, world, obj)
+    locking = [sql for sql in statements if "FROM construction_object" in sql and "FOR NO KEY UPDATE" in sql]
+    assert locking, "the object row must be locked before the open-card check"
+    # ...and the lock comes before the check of open cards and the insert of the card.
+    first_lock = next(i for i, sql in enumerate(statements) if "FOR NO KEY UPDATE" in sql)
+    check = next(i for i, sql in enumerate(statements) if "FROM signal_card" in sql and "status IN" in sql)
+    insert = next(i for i, sql in enumerate(statements) if "INSERT INTO signal_card" in sql)
+    assert first_lock < check < insert
 
 
 @pytest.mark.parametrize("who", ["admin", "gask", "law"])
@@ -430,9 +489,9 @@ def test_nothing_is_editable_after_sending(client: TestClient, db: Session, worl
 
 
 def test_receiving_bodies_see_only_cards_sent_to_them(client: TestClient, db: Session, world: World) -> None:
-    obj = make_object(db, world.ust)
-    draft = create(client, world, obj)
-    to_gask, to_law = create(client, world, obj), create(client, world, obj)
+    draft = create(client, world, make_object(db, world.ust, "ЖК Черновик"))
+    to_gask = create(client, world, make_object(db, world.ust, "ЖК Первый"))
+    to_law = create(client, world, make_object(db, world.ust, "ЖК Второй"))
     send(client, world, to_gask["id"], "gask")
     send(client, world, to_law["id"], "law_enforcement")
     gask, law = auth(world.users["gask"]), auth(world.users["law"])
@@ -723,6 +782,26 @@ def test_a_failed_archive_does_not_undo_the_dispatch_and_tells_the_sender(
     assert notice.payload["reason"] == "pdf_archive"
     assert notice.payload["number"] == card["number"]
     assert kinds_for(db, world.users["gask"].id) == [NotificationKind.signal_sent]  # the dispatch went through
+
+
+def test_failing_to_notify_the_sender_does_not_fail_the_send(
+    client: TestClient, db: Session, world: World, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    def down(*args: object, **kwargs: object) -> None:
+        raise RuntimeError("down")
+
+    monkeypatch.setattr(storage, "put_evidence", down)
+    monkeypatch.setattr(service, "notify_archive_failed", down)
+    card = create(client, world, make_object(db, world.ust))
+
+    response = send(client, world, card["id"], "gask")
+
+    assert response.status_code == 200, response.text
+    assert (response.json()["status"], response.json()["sent_pdf_evidence_id"]) == ("sent", None)
+    assert db.get_one(SignalCard, card["id"]).status is SignalStatus.sent
+    assert "Could not notify the sender" in caplog.text
+    assert kinds_for(db, world.users["gask"].id) == [NotificationKind.signal_sent]  # the dispatch itself went out
+    assert kinds_for(db, world.users["mio_ust"].id) == []  # nothing could be recorded for the sender
 
 
 def test_a_failed_upload_still_mails_the_card(
