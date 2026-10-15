@@ -25,6 +25,8 @@ celery_app.conf.update(
     task_acks_late=True,
     worker_prefetch_multiplier=1,  # tasks are long (browser capture, LLM): do not hoard them
     broker_connection_retry_on_startup=True,
+    # Fail fast when the API enqueues during a broker outage (default: ~20 s of retries per call).
+    broker_transport_options={"socket_connect_timeout": 2, "max_retries": 1, "interval_start": 0, "interval_step": 0.2},
     task_default_queue="default",
     task_queues=[Queue(name) for name in QUEUES],
     task_routes={

@@ -139,6 +139,7 @@ def world(db: Session) -> World:
     db.add(district)
     users = {
         "admin": _user(db, "t_admin", Role.admin, None),
+        "admin_semey": _user(db, "t_admin_semey", Role.admin, semey),
         "mio_ust": _user(db, "t_mio_ust", Role.mio_officer, ust),
         "mio_semey": _user(db, "t_mio_semey", Role.mio_officer, semey),
         "mio_region": _user(db, "t_mio_region", Role.mio_officer, region),

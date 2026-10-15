@@ -85,8 +85,10 @@ where `row` is the spreadsheet row number (the header is row 1).
 | `planned_completion`, `forecast_completion`, `stalled_since` | no | Dates |
 | `construction_status` | no | `not_started`, `active` (default on create), `stalled`, `completed` |
 
-Without `code`, an existing object is matched by `cadastral_number`, otherwise by city + name + address,
-so re-importing the same file updates instead of duplicating. Empty cells leave existing values unchanged.
+Without `code`, an existing object is matched by `cadastral_number`, otherwise by city + name + address (only
+when an address is given), so re-importing the same file updates instead of duplicating. A row with neither
+cadastral number nor address always creates a new object; several matches are reported as a row error.
+Only objects within your territory are matched. Empty cells leave existing values unchanged.
 
 ### `POST /api/v1/complaints/import`
 
@@ -105,6 +107,16 @@ so re-importing the same file updates instead of duplicating. Empty cells leave 
 
 Optional files in `backend/app/seed_data/` (districts, holidays, demo objects) are loaded by `python -m app.seed`.
 Their formats are in [backend/app/seed_data/README.md](backend/app/seed_data/README.md).
+
+## Access rules worth knowing
+
+- Everything is filtered by the user's territory (own territory plus descendants; no territory = whole country).
+  Out-of-scope objects are answered with 404, not 403.
+- Developers have no territory: an officer sees developers that have an object in their territory or no objects
+  at all. Searching by a full 12-digit BIN finds any developer, so one registered elsewhere can be linked.
+- Settings and the holiday calendar are country-wide: only an admin without a territory may change them.
+- Receiving bodies (`gask`, `law_enforcement`) can open evidence only of signal cards sent to them (the card's
+  own files and the ids listed in its `sections.*[].evidence_ids`).
 
 ## Notes
 

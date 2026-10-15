@@ -19,6 +19,7 @@ from app.uploads import PHOTO_TYPES, read_upload
 router = APIRouter(tags=["inspections"])
 
 MAX_PHOTOS = 20
+MAX_TOTAL_PHOTO_BYTES = 100 * 1024 * 1024
 
 
 @router.post("/objects/{object_id}/inspections", response_model=InspectionOut, status_code=201)
@@ -43,7 +44,14 @@ def create_inspection(
     if len(uploads) > MAX_PHOTOS:
         raise api_error(422, "too_many_photos", f"Не более {MAX_PHOTOS} фотографий за одну фотофиксацию")
     # Validate every file before anything is written to storage.
-    payloads = [read_upload(upload, PHOTO_TYPES) for upload in uploads]
+    payloads: list[tuple[bytes, str]] = []
+    total_bytes = 0
+    for upload in uploads:
+        data, content_type = read_upload(upload, PHOTO_TYPES)
+        total_bytes += len(data)
+        if total_bytes > MAX_TOTAL_PHOTO_BYTES:
+            raise api_error(413, "request_too_large", "Суммарный размер фотографий больше 100 МБ")
+        payloads.append((data, content_type))
 
     inspection = Inspection(
         object_id=obj.id,

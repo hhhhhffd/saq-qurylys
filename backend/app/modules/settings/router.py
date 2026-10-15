@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Body, Request
 
 from app import audit
-from app.deps import AdminUser, SessionDep, StaffUser
+from app.deps import GlobalAdmin, SessionDep, StaffUser
 from app.modules.settings.service import AppSettings, load_settings, save_settings
 
 router = APIRouter(prefix="/settings", tags=["settings"])
@@ -16,7 +16,7 @@ def read_settings(session: SessionDep, user: StaffUser) -> AppSettings:
 
 @router.put("", response_model=AppSettings)
 def update_settings(
-    body: Annotated[AppSettings, Body()], session: SessionDep, user: AdminUser, request: Request
+    body: Annotated[AppSettings, Body()], session: SessionDep, user: GlobalAdmin, request: Request
 ) -> AppSettings:
     """Partial update: only keys present in the request body are changed."""
     before = load_settings(session)

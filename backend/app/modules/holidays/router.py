@@ -6,7 +6,7 @@ from pydantic import BaseModel, StringConstraints
 from sqlalchemy import select
 
 from app import audit
-from app.deps import AdminUser, CurrentUser, SessionDep
+from app.deps import CurrentUser, GlobalAdmin, SessionDep
 from app.errors import api_error
 from app.models import Holiday
 from app.models.enums import HolidayKind
@@ -38,7 +38,7 @@ def list_holidays(
 
 
 @router.post("", response_model=HolidayOut, status_code=201)
-def create_holiday(body: HolidayCreate, session: SessionDep, admin: AdminUser, request: Request) -> Holiday:
+def create_holiday(body: HolidayCreate, session: SessionDep, admin: GlobalAdmin, request: Request) -> Holiday:
     if session.get(Holiday, body.day) is not None:
         raise api_error(409, "holiday_exists", "Для этой даты запись календаря уже существует")
     holiday = Holiday(day=body.day, kind=body.kind, name=body.name)
@@ -50,7 +50,7 @@ def create_holiday(body: HolidayCreate, session: SessionDep, admin: AdminUser, r
 
 
 @router.delete("/{day}", status_code=204)
-def delete_holiday(day: date, session: SessionDep, admin: AdminUser, request: Request) -> Response:
+def delete_holiday(day: date, session: SessionDep, admin: GlobalAdmin, request: Request) -> Response:
     holiday = session.get(Holiday, day)
     if holiday is None:
         raise api_error(404, "holiday_not_found", "Запись календаря не найдена")

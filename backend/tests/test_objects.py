@@ -214,3 +214,9 @@ def test_demo_flag_is_not_settable_through_api(client: TestClient, db: Session, 
     created = _create(client, world, is_demo=True, score=100)
     obj = db.get(ConstructionObject, created["id"])
     assert obj is not None and obj.is_demo is False and obj.score is None
+
+
+def test_code_keeps_all_digits_beyond_9999(db: Session, world: World) -> None:
+    db.execute(text("SELECT setval('object_code_seq', 9998)"))
+    codes = [make_object(db, world.ust).code for _ in range(3)]
+    assert codes == ["SQ-OBJ-9999", "SQ-OBJ-10000", "SQ-OBJ-10001"]

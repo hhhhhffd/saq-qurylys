@@ -60,6 +60,16 @@ StaffUser = Annotated[AppUser, Depends(require_roles(Role.admin, Role.mio_office
 AdminUser = Annotated[AppUser, Depends(require_roles(Role.admin))]
 
 
+def require_global_admin(user: AdminUser, scope: ScopeDep) -> AppUser:
+    """Admin without a territory. Settings and the calendar are shared by the whole country."""
+    if not scope.is_unrestricted:
+        raise forbidden("Действие доступно только администратору без территориальных ограничений")
+    return user
+
+
+GlobalAdmin = Annotated[AppUser, Depends(require_global_admin)]
+
+
 @dataclass(frozen=True)
 class PageParams:
     limit: int

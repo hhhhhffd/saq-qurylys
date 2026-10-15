@@ -5,7 +5,8 @@ from app import audit
 from app.deps import ScopeDep, SessionDep, StaffUser
 from app.errors import api_error
 from app.events import object_changed
-from app.models import Developer, LinkedEntity
+from app.models import LinkedEntity
+from app.modules.developers.service import get_visible_developer
 from app.modules.linked_entities.schemas import LinkedEntityCreate, LinkedEntityOut
 from app.modules.objects.service import get_object_in_scope
 
@@ -48,10 +49,9 @@ def create_object_linked_entity(
 
 @router.post("/developers/{developer_id}/linked-entities", response_model=LinkedEntityOut, status_code=201)
 def create_developer_linked_entity(
-    developer_id: int, body: LinkedEntityCreate, session: SessionDep, user: StaffUser, request: Request
+    developer_id: int, body: LinkedEntityCreate, session: SessionDep, user: StaffUser, scope: ScopeDep, request: Request
 ) -> LinkedEntity:
-    if session.get(Developer, developer_id) is None:
-        raise api_error(404, "developer_not_found", "Застройщик не найден")
+    get_visible_developer(session, scope, developer_id)
     entity = _create(session, user, request, body, object_id=None, developer_id=developer_id)
     session.commit()
     return entity
@@ -66,6 +66,8 @@ def delete_linked_entity(
         raise api_error(404, "linked_entity_not_found", "Связь не найдена")
     if entity.object_id is not None:
         get_object_in_scope(session, scope, entity.object_id)
+    elif entity.developer_id is not None:
+        get_visible_developer(session, scope, entity.developer_id)
     audit.record(
         session, user, "linked_entity.delete", "linked_entity", entity.id, audit.snapshot(entity), None, request
     )

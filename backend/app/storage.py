@@ -143,29 +143,20 @@ def put_evidence(
     link: EvidenceLink,
     created_by: int | None = None,
 ) -> Evidence:
-    """Store bytes under Object Lock and record the Evidence row (flushed, not committed).
+    """Record the Evidence row (flushed, not committed) and store the bytes under Object Lock.
 
-    The object is uploaded before the row is inserted; if the insert later fails or the
-    transaction is rolled back, a locked orphan object remains (never a row without an object).
+    The row is flushed first so constraint violations surface before anything is written to the
+    locked bucket; if the upload then fails the caller's transaction is rolled back. If the commit
+    fails after a successful upload, a locked orphan object remains (never a row without an object).
     """
     settings = get_settings()
     owner_name, owner_id = link.owner()
     ensure_bucket()
 
     digest = hashlib.sha256(data)
-    now = datetime.now(UTC)
-    retention_until = now + timedelta(days=settings.evidence_retention_days)
+    retention_until = datetime.now(UTC) + timedelta(days=settings.evidence_retention_days)
     lock_mode = LockMode(settings.evidence_lock_mode)
     key = f"{owner_name.removesuffix('_id')}/{owner_id}/{secrets.token_hex(16)}{extension_for(content_type)}"
-
-    get_client().put_object(
-        settings.s3_bucket_evidence,
-        key,
-        io.BytesIO(data),
-        len(data),
-        content_type=content_type,
-        retention=Retention(lock_mode.value, retention_until),
-    )
     tsa_token = request_timestamp(digest.digest(), settings.tsa_url) if settings.tsa_url else None
 
     evidence = Evidence(
@@ -185,6 +176,15 @@ def put_evidence(
     session.add(evidence)
     session.flush()
     session.refresh(evidence)
+
+    get_client().put_object(
+        settings.s3_bucket_evidence,
+        key,
+        io.BytesIO(data),
+        len(data),
+        content_type=content_type,
+        retention=Retention(lock_mode.value, retention_until),
+    )
     return evidence
 
 

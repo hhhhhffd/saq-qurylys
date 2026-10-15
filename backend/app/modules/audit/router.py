@@ -37,6 +37,10 @@ def list_audit(
     entity_id: Annotated[int | None, Query()] = None,
 ) -> Page[AuditOut]:
     stmt = select(AuditLog, AppUser.username).outerjoin(AppUser, AppUser.id == AuditLog.user_id)
+    if user.role is Role.admin and not scope.is_unrestricted:
+        # Audit rows carry no territory; a regional admin sees the actions of users within their territory.
+        in_scope_users = scope.restrict(select(AppUser.id), AppUser.territory_id)
+        stmt = stmt.where(AuditLog.user_id.in_(in_scope_users))
     if user.role is Role.mio_officer:
         # An officer reads the history of signal cards in their own territory only.
         cards = select(SignalCard.id).join(ConstructionObject, ConstructionObject.id == SignalCard.object_id)

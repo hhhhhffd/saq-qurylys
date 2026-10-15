@@ -21,7 +21,7 @@ from app.models.enums import (
 if TYPE_CHECKING:
     from app.models.evidence import Evidence
 
-OBJECT_CODE_DEFAULT = text("'SQ-OBJ-' || lpad(nextval('object_code_seq')::text, 4, '0')")
+OBJECT_CODE_DEFAULT = text("next_object_code()")
 
 
 class ConstructionObject(IdMixin, TimestampMixin, Base):

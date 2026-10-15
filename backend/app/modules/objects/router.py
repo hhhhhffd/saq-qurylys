@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 from app import audit
 from app.csv_import import ImportResult
 from app.deps import PageDep, ScopeDep, SessionDep, StaffUser
-from app.events import object_changed
+from app.events import object_changed, objects_changed
 from app.geo import make_point
 from app.models import AdPost, ConstructionObject, Developer, District, RiskScore
 from app.models.enums import Zone
@@ -144,8 +144,7 @@ def import_objects(
 ) -> ImportResult:
     result, changed_ids = importer.import_objects(session, scope, user, read_csv_upload(file), request)
     session.commit()
-    for object_id in changed_ids:
-        object_changed(object_id)
+    objects_changed(changed_ids)
     return result
 
 

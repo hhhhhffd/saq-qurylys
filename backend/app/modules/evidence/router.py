@@ -42,8 +42,7 @@ def get_evidence_content(
             "Content-Length": str(evidence.size_bytes),
             "Content-Disposition": f'{"inline" if inline else "attachment"}; filename="{filename}"',
             "X-Content-Type-Options": "nosniff",
-            "Content-Security-Policy": "sandbox",
-            "Cache-Control": "private, max-age=3600",
+            "Cache-Control": "no-store",
             "X-Evidence-SHA256": evidence.sha256,
         },
     )

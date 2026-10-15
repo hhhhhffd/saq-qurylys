@@ -8,7 +8,7 @@ from app import audit
 from app.csv_import import ImportResult
 from app.deps import ScopeDep, SessionDep, StaffUser
 from app.errors import api_error
-from app.events import object_changed
+from app.events import object_changed, objects_changed
 from app.models import Complaint
 from app.modules.complaints import importer
 from app.modules.complaints.schemas import ComplaintCreate, ComplaintOut, ComplaintUpdate
@@ -78,6 +78,5 @@ def import_complaints(
 ) -> ImportResult:
     result, changed_object_ids = importer.import_complaints(session, scope, user, read_csv_upload(file), request)
     session.commit()
-    for object_id in sorted(changed_object_ids):
-        object_changed(object_id)
+    objects_changed(sorted(changed_object_ids))
     return result

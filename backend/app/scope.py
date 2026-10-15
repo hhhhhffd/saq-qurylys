@@ -21,7 +21,9 @@ class TerritoryScope:
             return True
         return territory_id is not None and territory_id in self.ids
 
-    def restrict[*Ts](self, stmt: Select[*Ts], column: InstrumentedAttribute[int]) -> Select[*Ts]:
+    def restrict[*Ts](
+        self, stmt: Select[*Ts], column: InstrumentedAttribute[int] | InstrumentedAttribute[int | None]
+    ) -> Select[*Ts]:
         if self.ids is None:
             return stmt
         return stmt.where(column.in_(self.ids))

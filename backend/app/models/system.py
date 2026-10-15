@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import Any
 
-from sqlalchemy import Index, String, func
+from sqlalchemy import BigInteger, Index, String, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -22,7 +22,7 @@ class AuditLog(IdMixin, Base):
     at: Mapped[datetime] = mapped_column(server_default=func.now())
     action: Mapped[str] = mapped_column(String(64))
     entity_type: Mapped[str] = mapped_column(String(64))
-    entity_id: Mapped[int | None]
+    entity_id: Mapped[int | None] = mapped_column(BigInteger)
     before: Mapped[Any] = mapped_column(JSONB, nullable=True)
     after: Mapped[Any] = mapped_column(JSONB, nullable=True)
     ip: Mapped[str | None] = mapped_column(String(64))
@@ -35,7 +35,7 @@ class Notification(IdMixin, Base):
     user_id: Mapped[int] = fk("app_user.id")
     kind: Mapped[NotificationKind] = mapped_column(enum_type(NotificationKind, "notification_kind"))
     entity_type: Mapped[str | None] = mapped_column(String(64))
-    entity_id: Mapped[int | None]
+    entity_id: Mapped[int | None] = mapped_column(BigInteger)
     payload: Mapped[Any] = mapped_column(JSONB, server_default="{}")
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     read_at: Mapped[datetime | None]

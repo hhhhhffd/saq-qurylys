@@ -47,12 +47,20 @@ def read_rows(raw: bytes, required: set[str], known: set[str]) -> Iterator[tuple
         header = [name.strip().lower() for name in next(reader)]
     except StopIteration as exc:
         raise api_error(422, "csv_empty", "Файл пуст") from exc
+    except csv.Error as exc:
+        raise api_error(422, "csv_invalid", f"Файл не удалось разобрать как CSV: {exc}") from exc
     missing = sorted(required - set(header))
     if missing:
         raise api_error(422, "csv_missing_columns", f"В файле нет обязательных столбцов: {', '.join(missing)}")
     columns = [(index, name) for index, name in enumerate(header) if name in known]
     count = 0
-    for cells in reader:
+    while True:
+        try:
+            cells = next(reader)
+        except StopIteration:
+            return
+        except csv.Error as exc:
+            raise api_error(422, "csv_invalid", f"Файл не удалось разобрать как CSV: {exc}") from exc
         if not any(cell.strip() for cell in cells):
             continue
         count += 1

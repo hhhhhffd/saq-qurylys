@@ -65,24 +65,36 @@ def _resolve_developer(session: Session, row: dict[str, str | None]) -> Develope
 
 
 def _find_existing(
-    session: Session, row: dict[str, str | None], territory_id: int, name: str
+    session: Session, scope: TerritoryScope, row: dict[str, str | None], territory_id: int, name: str
 ) -> ConstructionObject | None:
+    """Match an existing object by code, else cadastral number, else city + name + address.
+
+    Only objects within the user's scope are considered, so rows never reveal or touch other territories.
+    Without a code, cadastral number or address a row always creates a new object.
+    """
+    candidates = scope.restrict(select(ConstructionObject), ConstructionObject.territory_id)
     code = row.get("code")
     if code is not None:
-        obj = session.scalar(select(ConstructionObject).where(ConstructionObject.code == code))
+        obj = session.scalar(candidates.where(ConstructionObject.code == code.upper()))
         if obj is None:
-            raise RowError(f"Объект с кодом {code} не найден")
+            raise RowError(f"Объект с кодом {code} не найден или недоступен")
         return obj
-    cadastral = row.get("cadastral_number")
+    cadastral, address = row.get("cadastral_number"), row.get("address")
     if cadastral is not None:
-        return session.scalar(select(ConstructionObject).where(ConstructionObject.cadastral_number == cadastral))
-    return session.scalar(
-        select(ConstructionObject).where(
-            ConstructionObject.territory_id == territory_id,
-            func.lower(ConstructionObject.name) == name.lower(),
-            func.coalesce(func.lower(ConstructionObject.address), "") == (row.get("address") or "").lower(),
-        )
-    )
+        matches = session.scalars(candidates.where(ConstructionObject.cadastral_number == cadastral)).all()
+    elif address is not None:
+        matches = session.scalars(
+            candidates.where(
+                ConstructionObject.territory_id == territory_id,
+                func.lower(ConstructionObject.name) == name.lower(),
+                func.lower(ConstructionObject.address) == address.lower(),
+            )
+        ).all()
+    else:
+        return None
+    if len(matches) > 1:
+        raise RowError("Найдено несколько подходящих объектов, укажите «code»")
+    return matches[0] if matches else None
 
 
 def _import_row(
@@ -118,13 +130,13 @@ def _import_row(
     }
     developer = _resolve_developer(session, row)
 
-    existing = _find_existing(session, row, territory.id, name)
-    if existing is not None and not scope.contains(existing.territory_id):
-        raise RowError("Объект находится вне вашей зоны ответственности")
+    existing = _find_existing(session, scope, row, territory.id, name)
 
     obj = existing or ConstructionObject(name=name, territory_id=territory.id)
     before = audit.snapshot(obj) if existing else None
     obj.name = name
+    if existing is not None and existing.territory_id != territory.id:
+        obj.district_id = None  # the old district belongs to the previous city
     obj.territory_id = territory.id
     if district_id is not None:
         obj.district_id = district_id
