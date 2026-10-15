@@ -15,7 +15,11 @@ export default tseslint.config(
     },
     plugins: { 'react-refresh': reactRefresh },
     rules: {
-      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+      'react-refresh/only-export-components': [
+        'warn',
+        // cva() style helpers that ship next to their shadcn component
+        { allowConstantExport: true, allowExportNames: ['buttonVariants', 'badgeVariants', 'toggleVariants'] },
+      ],
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     },
   },

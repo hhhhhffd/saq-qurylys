@@ -1,9 +1,10 @@
 import { fileURLToPath } from 'node:url';
+import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
@@ -11,24 +12,35 @@ export default defineConfig({
   // dependencies mid-session and re-optimizes ("Outdated Optimize Dep" reloads).
   optimizeDeps: {
     include: [
+      '@hookform/resolvers/zod',
       '@mantine/core',
       '@mantine/dates',
       '@mantine/form',
       '@mantine/hooks',
-      '@mantine/modals',
-      '@mantine/notifications',
       '@tabler/icons-react',
       '@tanstack/react-query',
       '@tanstack/react-table',
+      'class-variance-authority',
+      'clsx',
+      'date-fns',
+      'date-fns/locale/kk',
+      'date-fns/locale/ru',
       'dayjs',
       'dayjs/locale/kk',
       'dayjs/locale/ru',
       'i18next',
       'maplibre-gl',
+      'motion/react',
+      'radix-ui',
       'react',
+      'react-day-picker',
       'react-dom/client',
+      'react-hook-form',
       'react-i18next',
       'react-router',
+      'sonner',
+      'tailwind-merge',
+      'zod',
     ],
   },
   server: {

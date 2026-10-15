@@ -1,139 +1,152 @@
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
+/*
+ * Legacy global styles for screens that are not migrated to Tailwind yet (docs/UI.md §2, §7).
+ * Everything sits in a layer, so Tailwind utilities and shadcn components are never overridden by it.
+ * Phase C deletes this file together with the CSS modules.
+ */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    /* Quiet scrollbars that blend into the surface instead of the browser's default track. */
+    scrollbar-color: rgba(235, 232, 253, 0.22) transparent;
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-optical-sizing: auto;
+    margin: 0;
+  }
+
+  h1 {
+    font-size: 1.75rem;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    font-weight: 650;
+  }
+
+  h2 {
+    font-size: 1.25rem;
+    line-height: 1.25;
+    letter-spacing: -0.008em;
+    font-weight: 620;
+  }
+
+  h3 {
+    font-size: 1rem;
+    line-height: 1.3;
+    font-weight: 600;
+  }
+
+  /* Visually hidden labels (Mantine) are absolutely positioned; anchoring them to their cell keeps
+     them from stretching the page when a table scrolls horizontally inside its panel. */
+  th,
+  td {
+    position: relative;
+  }
+
+  a {
+    color: var(--link);
+    text-decoration-color: color-mix(in srgb, var(--link) 35%, transparent);
+    text-underline-offset: 2px;
+    transition: text-decoration-color var(--dur) var(--ease);
+  }
+
+  a:hover {
+    text-decoration-color: currentColor;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  ::selection {
+    background: rgba(240, 3, 91, 0.35);
+    color: var(--text);
+  }
+
+  /* maplibre needs its container to have a size */
+  .maplibregl-map {
+    font-family: var(--font-sans);
+  }
 }
 
-html {
-  -webkit-text-size-adjust: 100%;
-  /* Quiet scrollbars that blend into the surface instead of the browser's white track. */
-  scrollbar-color: rgba(28, 28, 30, 0.3) transparent;
+/* After Mantine's layer: its inputs sit on the sunken surface, like every field of the theme. */
+@layer components {
+  .mantine-Input-input,
+  .mantine-Select-input,
+  .mantine-MultiSelect-input,
+  .mantine-Textarea-input,
+  .mantine-PasswordInput-input,
+  .mantine-NumberInput-input,
+  .mantine-DateInput-input,
+  .mantine-DateTimePicker-input {
+    background-color: var(--surface-sunken);
+    border-color: var(--border-strong);
+  }
+
+  .mantine-Input-input:focus,
+  .mantine-Input-input:focus-within {
+    border-color: var(--focus);
+  }
+
+  .mantine-Modal-content,
+  .mantine-Modal-header,
+  .mantine-Drawer-content,
+  .mantine-Drawer-header {
+    background: var(--surface-raised);
+  }
+
+  .mantine-Modal-content {
+    box-shadow: var(--shadow-window);
+  }
+
+  .mantine-Modal-title,
+  .mantine-Drawer-title {
+    font-size: 1.0625rem;
+    font-weight: 620;
+    letter-spacing: -0.012em;
+  }
 }
 
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font-sans);
-  font-size: 14px;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-}
+@layer components {
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
 
-h1,
-h2,
-h3,
-h4 {
-  font-optical-sizing: auto;
-  margin: 0;
-}
+  .muted {
+    color: var(--text-2);
+  }
 
-h1 {
-  font-size: 1.75rem;
-  line-height: 1.15;
-  letter-spacing: -0.022em;
-  font-weight: 650;
-}
+  .faint {
+    color: var(--text-3);
+  }
 
-h2 {
-  font-size: 1.25rem;
-  line-height: 1.25;
-  letter-spacing: -0.015em;
-  font-weight: 620;
-}
+  /* Container surfaces */
+  .panel {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-1);
+  }
 
-h3 {
-  font-size: 1rem;
-  line-height: 1.3;
-  letter-spacing: -0.008em;
-  font-weight: 600;
-}
-
-/* Visually hidden labels (Mantine) are absolutely positioned; anchoring them to their cell keeps
-   them from stretching the page when a table scrolls horizontally inside its panel. */
-th,
-td {
-  position: relative;
-}
-
-a {
-  color: var(--link);
-  text-decoration-color: color-mix(in srgb, var(--link) 35%, transparent);
-  text-underline-offset: 2px;
-  transition: text-decoration-color var(--dur) var(--ease);
-}
-
-a:hover {
-  text-decoration-color: currentColor;
-}
-
-:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-  border-radius: 4px;
-}
-
-::selection {
-  background: rgba(75, 97, 120, 0.28);
-}
-
-/* Mantine inputs sit on the raised surface so they read against panels. */
-.mantine-Input-input,
-.mantine-Select-input,
-.mantine-MultiSelect-input,
-.mantine-Textarea-input,
-.mantine-PasswordInput-input,
-.mantine-NumberInput-input,
-.mantine-DateInput-input,
-.mantine-DateTimePicker-input {
-  background-color: var(--surface-raised);
-  border-color: var(--border-strong);
-}
-
-.mantine-Input-input:focus,
-.mantine-Input-input:focus-within {
-  border-color: var(--focus);
-}
-
-.tnum {
-  font-variant-numeric: tabular-nums;
-}
-
-.muted {
-  color: var(--text-2);
-}
-
-.faint {
-  color: var(--text-3);
-}
-
-/* Dialogs sit one step above the page background. */
-.mantine-Modal-content,
-.mantine-Modal-header,
-.mantine-Drawer-content,
-.mantine-Drawer-header {
-  background: var(--surface);
-}
-
-.mantine-Modal-title,
-.mantine-Drawer-title {
-  font-size: 1.0625rem;
-  font-weight: 620;
-  letter-spacing: -0.012em;
-}
-
-/* Container surfaces */
-.panel {
-  background: var(--surface);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-1);
-}
-
-/* Route content enters with a short fade, no layout movement. */
-.page-enter {
-  animation: page-enter 220ms var(--ease) both;
+  /* Route content enters with a short fade, no layout movement. */
+  .page-enter {
+    animation: page-enter 220ms var(--ease) both;
+  }
 }
 
 @keyframes page-enter {
@@ -145,11 +158,6 @@ a:hover {
     opacity: 1;
     transform: none;
   }
-}
-
-/* maplibre needs its container to have a size */
-.maplibregl-map {
-  font-family: var(--font-sans);
 }
 
 @media (prefers-reduced-motion: reduce) {
