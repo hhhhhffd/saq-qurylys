@@ -1,3 +1,4 @@
+import itertools
 import json
 import math
 import re
@@ -6,16 +7,17 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
-from app import seed
+from app import seed, seed_history
 from app.config import get_settings
-from app.models import AdPost, Complaint, ConstructionObject, Developer, District, Document, PhraseHit
+from app.models import AdPost, Complaint, ConstructionObject, Developer, District, Document, PhraseHit, RiskScore
 from app.models.enums import CheckStatus, DocType, PhraseCategory, ScoreTrigger, Zone
 from app.modules.graph.service import build_graph
 from app.modules.graph.suggestions import list_suggestions
 from app.modules.nlp.service import analyze_ad
+from app.modules.risk.queries import latest_score_stmt
 from app.modules.risk.service import recalculate
 from app.scope import TerritoryScope
 
@@ -427,3 +429,257 @@ def test_the_network_account_is_offered_as_a_source_candidate(db: Session, demo:
     assert (candidate.platform, candidate.handle) == ("instagram", "prime_estate_demo")
     assert candidate.posts_count == sum(len(obj["ads"]) for obj in NETWORK["objects"])
     assert candidate.object_ids == sorted(network)
+
+
+# ---------------------------------------------------------------- dated history for the time machine (SPEC 10.5)
+
+HISTORY = json.loads((seed.SEED_DATA_DIR / "demo_history.json").read_text(encoding="utf-8"))
+SLICES = seed_history.HISTORY_WEEKS + 1  # weekly, both ends included
+GOLDEN_AUTUMN = "ЖК «Золотая осень»"
+CRYSTAL_CITY = "ЖК «Хрустальный город»"
+
+
+@pytest.fixture
+def demo_history(db: Session, demo: list[int]) -> list[int]:
+    seed_history.seed_demo_history(db, demo)
+    return demo
+
+
+class _Borrowed:
+    """Lends the test session to code that opens its own session from a factory."""
+
+    def __init__(self, session: Session) -> None:
+        self.session = session
+
+    def __enter__(self) -> Session:
+        return self.session
+
+    def __exit__(self, *exc: object) -> None:
+        return None
+
+
+def _replayed(db: Session, name: str) -> list[RiskScore]:
+    obj = _by_name(db, name)
+    return list(
+        db.scalars(
+            select(RiskScore)
+            .where(RiskScore.object_id == obj.id, RiskScore.trigger == ScoreTrigger.replay)
+            .order_by(RiskScore.calculated_at)
+        )
+    )
+
+
+def _zone_path(rows: list[RiskScore]) -> list[Zone]:
+    """The zones in order of time, consecutive repeats collapsed."""
+    path: list[Zone] = []
+    for row in rows:
+        if not path or path[-1] is not row.zone:
+            path.append(row.zone)
+    return path
+
+
+def _fired(row: RiskScore) -> set[str]:
+    return {factor["code"] for factor in row.breakdown["factors"] if factor["triggered"]}
+
+
+def _without_complaint_count(breakdown: dict[str, Any]) -> dict[str, Any]:
+    """The breakdown minus the one detail that history is meant to change: how many complaints are on file."""
+    factors = [
+        {**factor, "detail": {k: v for k, v in factor["detail"].items() if k != "count"}}
+        if factor["code"] == "r4_collective_complaint"
+        else factor
+        for factor in breakdown["factors"]
+    ]
+    return {**breakdown, "factors": factors}
+
+
+def test_history_file_is_fictional_dated_in_the_past_and_outside_the_analysis_window() -> None:
+    names = {obj["name"] for obj in DEMO["objects"]}
+    ads = [ad for item in HISTORY["objects"] for ad in item.get("ads", [])]
+    assert {item["name"] for item in HISTORY["objects"]} <= names and len(ads) >= 20
+    for ad in ads:
+        assert ad["url"].startswith("https://example.invalid/") and ad["external_id"].startswith("demo-hist-")
+        assert re.search(r"\+7 700 000 \d\d \d\d", ad["text"])
+        match = re.fullmatch(r"-(\d+)d", ad["published_at"])
+        assert match is not None and 32 <= int(match[1]) <= 175, "1-6 months back, outside the 30-day window"
+    assert len({ad["external_id"] for ad in ads}) == len(ads)
+    for item in HISTORY["objects"]:
+        dates = [fact["checked_at"] for fact in item.get("document_checks", [])]
+        dates += [fact["verified_at"] for fact in item.get("complaint_verifications", [])]
+        dates += [complaint["received_at"] for complaint in item.get("complaints", [])]
+        assert all(re.fullmatch(r"-\d+d", date) for date in dates)
+
+
+def test_history_leaves_every_current_breakdown_as_it_was(db: Session, demo: list[int]) -> None:
+    for ad in db.scalars(select(AdPost)):
+        analyze_ad(db, ad)
+    before = {}
+    for object_id in demo:
+        result = recalculate(db, object_id, ScoreTrigger.manual)
+        assert result is not None
+        before[object_id] = _without_complaint_count(result.risk_score.breakdown)
+
+    seed_history.seed_demo_history(db, demo)
+
+    scores: dict[str, tuple[int, Zone]] = {}
+    for object_id in demo:
+        result = recalculate(db, object_id, ScoreTrigger.manual)
+        assert result is not None
+        assert _without_complaint_count(result.risk_score.breakdown) == before[object_id]  # evidence and flags too
+        scores[db.get_one(ConstructionObject, object_id).name] = (result.risk_score.score, result.risk_score.zone)
+    assert scores == EXPECTED
+
+    def factors(name: str) -> tuple[set[str], str]:
+        row = db.scalar(latest_score_stmt(_by_name(db, name).id))
+        assert row is not None and row.trigger is ScoreTrigger.manual
+        return _fired(row), row.breakdown["legal_basis_status"]
+
+    assert factors("ЖК «Северный бриз»") == ({"r2_money_offer", "r3_active_ads"}, "unknown")  # A
+    assert factors(GOLDEN_AUTUMN) == (
+        {"r1_no_legal_basis", "r2_money_offer", "r3_active_ads"},
+        "absent_established",
+    )  # B
+    assert factors("ЖК «Тихая гавань»") == ({"r3_active_ads"}, "confirmed")  # C
+
+
+def test_older_check_dates_do_not_change_what_the_documents_say(db: Session, demo: list[int]) -> None:
+    def documents() -> dict[tuple[int, DocType], Document]:
+        return {(row.object_id, row.doc_type): row for row in db.scalars(select(Document))}
+
+    before = {key: (row.check_status, row.checked_at) for key, row in documents().items()}
+    seed_history.seed_demo_history(db, demo)
+    after = {key: (row.check_status, row.checked_at) for key, row in documents().items()}
+
+    assert {key: value[0] for key, value in after.items()} == {key: value[0] for key, value in before.items()}
+    moved = {key for key in before if before[key][1] != after[key][1]}
+    names = {object_id: db.get_one(ConstructionObject, object_id).name for object_id, _ in moved}
+    assert {(names[object_id], doc_type) for object_id, doc_type in moved} == {
+        (GOLDEN_AUTUMN, DocType.guarantee),
+        (GOLDEN_AUTUMN, DocType.dsu_permit),
+        (CRYSTAL_CITY, DocType.guarantee),
+        (CRYSTAL_CITY, DocType.dsu_permit),
+    }
+    for key in moved:
+        earlier, later = after[key][1], before[key][1]
+        assert earlier is not None and later is not None and earlier < later
+
+
+def test_every_demo_object_gets_a_weekly_replayed_history_that_ends_before_the_real_score(
+    db: Session, demo_history: list[int]
+) -> None:
+    for object_id in demo_history:
+        obj = db.get_one(ConstructionObject, object_id)
+        rows = _replayed(db, obj.name)
+        assert len(rows) == SLICES, obj.name
+        assert {row.trigger for row in rows} == {ScoreTrigger.replay}
+        assert {b.calculated_at - a.calculated_at for a, b in itertools.pairwise(rows)} == {timedelta(weeks=1)}
+        assert rows[-1].calculated_at <= datetime.now(UTC)
+        assert (obj.score, obj.zone, obj.last_scored_at) == (None, None, None)  # a replay is not a scoring
+
+    real = recalculate(db, demo_history[0], ScoreTrigger.manual)
+    assert real is not None
+    assert db.scalar(latest_score_stmt(demo_history[0])) == real.risk_score
+
+
+def test_golden_autumn_goes_green_yellow_red_as_its_facts_appear(db: Session, demo_history: list[int]) -> None:
+    rows = _replayed(db, GOLDEN_AUTUMN)
+    assert _zone_path(rows) == [Zone.green, Zone.yellow, Zone.red]
+
+    yellow = [row for row in rows if row.zone is Zone.yellow]
+    red = [row for row in rows if row.zone is Zone.red]
+    # Yellow: an offer of money while the basis is unchecked. Red: only from the day both checks had been made.
+    assert all(_fired(row) == {"r2_money_offer", "r3_active_ads"} for row in yellow)
+    assert all(_fired(row) == {"r1_no_legal_basis", "r2_money_offer", "r3_active_ads"} for row in red)
+    checks = [
+        row.checked_at
+        for row in db.scalars(select(Document).where(Document.object_id == _by_name(db, GOLDEN_AUTUMN).id))
+        if row.checked_at is not None
+    ]
+    assert rows[rows.index(red[0]) - 1].calculated_at < max(checks) <= red[0].calculated_at
+    assert (red[-1].score, red[-1].zone) == (70, Zone.red)  # the last slice meets the present state
+    assert len(yellow) >= 2 and len(red) >= 6
+
+
+def test_northern_breeze_is_yellow_for_weeks(db: Session, demo_history: list[int]) -> None:
+    rows = _replayed(db, "ЖК «Северный бриз»")
+    assert _zone_path(rows) == [Zone.green, Zone.yellow]
+    assert sum(row.zone is Zone.yellow for row in rows) >= 10
+    assert {row.breakdown["legal_basis_status"] for row in rows} == {"unknown"}  # it never was a finding of absence
+
+
+def test_quiet_harbor_is_mostly_green(db: Session, demo_history: list[int]) -> None:
+    rows = _replayed(db, "ЖК «Тихая гавань»")
+    assert Zone.red not in {row.zone for row in rows}
+    assert sum(row.zone is Zone.green for row in rows) >= 0.8 * len(rows)
+    assert rows[-1].zone is Zone.green
+
+
+def test_poplar_alley_turns_yellow_only_after_the_complaint_was_verified(db: Session, demo_history: list[int]) -> None:
+    rows = _replayed(db, "ЖК «Тополиная аллея»")
+    [complaint] = db.scalars(select(Complaint).where(Complaint.external_id == "EO-DEMO-0103"))
+    assert complaint.verified_at is not None and complaint.verified_at < datetime.now(UTC) - timedelta(days=20)
+
+    assert _zone_path(rows) == [Zone.green, Zone.yellow]
+    first_yellow = next(index for index, row in enumerate(rows) if row.zone is Zone.yellow)
+    assert rows[first_yellow - 1].calculated_at < complaint.verified_at <= rows[first_yellow].calculated_at
+    assert "r4_collective_complaint" in _fired(rows[first_yellow])
+    assert "complaint_unverified" in {flag["code"] for flag in rows[first_yellow - 1].breakdown["needs_check"]}
+
+
+def test_crystal_city_goes_green_yellow_red(db: Session, demo_history: list[int]) -> None:
+    assert _zone_path(_replayed(db, CRYSTAL_CITY)) == [Zone.green, Zone.yellow, Zone.red]
+
+
+def test_repeating_the_history_adds_neither_facts_nor_slices(db: Session, demo_history: list[int]) -> None:
+    ads = db.scalar(select(func.count()).select_from(AdPost))
+    complaints = db.scalar(select(func.count()).select_from(Complaint))
+
+    assert seed_history.seed_demo_history(db, demo_history) == len(demo_history) * SLICES
+
+    assert db.scalar(select(func.count()).select_from(AdPost)) == ads
+    assert db.scalar(select(func.count()).select_from(Complaint)) == complaints
+    assert db.scalar(select(func.count()).select_from(RiskScore)) == len(demo_history) * SLICES
+
+
+def test_a_history_file_that_dates_a_missing_document_is_rejected(
+    db: Session, demo: list[int], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    broken = {
+        "objects": [
+            {"name": "ЖК «Северный бриз»", "document_checks": [{"doc_type": "guarantee", "checked_at": "-40d"}]}
+        ]
+    }
+    (tmp_path / "demo_history.json").write_text(json.dumps(broken))  # the object has no guarantee document
+    monkeypatch.setattr(seed_history, "SEED_DATA_DIR", tmp_path)
+    with pytest.raises(SystemExit, match="guarantee"):
+        seed_history.seed_demo_history(db, demo)
+
+
+def test_replay_history_flag_recomputes_the_history_of_every_object(
+    db: Session, demo_history: list[int], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(seed, "get_sessionmaker", lambda: lambda: _Borrowed(db))
+    db.execute(delete(RiskScore))
+    db.add(ConstructionObject(territory_id=_by_name(db, GOLDEN_AUTUMN).territory_id, name="ЖК Не из демо"))
+    db.flush()
+
+    seed.main(["--replay-history"])
+
+    assert db.scalar(select(func.count()).select_from(RiskScore)) == (len(demo_history) + 1) * SLICES
+    assert _zone_path(_replayed(db, GOLDEN_AUTUMN)) == [Zone.green, Zone.yellow, Zone.red]
+
+
+def test_demo_loading_stores_the_replayed_history(db: Session, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(seed, "get_sessionmaker", lambda: lambda: _Borrowed(db))
+
+    seed.run(demo=True)
+
+    # Every demo object gets its replayed slices: those of demo_objects.json, of the network story and the one of
+    # the versions story.
+    demo_objects = db.scalar(
+        select(func.count()).select_from(ConstructionObject).where(ConstructionObject.is_demo.is_(True))
+    )
+    assert demo_objects == len(DEMO["objects"]) + len(NETWORK["objects"]) + 1
+    assert db.scalar(select(func.count()).select_from(RiskScore)) == demo_objects * SLICES
+    history_ads = db.scalar(select(func.count()).select_from(AdPost).where(AdPost.external_id.like("demo-hist-%")))
+    assert history_ads == sum(len(item.get("ads", [])) for item in HISTORY["objects"])

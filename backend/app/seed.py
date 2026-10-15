@@ -1,9 +1,11 @@
-"""Idempotent database seed: `python -m app.seed [--pilot] [--demo]`.
+"""Idempotent database seed: `python -m app.seed [--pilot] [--demo] [--replay-history]`.
 
 Reference data (territories, risk factors, phrases, settings) and the initial admin are always
 created when missing and never overwritten. Optional files in app/seed_data/ are described in
 app/seed_data/README.md. `--pilot` additionally imports the public snapshot of real objects of the pilot city,
-`--demo` loads demo users and the fictional demo_objects.json and demo_network.json.
+`--demo` loads demo users and the fictional demo_objects.json and demo_network.json, the first with its dated
+history (demo_history.json); `--replay-history` recomputes the replayed score history of every object (the time
+machine, SPEC 10.5).
 """
 
 import argparse
@@ -648,7 +650,9 @@ def dispatch_demo_processing(ads: list[tuple[int, int]], objects_without_ads: li
     objects_changed(objects_without_ads)
 
 
-def run(demo: bool, pilot: bool = False) -> None:
+def run(demo: bool, pilot: bool = False, replay_history: bool = False) -> None:
+    from app import seed_history  # imported here: it builds on the models of this module
+
     factory = get_sessionmaker()
     with factory() as session:
         seed_reference(session)
@@ -659,6 +663,8 @@ def run(demo: bool, pilot: bool = False) -> None:
 
     if pilot:
         run_pilot(factory)
+    if replay_history:
+        seed_history.replay_all(factory)
     if not demo:
         return
     from app.seed_versions import seed_demo_versions  # imported here: that module builds on this one
@@ -671,6 +677,7 @@ def run(demo: bool, pilot: bool = False) -> None:
             (row.id, row.object_id)
             for row in session.execute(select(AdPost.id, AdPost.object_id).where(AdPost.object_id.in_(object_ids)))
         ]
+        seed_history.seed_demo_history(session, object_ids)  # after `ads`: the older ads need no processing chain
         session.commit()
     for username, password in credentials:
         print(f"demo user {username}: {password}")  # shown once; only the hash is stored
@@ -685,9 +692,14 @@ def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="python -m app.seed", description=__doc__)
     parser.add_argument("--pilot", action="store_true", help="also import the public snapshot of real pilot objects")
     parser.add_argument("--demo", action="store_true", help="also load demo users and demo_objects.json")
+    parser.add_argument(
+        "--replay-history",
+        action="store_true",
+        help="recompute the replayed score history (last 26 weeks, weekly) of every object",
+    )
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s", stream=sys.stderr)
-    run(demo=args.demo, pilot=args.pilot)
+    run(demo=args.demo, pilot=args.pilot, replay_history=args.replay_history)
 
 
 if __name__ == "__main__":

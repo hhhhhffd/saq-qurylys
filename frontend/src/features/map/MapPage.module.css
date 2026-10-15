@@ -38,6 +38,16 @@
   color: var(--text-3);
 }
 
+.hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: var(--radius-sm);
+  cursor: help;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+
 .listPanel {
   display: flex;
   flex-direction: column;

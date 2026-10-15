@@ -991,3 +991,37 @@ export interface SuggestionDismissInput {
   platform: Platform;
   handle: string;
 }
+
+// ---------------------------------------------------------------- time machine
+
+/** `GET /dashboard/timeline` */
+export type TimelineStep = 'week' | 'day';
+
+/** The latest score an object had by the moment of a frame (any trigger, replayed history included). */
+export interface TimelineObjectZone {
+  object_id: number;
+  score: number;
+  zone: Zone;
+}
+
+export interface TimelineFrame {
+  /** the moment of the frame (ISO 8601); the last frame is "now" */
+  at: string;
+  /** objects without a score by this moment are not listed */
+  objects: TimelineObjectZone[];
+}
+
+export interface TimelineObject {
+  object_id: number;
+  name: string;
+  lat: number | null;
+  lon: number | null;
+  is_demo: boolean;
+}
+
+export interface Timeline {
+  /** oldest first */
+  frames: TimelineFrame[];
+  /** every object that has a score in at least one frame */
+  objects: TimelineObject[];
+}
