@@ -1,0 +1,49 @@
+{
+  "data": [
+    {
+      "id": 900001,
+      "url": "https://www.olx.kz/d/obyavlenie/promo-kvartira-v-zhk-demo-IDabc1.html?reason=extended_search",
+      "title": "Квартира в ЖК «Демо-Парк» от застройщика",
+      "description": "Продажа квартир на этапе котлована.<br />Бронь за 50 000 тг.<br /><br />Звоните!",
+      "created_time": "2026-08-01T10:00:00+05:00",
+      "promotion": {"top_ad": true, "highlighted": false},
+      "params": [
+        {"key": "price", "name": "Цена", "value": {"value": 18900000, "currency": "KZT", "label": "18 900 000 тг."}},
+        {"key": "tip_zhilya", "name": "Тип жилья", "value": {"key": "novostroyki", "label": "Новостройки"}},
+        {"key": "empty", "name": "Пустое", "value": {"key": "x"}}
+      ],
+      "photos": [
+        {"id": 1, "link": "https://img.olx.test/image/aaa;s={width}x{height}"},
+        {"id": 2, "link": "https://img.olx.test/image/bbb;s={width}x{height}"}
+      ],
+      "location": {"city": {"name": "Усть-Каменогорск"}, "region": {"name": "Восточно-Казахстанская область"}},
+      "user": {"id": 5, "name": "Тестовый Продавец", "company_name": "Не хранить ТОО"},
+      "contact": {"name": "Тестовый Продавец", "phone": true}
+    },
+    {
+      "id": 900002,
+      "url": "https://www.olx.kz/d/obyavlenie/kvartira-bez-pervogo-vznosa-IDabc2.html",
+      "title": "Рассрочка без первого взноса",
+      "description": "Квартиры в рассрочку.",
+      "created_time": "2026-10-13T09:00:00+05:00",
+      "promotion": {"top_ad": false},
+      "params": [
+        {"key": "price", "name": "Цена", "value": {"value": 15000000, "currency": "KZT", "label": "15 000 000 тг."}}
+      ],
+      "photos": [],
+      "location": {"city": {"name": "Семей"}, "region": {"name": "Абайская область"}},
+      "user": {"name": "Другой Продавец"}
+    },
+    {
+      "id": 900003,
+      "url": "https://www.olx.kz/d/obyavlenie/staroe-IDabc3.html",
+      "title": "Старое объявление",
+      "description": "Давно опубликовано",
+      "created_time": "2026-09-01T09:00:00+05:00",
+      "params": [],
+      "photos": [],
+      "location": {"city": {"name": "Семей"}}
+    }
+  ],
+  "links": {"next": {"href": "https://www.olx.kz/api/v1/offers/?offset=40&limit=40"}}
+}

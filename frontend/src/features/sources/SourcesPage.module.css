@@ -1,0 +1,70 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.collectors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.collector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+}
+
+.source {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  max-width: 320px;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+
+.url {
+  overflow: hidden;
+  color: var(--text-2);
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.error {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 280px;
+  font-size: 0.8125rem;
+}
+
+.errorText {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--zone-red-ink);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.formNote {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 0.8125rem;
+}

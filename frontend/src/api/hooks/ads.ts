@@ -8,6 +8,8 @@ import type {
   AdPatch,
   AdRow,
   CaptureRequest,
+  CollectorStatus,
+  CollectQueued,
   ListResponse,
   Paged,
   Platform,
@@ -16,6 +18,8 @@ import type {
 } from '../types';
 
 const PENDING_POLL_MS = 3000;
+// The worker collects after the request is queued; the page shows the outcome once it had time to finish.
+const COLLECT_REFRESH_MS = 10_000;
 
 /** A worker is still capturing the page or reading the photos of the publication. */
 const isProcessing = (ad: AdRow) => ad.capture_status === 'pending' || ad.ocr_status === 'pending';
@@ -127,5 +131,26 @@ export function useUpdateSourceAccount() {
       api<SourceAccount>(`/source-accounts/${id}`, { method: 'PATCH', body: data }),
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.sourceAccounts }),
     meta: { success: 'saved' },
+  });
+}
+
+export function useCollectors() {
+  return useQuery({
+    queryKey: qk.sourceCollectors,
+    queryFn: () => api<CollectorStatus[]>('/source-accounts/collectors'),
+  });
+}
+
+export function useCollectSourceNow() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => api<CollectQueued>(`/source-accounts/${id}/collect`, { method: 'POST' }),
+    onSuccess: () => {
+      setTimeout(() => {
+        void qc.invalidateQueries({ queryKey: qk.sourceAccounts });
+        void qc.invalidateQueries({ queryKey: qk.ads });
+      }, COLLECT_REFRESH_MS);
+    },
+    meta: { success: 'collectQueued' },
   });
 }

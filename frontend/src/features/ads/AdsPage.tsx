@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Button, Skeleton } from '@mantine/core';
-import { IconCamera, IconPlus } from '@tabler/icons-react';
-import { useSearchParams } from 'react-router';
+import { IconCamera, IconPlus, IconRss } from '@tabler/icons-react';
+import { Link, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useAd, useAds } from '@/api/hooks/ads';
 import { useAuth } from '@/auth/useAuth';
@@ -114,6 +114,14 @@ export function AdsPage() {
                 onClick={() => setManualOpen(true)}
               >
                 {t('actions.manual')}
+              </Button>
+              <Button
+                variant="default"
+                component={Link}
+                to="/sources"
+                leftSection={<IconRss size={16} stroke={1.8} />}
+              >
+                {t('actions.sources')}
               </Button>
             </>
           )

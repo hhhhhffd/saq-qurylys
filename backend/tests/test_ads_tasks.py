@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from app import storage
 from app.collectors import base as collectors
-from app.collectors.base import CollectedPost
+from app.collectors.base import CollectedPost, IsKnown
 from app.config import get_settings
 from app.models import AdPost, AuditLog, Evidence, Notification, SourceAccount
 from app.models.enums import (
@@ -283,13 +283,17 @@ def test_claimed_readiness_of_all_objects_follows_the_ad_window(db: Session, wor
 
 class FakeCollector:
     platform = Platform.telegram
+    capture_urls = True
 
     def __init__(self, posts: Iterable[CollectedPost], fail_for: str | None = None) -> None:
         self.posts = list(posts)
         self.fail_for = fail_for
         self.calls: list[tuple[str, datetime]] = []
 
-    def collect(self, account: SourceAccount, since: datetime) -> Iterable[CollectedPost]:
+    def handles(self, account: SourceAccount) -> bool:
+        return True
+
+    def collect(self, account: SourceAccount, since: datetime, is_known: IsKnown) -> Iterable[CollectedPost]:
         self.calls.append((account.handle, since))
         if account.handle == self.fail_for:
             raise RuntimeError("platform is down")

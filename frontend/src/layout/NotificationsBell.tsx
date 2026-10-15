@@ -23,6 +23,8 @@ function targetPath(notification: AppNotification): string | null {
     case 'ad_post':
     case 'ad':
       return `/ads?ad=${id}`;
+    case 'source_account':
+      return '/sources';
     default:
       return null;
   }

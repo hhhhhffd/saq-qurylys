@@ -172,6 +172,18 @@ class SourceAccountOut(ORMModel):
     last_error_at: datetime | None
 
 
+class CollectorStatus(BaseModel):
+    """Whether the collector of a platform is on (`.env`). For the aggregator, `sources` tells it per site."""
+
+    platform: Platform
+    enabled: bool
+    sources: dict[str, bool] = {}
+
+
+class CollectQueued(BaseModel):
+    queued: bool = True
+
+
 class SourceAccountCreate(BaseModel):
     platform: Platform
     handle: Handle | None = None

@@ -7,6 +7,7 @@ const ads: typeof ru = {
   actions: {
     capture: 'Сілтеме бойынша тіркеу',
     manual: 'Қолмен қосу',
+    sources: 'Дереккөздер',
   },
   filters: {
     platform: 'Платформа',

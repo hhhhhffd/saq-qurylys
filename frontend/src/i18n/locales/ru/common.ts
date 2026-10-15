@@ -72,6 +72,7 @@ const common = {
     reanalysisQueued: 'Переанализ публикаций запущен',
     syncStarted: 'Синхронизация реестра запущена',
     closed: 'Карточка закрыта',
+    collectQueued: 'Сбор запущен. Новые публикации появятся в ленте через несколько минут',
   },
   errors: {
     network_error: 'Нет связи с сервером',
@@ -83,6 +84,8 @@ const common = {
     invalid_credentials: 'Неверный логин или пароль',
     queue_unavailable: 'Очередь задач недоступна. Повторите позже',
     invalid_zone_thresholds: 'Граница жёлтой зоны должна быть ниже границы красной',
+    collector_disabled: 'Сборщик этого источника выключен: он включается в .env сервера',
+    invalid_source_url: 'Укажите ссылку на поиск на olx.kz или krisha.kz',
   },
   states: {
     loadError: 'Не удалось загрузить данные',

@@ -1,10 +1,15 @@
+import logging
 from datetime import UTC, datetime
 from typing import Annotated
+from urllib.parse import urlsplit
 
 from fastapi import APIRouter, File, Form, Query, Request, Response, UploadFile
 from sqlalchemy import func, select
 
 from app import audit, storage
+from app.collectors import COLLECTOR_PLATFORMS, account_enabled, enabled_sources, platform_enabled
+from app.collectors.aggregator import check_search_url
+from app.config import get_settings
 from app.deps import ScopeDep, SessionDep, StaffUser
 from app.errors import api_error, forbidden
 from app.events import objects_changed
@@ -27,6 +32,8 @@ from app.modules.ads.schemas import (
     AdPatch,
     AdRow,
     CaptureRequest,
+    CollectorStatus,
+    CollectQueued,
     HitConfirm,
     PhraseHitOut,
     SourceAccountCreate,
@@ -40,6 +47,7 @@ from app.modules.ads.urls import (
     external_id_for,
     handle_from_url,
     is_http_url,
+    split_url,
 )
 from app.modules.developers.service import get_visible_developer
 from app.modules.nlp.llm import UNCERTAIN_BELOW, Extraction
@@ -48,6 +56,9 @@ from app.modules.objects.service import get_object_in_scope
 from app.schemas import Page
 from app.storage import EvidenceLink
 from app.uploads import PHOTO_TYPES, read_upload
+from app.worker.celery_app import celery_app
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["ads"])
 
@@ -407,6 +418,39 @@ def _ensure_account_unique(session: SessionDep, platform: Platform, handle: str,
         raise api_error(409, "source_account_exists", "Такой аккаунт уже добавлен")
 
 
+def _checked_search_url(url: str | None) -> str:
+    """The search address of an aggregator account: an http(s) address on olx.kz or krisha.kz."""
+    if url is None:
+        raise api_error(422, "invalid_source_url", "Для агрегатора укажите ссылку на поиск на olx.kz или krisha.kz")
+    try:
+        check_search_url(url)
+    except ValueError as exc:
+        raise api_error(422, "invalid_source_url", str(exc)) from exc
+    return url
+
+
+def _search_label(url: str) -> str:
+    """Name of a search the user did not name: its address without the scheme, so that two searches differ."""
+    parts = urlsplit(url)
+    label = split_url(url)[0] + parts.path.rstrip("/") + (f"?{parts.query}" if parts.query else "")
+    return label[:255].lower()
+
+
+@router.get("/source-accounts/collectors", response_model=list[CollectorStatus])
+def list_collectors(user: StaffUser) -> list[CollectorStatus]:
+    """Which collectors are on. They are switched on in `.env`, not here."""
+    settings = get_settings()
+    sources = enabled_sources(settings)
+    return [
+        CollectorStatus(
+            platform=platform,
+            enabled=platform_enabled(platform, settings),
+            sources={name: sources[name] for name in ("olx", "krisha")} if platform is Platform.aggregator else {},
+        )
+        for platform in COLLECTOR_PLATFORMS
+    ]
+
+
 @router.get("/source-accounts", response_model=Page[SourceAccountOut])
 def list_source_accounts(
     session: SessionDep,
@@ -435,7 +479,10 @@ def create_source_account(
     body: SourceAccountCreate, session: SessionDep, user: StaffUser, scope: ScopeDep, request: Request
 ) -> SourceAccount:
     handle = _normalize_handle(body.handle) if body.handle else None
-    if handle is None and body.url is not None:
+    if body.platform is Platform.aggregator:
+        url = _checked_search_url(body.url)
+        handle = handle or _search_label(url)
+    elif handle is None and body.url is not None:
         handle = handle_from_url(body.platform, body.url)
     if not handle:
         raise api_error(422, "validation_error", "Не удалось определить имя аккаунта: укажите handle")
@@ -471,6 +518,8 @@ def update_source_account(
     _check_account_references(
         session, scope, changes.get("object_id"), changes.get("developer_id"), changes.get("territory_id")
     )
+    if account.platform is Platform.aggregator and "url" in changes:
+        _checked_search_url(changes["url"])
     if "handle" in changes:
         changes["handle"] = _normalize_handle(changes["handle"])
         _ensure_account_unique(session, account.platform, changes["handle"], account.id)
@@ -484,3 +533,22 @@ def update_source_account(
     )
     session.commit()
     return account
+
+
+@router.post("/source-accounts/{account_id}/collect", response_model=CollectQueued, status_code=202)
+def collect_source_account(
+    account_id: int, session: SessionDep, user: StaffUser, scope: ScopeDep, request: Request
+) -> CollectQueued:
+    """Collect the account's new posts now; the worker runs the same collection as the scheduled one."""
+    account = _get_account(session, scope, account_id)
+    if not account_enabled(account, get_settings()):
+        raise api_error(409, "collector_disabled", "Сборщик этого источника выключен: он включается в .env сервера")
+    if get_settings().events_enabled:
+        try:
+            celery_app.send_task("collect.source", args=[account.id], queue="collect", retry=False, ignore_result=True)
+        except Exception as exc:
+            logger.exception("Failed to enqueue collect.source for source account %s", account.id)
+            raise api_error(503, "queue_unavailable", "Очередь задач недоступна") from exc
+    audit.record(session, user, "source_account.collect", "source_account", account.id, None, None, request)
+    session.commit()
+    return CollectQueued()
