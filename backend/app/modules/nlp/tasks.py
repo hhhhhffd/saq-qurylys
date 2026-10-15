@@ -54,3 +54,17 @@ def llm_extract(ad_post_id: int) -> None:
         object_id = ad.object_id if ad is not None else None
     if object_id is not None:
         object_changed(object_id)
+
+
+@celery_app.task(name="nlp.reanalyze_recent")
+def reanalyze_recent() -> int:
+    """Event-triggered after a dictionary change (no schedule): analyze the recent posts again."""
+    posts = 0
+    objects: set[int] = set()
+    with get_sessionmaker()() as session:
+        for affected in service.reanalyze_recent(session):
+            objects_changed(affected)
+            objects |= affected
+            posts += 1
+    logger.info("nlp.reanalyze_recent: %s batches, %s objects to recalculate", posts, len(objects))
+    return posts

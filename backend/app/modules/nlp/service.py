@@ -3,11 +3,13 @@
 import logging
 import re
 from collections import defaultdict
+from collections.abc import Iterator
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 
 import httpx
 from rapidfuzz import fuzz, utils
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
@@ -25,6 +27,7 @@ from app.modules.nlp import llm
 from app.modules.nlp.text import extract_links, extract_phones, find_matches
 from app.modules.settings.service import load_settings
 from app.scope import TerritoryScope
+from app.worker.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +38,9 @@ MIN_NAME_SIMILARITY = 0.5
 # Two objects whose similarity differs by less than this are indistinguishable by name.
 AMBIGUITY_MARGIN = 0.05
 MIN_NAME_LENGTH = 3
+# After a dictionary change the posts of this period are analyzed again; older ones keep their hits.
+REANALYZE_WINDOW_DAYS = 90
+REANALYZE_BATCH_SIZE = 200
 
 _SCHEME_CATEGORY = {
     PaymentScheme.booking: PhraseCategory.booking,
@@ -58,20 +64,23 @@ def recompute_weights(session: Session, ad: AdPost) -> None:
     ad.total_phrase_weight = sum(weights.values())
 
 
-def analyze_ad(session: Session, ad: AdPost) -> None:
+def analyze_ad(session: Session, ad: AdPost, phrases: list[Phrase] | None = None) -> bool:
     """Replace the dictionary hits of the post, extract its phones and links.
 
     Idempotent: a hit that is found again (same phrase and position) is kept together with the person's
-    confirmation; hits of the LLM are not touched.
+    confirmation; hits of the LLM are not touched. `phrases` are the active phrases when the caller already
+    has them. Returns whether the dictionary hits changed.
     """
     text = ad.text or ""
-    phrases = list(session.scalars(select(Phrase).where(Phrase.is_active)))
+    if phrases is None:
+        phrases = list(session.scalars(select(Phrase).where(Phrase.is_active)))
     stale = {
         (hit.phrase_id, hit.start, hit.end): hit
         for hit in session.scalars(
             select(PhraseHit).where(PhraseHit.ad_post_id == ad.id, PhraseHit.detected_by == DetectedBy.dictionary)
         )
     }
+    changed = False
     for match in find_matches(text, phrases):
         hit = stale.pop((match.phrase.id, match.start, match.end), None)
         if hit is None:
@@ -83,16 +92,57 @@ def analyze_ad(session: Session, ad: AdPost) -> None:
                 detected_by=DetectedBy.dictionary,
             )
             session.add(hit)
+            changed = True
+        elif (hit.category, hit.weight) != (match.phrase.category, match.phrase.weight):
+            changed = True
         hit.category = match.phrase.category
         hit.matched_text = match.text
         hit.weight = match.phrase.weight
     for hit in stale.values():
         session.delete(hit)
+        changed = True
     session.flush()
 
     ad.phones = extract_phones(text)
     ad.links = extract_links(text)
     recompute_weights(session, ad)
+    return changed
+
+
+def reanalyze_recent(session: Session) -> Iterator[set[int]]:
+    """Run the dictionary analysis again over the posts of the last `REANALYZE_WINDOW_DAYS` days, after the
+    dictionary changed. Works in committed batches and yields, after each, the objects whose posts got other
+    dictionary hits (their risk has to be recalculated)."""
+    since = datetime.now(UTC) - timedelta(days=REANALYZE_WINDOW_DAYS)
+    recency = func.coalesce(AdPost.published_at, AdPost.captured_at, AdPost.created_at)
+    phrases = list(session.scalars(select(Phrase).where(Phrase.is_active)))
+    last_id = 0
+    while True:
+        batch = session.scalars(
+            select(AdPost)
+            .where(AdPost.id > last_id, AdPost.text.isnot(None), recency >= since)
+            .order_by(AdPost.id)
+            .limit(REANALYZE_BATCH_SIZE)
+        ).all()
+        if not batch:
+            return
+        affected = {ad.object_id for ad in batch if analyze_ad(session, ad, phrases) and ad.object_id is not None}
+        session.commit()
+        last_id = batch[-1].id
+        yield affected
+
+
+def enqueue_reanalysis() -> bool:
+    """Queue `nlp.reanalyze_recent`. Call after the dictionary change is committed; returns False when the
+    broker is unreachable (the change itself is saved, a manual re-run is possible)."""
+    if not get_settings().events_enabled:
+        return True
+    try:
+        celery_app.send_task("nlp.reanalyze_recent", queue="nlp", retry=False, ignore_result=True)
+    except Exception:
+        logger.exception("Failed to enqueue nlp.reanalyze_recent")
+        return False
+    return True
 
 
 # ---------------------------------------------------------------- linking

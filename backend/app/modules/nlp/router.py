@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Query, Request
+from pydantic import BaseModel
 from sqlalchemy import func, select
 
 from app import audit
@@ -9,9 +10,14 @@ from app.errors import api_error
 from app.models import Phrase
 from app.models.enums import PhraseCategory
 from app.modules.nlp.schemas import PhraseCreate, PhraseOut, PhraseUpdate
+from app.modules.nlp.service import enqueue_reanalysis
 from app.schemas import Page
 
 router = APIRouter(prefix="/phrases", tags=["phrases"])
+
+
+class ReanalysisQueued(BaseModel):
+    queued: bool = True
 
 
 def _escape_like(value: str) -> str:
@@ -56,6 +62,7 @@ def create_phrase(body: PhraseCreate, session: SessionDep, admin: GlobalAdmin, r
     session.flush()
     audit.record(session, admin, "phrase.create", "phrase", phrase.id, None, audit.snapshot(phrase), request)
     session.commit()
+    enqueue_reanalysis()
     return phrase
 
 
@@ -74,4 +81,15 @@ def update_phrase(
     session.flush()
     audit.record(session, admin, "phrase.update", "phrase", phrase.id, before, audit.snapshot(phrase), request)
     session.commit()
+    enqueue_reanalysis()
     return phrase
+
+
+@router.post("/reanalyze", response_model=ReanalysisQueued, status_code=202)
+def reanalyze(session: SessionDep, admin: GlobalAdmin, request: Request) -> ReanalysisQueued:
+    """Analyze the recent publications again with the current dictionary (also done after every change of it)."""
+    if not enqueue_reanalysis():
+        raise api_error(503, "queue_unavailable", "Очередь задач временно недоступна")
+    audit.record(session, admin, "phrase.reanalyze", "phrase", None, None, None, request)
+    session.commit()
+    return ReanalysisQueued()
