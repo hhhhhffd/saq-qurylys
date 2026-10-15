@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-# ---- base: Python deps shared by api, beat and worker ----
+# ---- base: system libraries and locked Python dependencies (no application code) ----
 FROM python:3.12-slim-bookworm AS base
 
 ENV PYTHONUNBUFFERED=1 \
@@ -16,7 +16,8 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         curl libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz0b libfontconfig1 \
         fonts-dejavu-core fonts-liberation shared-mime-info \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --create-home --uid 1000 app
 
 COPY --from=ghcr.io/astral-sh/uv:0.11 /uv /usr/local/bin/uv
 
@@ -24,21 +25,22 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev --no-install-project
 
-COPY . .
-RUN useradd --create-home --uid 1000 app && chown -R app:app /app
-USER app
-
-# ---- api (also used by beat) ----
-FROM base AS api
-EXPOSE 8000
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
-
-# ---- worker: adds Chromium for Playwright captures ----
-FROM base AS worker
-USER root
+# ---- browser: Chromium for Playwright captures (before the code, so code changes keep this layer) ----
+FROM base AS browser
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 RUN playwright install --with-deps chromium \
     && chmod -R a+rX /ms-playwright \
     && rm -rf /var/lib/apt/lists/*
+
+# ---- api (also used by beat) ----
+FROM base AS api
+COPY --chown=app:app . .
+USER app
+EXPOSE 8000
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+# ---- worker ----
+FROM browser AS worker
+COPY --chown=app:app . .
 USER app
 CMD ["celery", "-A", "app.worker.celery_app", "worker", "--loglevel=INFO"]
