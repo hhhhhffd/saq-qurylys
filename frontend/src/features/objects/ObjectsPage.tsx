@@ -73,7 +73,7 @@ export function ObjectsPage() {
   const columns = col.columns([
     col.accessor('code', {
       header: t('list.columns.code'),
-      cell: (info) => <span className="tabular-nums">{info.getValue()}</span>,
+      cell: (info) => <span className="whitespace-nowrap tabular-nums">{info.getValue()}</span>,
     }),
     col.accessor('name', {
       header: t('list.columns.name'),
