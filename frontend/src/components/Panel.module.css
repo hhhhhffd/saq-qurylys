@@ -1,0 +1,35 @@
+.root {
+  min-width: 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px 0;
+  flex-wrap: wrap;
+}
+
+.title {
+  font-size: 0.9375rem;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.body {
+  padding: 14px 18px 18px;
+}
+
+.flush {
+  padding: 0;
+}
+
+.header + .flush {
+  padding-top: 12px;
+}

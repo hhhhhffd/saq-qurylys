@@ -1,0 +1,54 @@
+.page {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: 24px var(--gutter);
+}
+
+.lang {
+  position: absolute;
+  top: 16px;
+  right: var(--gutter);
+}
+
+.card {
+  width: min(100%, 400px);
+  padding: 32px 32px 24px;
+  box-shadow: var(--shadow-2);
+}
+
+.brand {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  margin-bottom: 28px;
+}
+
+.brand span {
+  font-weight: 400;
+  color: var(--text-2);
+}
+
+.title {
+  font-size: 1.5rem;
+}
+
+.subtitle {
+  margin: 6px 0 24px;
+  color: var(--text-2);
+  font-size: 0.875rem;
+}
+
+.error {
+  margin: 12px 0 0;
+  color: var(--zone-red-ink);
+  font-size: 0.8125rem;
+}
+
+.note {
+  margin: 20px 0 0;
+  text-align: center;
+  color: var(--text-3);
+  font-size: 0.75rem;
+}

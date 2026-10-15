@@ -1,0 +1,25 @@
+.root {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.text {
+  min-width: 0;
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  color: var(--text-2);
+  font-size: 0.875rem;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
