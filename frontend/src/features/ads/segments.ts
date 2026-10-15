@@ -11,14 +11,6 @@ export interface TextSegment<H extends HitRange> {
   hit: H | null;
 }
 
-export type HitState = 'confirmed' | 'rejected' | 'unreviewed';
-
-export function hitState(hit: { confirmed: boolean | null }): HitState {
-  if (hit.confirmed === true) return 'confirmed';
-  if (hit.confirmed === false) return 'rejected';
-  return 'unreviewed';
-}
-
 /**
  * Splits `text` into plain and highlighted segments.
  * Offsets are clamped to the text; empty, inverted or non-finite ranges are dropped.

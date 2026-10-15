@@ -49,6 +49,7 @@ const signals = {
     back: 'Все карточки',
     notFound: 'Карточка не найдена',
     pdf: 'Скачать PDF',
+    sentPdf: 'Скачать направленную версию (PDF, неизменяемая копия)',
     summary: 'Сводка',
     returnComment: 'Комментарий к возврату на доработку',
     returnedHint: 'Внесите правки и сохраните: карточка вернётся на подтверждение.',
@@ -103,6 +104,9 @@ const signals = {
     evidence: 'Доказательства',
     registry: 'В реестре',
     openInRegistry: 'Открыть',
+    hits: 'Формулировки в публикации',
+    hitsNote:
+      'Факт — формулировка из словаря или подтверждённая сотрудником. Гипотеза ИИ не подтверждена и в оценке не учитывается.',
   },
   schemePayments: {
     paymentSchemes: 'Схемы оплаты',
@@ -196,16 +200,8 @@ const signals = {
       proposed_measures: 'Предлагаемые меры',
     },
   },
-  detailKeys: {
-    stalled_days: 'Дней простоя',
-    ads_count: 'Публикаций',
-    window_days: 'Окно анализа, дней',
-    threshold: 'Порог',
-    count: 'Количество',
-    open_count: 'Открытых обращений',
-    claimed_pct: 'Заявлено, %',
-    actual_pct: 'Фактически, %',
-    gap_pp: 'Расхождение, п.п.',
+  riskFactors: {
+    details: 'Подробности',
   },
 };
 

@@ -25,6 +25,7 @@ interface ComplaintFormValues {
   summary: string;
   status: ComplaintStatus;
   confirmed_payments: boolean;
+  is_verified: boolean;
 }
 
 const SOURCES: ComplaintSource[] = ['eotinish', 'manual', 'other'];
@@ -41,10 +42,12 @@ function toInput(values: ComplaintFormValues): ComplaintInput | null {
     // The backend rejects an empty external id and a PATCH cannot send null, so an empty one is left out.
     external_id: externalId || undefined,
     is_collective: values.is_collective,
-    signatories_count: values.is_collective && typeof values.signatories_count === 'number' ? values.signatories_count : 1,
+    signatories_count:
+      values.is_collective && typeof values.signatories_count === 'number' ? values.signatories_count : 1,
     summary: values.summary.trim(),
     status: values.status,
     confirmed_payments: values.confirmed_payments,
+    is_verified: values.is_verified,
   };
 }
 
@@ -87,12 +90,16 @@ function ComplaintForm({ objectId, complaint, onClose }: ComplaintFormProps) {
       summary: complaint?.summary ?? '',
       status: complaint?.status ?? 'new',
       confirmed_payments: complaint?.confirmed_payments ?? false,
+      is_verified: complaint?.is_verified ?? false,
     },
     validate: {
       received_at: (value) => (value ? null : tc('required')),
       signatories_count: (value, values) => {
         if (!values.is_collective) return null;
-        return typeof value === 'number' && Number.isInteger(value) && value >= MIN_COLLECTIVE_SIGNATORIES && value <= MAX_SIGNATORIES
+        return typeof value === 'number' &&
+          Number.isInteger(value) &&
+          value >= MIN_COLLECTIVE_SIGNATORIES &&
+          value <= MAX_SIGNATORIES
           ? null
           : t('validation.signatories', { min: MIN_COLLECTIVE_SIGNATORIES, max: MAX_SIGNATORIES });
       },
@@ -163,6 +170,12 @@ function ComplaintForm({ objectId, complaint, onClose }: ComplaintFormProps) {
           label={t('complaint.confirmedPayments')}
           description={t('complaint.confirmedPaymentsHint')}
           {...form.getInputProps('confirmed_payments', { type: 'checkbox' })}
+        />
+        <Switch
+          className={classes.full}
+          label={t('complaint.isVerified')}
+          description={t('complaint.isVerifiedHint')}
+          {...form.getInputProps('is_verified', { type: 'checkbox' })}
         />
       </SimpleGrid>
       <FormFooter

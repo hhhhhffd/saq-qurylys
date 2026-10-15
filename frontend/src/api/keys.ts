@@ -18,6 +18,7 @@ export const qk = {
   ad: (id: number) => ['ads', 'detail', id] as const,
   sourceAccounts: ['source-accounts'] as const,
   phrases: ['phrases'] as const,
+  registrySync: ['registry-sync'] as const,
   riskFactors: ['risk-factors'] as const,
   riskFactorHistory: ['risk-factors', 'history'] as const,
   evidenceBlob: (id: number) => ['evidence', id, 'blob'] as const,

@@ -13,7 +13,9 @@ export const NUMERIC_FIELDS = {
   review_days: { min: 1, max: 60 },
   ad_window_days: { min: 1, max: 365 },
   readiness_gap_pp: { min: 1, max: 100 },
-  complaints_threshold: { min: 1, max: 1000 },
+  significant_delay_days: { min: 1, max: 3650 },
+  zone_yellow_min: { min: 1, max: 100 },
+  zone_red_min: { min: 1, max: 100 },
   stalled_days: { min: 1, max: 3650 },
   recheck_after_days: { min: 1, max: 365 },
   link_confidence_threshold: { min: 0, max: 1, step: 0.05, decimals: 2 },
@@ -29,10 +31,11 @@ export function numericField(key: NumericSettingKey): NumericField {
   return NUMERIC_FIELDS[key];
 }
 
-export const NUMERIC_GROUPS: { id: 'review' | 'ads' | 'risk' | 'schedule'; keys: NumericSettingKey[] }[] = [
+export const NUMERIC_GROUPS: { id: 'review' | 'ads' | 'risk' | 'zones' | 'schedule'; keys: NumericSettingKey[] }[] = [
   { id: 'review', keys: ['review_days'] },
   { id: 'ads', keys: ['ad_window_days', 'link_confidence_threshold', 'recheck_after_days'] },
-  { id: 'risk', keys: ['readiness_gap_pp', 'complaints_threshold', 'stalled_days'] },
+  { id: 'risk', keys: ['readiness_gap_pp', 'significant_delay_days', 'stalled_days'] },
+  { id: 'zones', keys: ['zone_yellow_min', 'zone_red_min'] },
   { id: 'schedule', keys: ['green_interval_days', 'yellow_interval_days'] },
 ];
 
@@ -44,7 +47,8 @@ export type SettingsFormValues = { [K in NumericSettingKey]: number | string } &
 export const EMAIL_PATTERN = /^\S+@\S+$/;
 
 export function toFormValues(settings: AppSettings): SettingsFormValues {
-  const { recipient_emails: emails, ...numbers } = settings;
+  // `complaints_threshold` is stored but no longer used by the risk model, so it is not editable.
+  const { recipient_emails: emails, complaints_threshold: _unused, ...numbers } = settings;
   // The backend stores only the bodies that were ever saved, so a missing body means "no addresses".
   return {
     ...numbers,

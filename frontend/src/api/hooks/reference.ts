@@ -9,13 +9,19 @@ import type {
   ListResponse,
   Phrase,
   PhraseInput,
+  ReanalysisQueued,
+  RegistrySyncStatus,
   RiskFactor,
   RiskFactorChange,
+  SyncStarted,
   Territory,
   TerritoryInput,
   TerritoryUpdate,
   UserInput,
 } from '../types';
+
+/** Largest `limit` the backend accepts; the default is 50, which would silently cut admin lists. */
+const MAX_PAGE = 500;
 
 // ---------------------------------------------------------------- territories
 
@@ -60,7 +66,7 @@ export function useUpdateTerritory() {
 export function useUsers() {
   return useQuery({
     queryKey: qk.users,
-    queryFn: () => api<ListResponse<AdminUser>>('/users').then(unwrapList),
+    queryFn: () => api<ListResponse<AdminUser>>('/users', { params: { limit: MAX_PAGE } }).then(unwrapList),
   });
 }
 
@@ -135,7 +141,7 @@ export function useDeleteHoliday() {
 export function usePhrases() {
   return useQuery({
     queryKey: qk.phrases,
-    queryFn: () => api<ListResponse<Phrase>>('/phrases', { params: { limit: 500 } }).then(unwrapList),
+    queryFn: () => api<ListResponse<Phrase>>('/phrases', { params: { limit: MAX_PAGE } }).then(unwrapList),
   });
 }
 
@@ -158,6 +164,33 @@ export function useUpdatePhrase() {
   });
 }
 
+/** Queues a re-check of the recent publications against the current dictionary (202). */
+export function useReanalyzePublications() {
+  return useMutation({
+    mutationFn: () => api<ReanalysisQueued>('/phrases/reanalyze', { method: 'POST' }),
+    meta: { success: 'reanalysisQueued' },
+  });
+}
+
+// ---------------------------------------------------------------- registry sync
+
+/** `poll` keeps refreshing the status while a started run has not produced a result yet. */
+export function useRegistrySyncStatus(poll: boolean) {
+  return useQuery({
+    queryKey: qk.registrySync,
+    queryFn: () => api<RegistrySyncStatus>('/registry-sync/status'),
+    refetchInterval: poll ? 3000 : false,
+  });
+}
+
+/** Queues a run of the housing portal sync (202); the result shows up in the status. */
+export function useStartRegistrySync() {
+  return useMutation({
+    mutationFn: () => api<SyncStarted>('/registry-sync/homeportal', { method: 'POST' }),
+    meta: { success: 'syncStarted' },
+  });
+}
+
 // ---------------------------------------------------------------- risk factors
 
 export function useRiskFactors() {
@@ -171,15 +204,21 @@ export function useRiskFactors() {
 export function useRiskFactorHistory() {
   return useQuery({
     queryKey: qk.riskFactorHistory,
-    queryFn: () => api<ListResponse<RiskFactorChange>>('/risk-factors/history').then(unwrapList),
+    queryFn: () =>
+      api<ListResponse<RiskFactorChange>>('/risk-factors/history', { params: { limit: MAX_PAGE } }).then(unwrapList),
   });
 }
 
 export function useUpdateRiskFactor() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ code, data }: { code: string; data: Partial<Pick<RiskFactor, 'weight' | 'is_active' | 'description'>> }) =>
-      api<RiskFactor>(`/risk-factors/${code}`, { method: 'PATCH', body: data }),
+    mutationFn: ({
+      code,
+      data,
+    }: {
+      code: string;
+      data: Partial<Pick<RiskFactor, 'weight' | 'is_active' | 'description'>>;
+    }) => api<RiskFactor>(`/risk-factors/${code}`, { method: 'PATCH', body: data }),
     onSuccess: () => {
       // A weight change triggers a recalculation of every object on the backend.
       void qc.invalidateQueries({ queryKey: qk.riskFactors });

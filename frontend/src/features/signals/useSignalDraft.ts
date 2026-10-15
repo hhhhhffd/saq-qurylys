@@ -44,13 +44,12 @@ export function useSignalDraft(detail: SignalDetail) {
 
   const toPatch = (): SignalPatch => {
     const reviewDays = value.review_days === '' ? detail.review_days : value.review_days;
+    // Only the editable parts go to the backend; the route is saved through `recipient` and `review_days`.
     return {
       sections: {
-        ...detail.sections,
         scheme_payments: value.scheme_payments,
         proposed_measures: value.proposed_measures,
         note: value.note,
-        route: { recipient: value.recipient, review_days: reviewDays },
       },
       recipient: value.recipient ?? undefined,
       review_days: reviewDays,

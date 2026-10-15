@@ -5,6 +5,7 @@ import { useUpdateSignal } from '@/api/hooks/signals';
 import type { SignalDetail } from '@/api/types';
 import { useAuth } from '@/auth/useAuth';
 import { Chip } from '@/components/Chip';
+import { DemoBadge } from '@/components/DemoBadge';
 import { KeyValue } from '@/components/KeyValue';
 import { PageHeader } from '@/components/PageHeader';
 import { Panel } from '@/components/Panel';
@@ -67,6 +68,7 @@ export function SignalCard({ detail }: { detail: SignalDetail }) {
             <SignalStatusChip status={status} />
             {detail.is_overdue && <Chip tone="red">{t('due.overdue')}</Chip>}
             <span>{e('origin', detail.origin)}</span>
+            {sections.is_demo && <DemoBadge />}
           </span>
         }
         actions={<ActionsBar detail={detail} recipient={draft.value.recipient} dirty={draft.dirty} />}
@@ -100,7 +102,11 @@ export function SignalCard({ detail }: { detail: SignalDetail }) {
           items={[
             {
               label: t('detail.fields.object'),
-              value: isRecipient ? detail.object_name : <Link to={`/objects/${detail.object_id}`}>{detail.object_name}</Link>,
+              value: isRecipient ? (
+                detail.object_name
+              ) : (
+                <Link to={`/objects/${detail.object_id}`}>{detail.object_name}</Link>
+              ),
             },
             { label: t('detail.fields.zone'), value: <ZoneBadge zone={detail.zone} size="md" /> },
             { label: t('detail.fields.recipient'), value: e('recipient', detail.recipient) },
@@ -119,7 +125,7 @@ export function SignalCard({ detail }: { detail: SignalDetail }) {
       </Panel>
 
       <ObjectDeveloperSection data={sections.object_developer} />
-      <RiskFactorsSection items={sections.risk_factors} />
+      <RiskFactorsSection sections={sections} linked={!isRecipient} />
       <PermitChecksSection items={sections.permit_checks} />
       <PublicationsSection items={sections.publications} showAdLinks={!isRecipient} />
       <div className={classes.pair}>

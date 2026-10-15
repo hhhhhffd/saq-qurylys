@@ -116,3 +116,69 @@
 .factorDetail {
   grid-column: 1 / -1;
 }
+
+.tableHint {
+  margin: 0;
+  padding: 0 18px 10px;
+  color: var(--text-3);
+  font-size: 0.8125rem;
+}
+
+.factorLabel {
+  display: inline-block;
+  min-width: 28px;
+  margin-right: 8px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 0.75rem;
+  font-weight: 650;
+  text-align: center;
+}
+
+.factorMore {
+  margin-top: 8px;
+  font-size: 0.75rem;
+}
+
+.factorMore summary {
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.factorMore[open] summary {
+  margin-bottom: 8px;
+}
+
+.hits {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hits li {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+
+.hitCategory {
+  color: var(--text-3);
+  font-size: 0.75rem;
+}
+
+.hitsRow td {
+  padding-top: 0;
+  background: var(--surface-raised);
+}
+
+.demoRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

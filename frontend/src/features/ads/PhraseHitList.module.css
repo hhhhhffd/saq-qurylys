@@ -55,12 +55,15 @@
 
 .state {
   display: flex;
+  align-items: center;
+  flex-wrap: wrap;
   justify-content: flex-end;
+  gap: 4px;
 }
 
-.unreviewed {
-  color: var(--text-3);
-  font-size: 0.75rem;
+.focused {
+  background: var(--zone-yellow-bg);
+  box-shadow: inset 3px 0 0 var(--zone-yellow);
 }
 
 .actions {

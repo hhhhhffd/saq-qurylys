@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import type { AdStatus, Platform } from '@/api/types';
 import { ObjectSelect } from '@/components/ObjectSelect';
 import { useEnumOptions } from '@/i18n/useEnum';
-import { AD_STATUSES, PLATFORMS, parseAdStatus, parsePlatform } from './constants';
+import { AD_STATUSES, PLATFORMS, parseAdStatus, parseDemo, parsePlatform } from './constants';
 import classes from './AdFilters.module.css';
 
 const SEARCH_DEBOUNCE_MS = 300;
@@ -15,6 +15,8 @@ export interface AdFilterValues {
   platform: Platform | null;
   objectId: number | null;
   status: AdStatus | null;
+  /** true = demo only, false = without demo, null = all */
+  demo: boolean | null;
   q: string;
 }
 
@@ -59,6 +61,17 @@ export function AdFilters({ values, onChange, onReset, canReset }: Props) {
         data={options('ad_status', AD_STATUSES)}
         value={values.status}
         onChange={(value) => onChange({ status: parseAdStatus(value) })}
+        clearable
+      />
+      <Select
+        label={t('filters.demo')}
+        placeholder={t('filters.demoAll')}
+        data={[
+          { value: 'true', label: t('filters.demoOnly') },
+          { value: 'false', label: t('filters.demoNone') },
+        ]}
+        value={values.demo === null ? null : String(values.demo)}
+        onChange={(value) => onChange({ demo: parseDemo(value) })}
         clearable
       />
       <TextInput

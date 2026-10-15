@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ActionIcon, Button, Tooltip, VisuallyHidden } from '@mantine/core';
 import { IconAlertCircle, IconFileOff, IconPencil, IconPlus } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
-import type { CheckStatus, DocType, ObjectDetail, ObjectDocument } from '@/api/types';
+import { readBreakdown, type CheckStatus, type DocType, type ObjectDetail, type ObjectDocument } from '@/api/types';
 import { useAuth } from '@/auth/useAuth';
 import { Chip, type ChipTone } from '@/components/Chip';
 import { Panel } from '@/components/Panel';
@@ -10,7 +10,7 @@ import { EvidenceThumbs } from '@/components/evidence/EvidenceImage';
 import { useEnum } from '@/i18n/useEnum';
 import { useFormat } from '@/i18n/useFormat';
 import { DocumentFormModal } from '../forms/DocumentFormModal';
-import { anchorId } from './anchors';
+import { anchorId } from '@/components/risk/anchors';
 import classes from './Section.module.css';
 
 const DOC_TYPES: DocType[] = [
@@ -42,6 +42,8 @@ export function DocumentsSection({ object }: { object: ObjectDetail }) {
   const documents = [...object.documents].sort(
     (a, b) => DOC_TYPES.indexOf(a.doc_type) - DOC_TYPES.indexOf(b.doc_type) || a.id - b.id,
   );
+  // A confirmed guarantee or MIO permit is the legal basis; the other of the two is not a gap then (scenario C).
+  const basisConfirmed = readBreakdown(object.latest_score)?.legal_basis_status === 'confirmed';
   const missing = DOC_TYPES.filter((type) => !object.documents.some((doc) => doc.doc_type === type));
 
   return (
@@ -131,7 +133,7 @@ export function DocumentsSection({ object }: { object: ObjectDetail }) {
           <h4 className={classes.subTitle}>{t('card.documents.missingTitle')}</h4>
           <ul className={classes.missingList}>
             {missing.map((type) => {
-              const key = KEY_DOC_TYPES.includes(type);
+              const key = KEY_DOC_TYPES.includes(type) && !basisConfirmed;
               return (
                 <li
                   key={type}

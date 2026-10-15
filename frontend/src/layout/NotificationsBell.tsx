@@ -28,6 +28,14 @@ function targetPath(notification: AppNotification): string | null {
   }
 }
 
+/** `capture_failed` is also used when the archive copy of a sent signal card could not be saved. */
+function kindOf(notification: AppNotification): string {
+  const archiveFailed =
+    notification.kind === 'capture_failed' &&
+    (notification.entity_type === 'signal_card' || notification.payload?.reason === 'pdf_archive');
+  return archiveFailed ? 'pdf_archive_failed' : notification.kind;
+}
+
 function subjectOf(notification: AppNotification): string | null {
   const payload = notification.payload ?? {};
   const value = payload.number ?? payload.object_name ?? payload.name;
@@ -53,7 +61,13 @@ export function NotificationsBell() {
   return (
     <Popover position="bottom-end" width={360} withinPortal>
       <Popover.Target>
-        <Indicator label={data.length > 99 ? '99+' : data.length} disabled={data.length === 0} size={16} color="red" offset={5}>
+        <Indicator
+          label={data.length > 99 ? '99+' : data.length}
+          disabled={data.length === 0}
+          size={16}
+          color="red"
+          offset={5}
+        >
           <ActionIcon aria-label={t('header.notifications')} size="lg" radius="xl">
             <IconBell size={20} stroke={1.6} />
           </ActionIcon>
@@ -80,8 +94,12 @@ export function NotificationsBell() {
               {data.map((notification) => (
                 <li key={notification.id}>
                   <button type="button" className={classes.item} onClick={() => open(notification)}>
-                    <span className={classes.title}>{e('notification_kind', notification.kind)}</span>
-                    {subjectOf(notification) && <Badge variant="default" size="sm">{subjectOf(notification)}</Badge>}
+                    <span className={classes.title}>{e('notification_kind', kindOf(notification))}</span>
+                    {subjectOf(notification) && (
+                      <Badge variant="default" size="sm">
+                        {subjectOf(notification)}
+                      </Badge>
+                    )}
                     <span className={`${classes.time} tnum`}>{dateTime(notification.created_at)}</span>
                   </button>
                 </li>

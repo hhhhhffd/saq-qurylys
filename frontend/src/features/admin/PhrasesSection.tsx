@@ -1,14 +1,15 @@
 import { useState } from 'react';
-import { Button, Select, TextInput } from '@mantine/core';
-import { IconPlus, IconSearch } from '@tabler/icons-react';
+import { Button, Select, TextInput, Tooltip } from '@mantine/core';
+import { IconPlus, IconRefresh, IconSearch } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
-import { usePhrases } from '@/api/hooks/reference';
+import { usePhrases, useReanalyzePublications } from '@/api/hooks/reference';
 import type { Phrase } from '@/api/types';
 import { Chip } from '@/components/Chip';
 import { dataColumns } from '@/components/dataColumns';
 import { DataTable } from '@/components/DataTable';
 import { QueryBoundary } from '@/components/QueryState';
 import { useEnum, useEnumOptions } from '@/i18n/useEnum';
+import { confirmAction } from '@/lib/confirm';
 import { PhraseFormModal } from './PhraseFormModal';
 import { ActionsHeader, EditButton, RowActions } from './RowActions';
 import { SectionHeader } from './SectionHeader';
@@ -131,6 +132,7 @@ function PhrasesTable({ phrases, onEdit }: { phrases: Phrase[]; onEdit: (phrase:
 export function PhrasesSection() {
   const { t } = useTranslation('admin');
   const query = usePhrases();
+  const reanalyze = useReanalyzePublications();
   // `{}` opens the modal in create mode, `{ phrase }` in edit mode.
   const [editing, setEditing] = useState<{ phrase?: Phrase } | null>(null);
 
@@ -140,9 +142,28 @@ export function PhrasesSection() {
         title={t('phrases.title')}
         description={t('phrases.description')}
         actions={
-          <Button leftSection={<IconPlus size={16} />} onClick={() => setEditing({})}>
-            {t('phrases.add')}
-          </Button>
+          <>
+            <Tooltip label={t('phrases.reanalyze.hint')} multiline w={280}>
+              <Button
+                variant="default"
+                leftSection={<IconRefresh size={16} />}
+                loading={reanalyze.isPending}
+                onClick={() =>
+                  confirmAction({
+                    title: t('phrases.reanalyze.confirmTitle'),
+                    message: t('phrases.reanalyze.confirmMessage'),
+                    confirmLabel: t('phrases.reanalyze.button'),
+                    onConfirm: () => reanalyze.mutate(),
+                  })
+                }
+              >
+                {t('phrases.reanalyze.button')}
+              </Button>
+            </Tooltip>
+            <Button leftSection={<IconPlus size={16} />} onClick={() => setEditing({})}>
+              {t('phrases.add')}
+            </Button>
+          </>
         }
       />
       <QueryBoundary query={query}>

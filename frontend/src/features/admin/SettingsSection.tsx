@@ -41,9 +41,15 @@ function SettingsForm({ settings }: { settings: AppSettings }) {
         const error = numberError(key, values[key]);
         if (error) errors[key] = error;
       }
+      const yellow = values.zone_yellow_min;
+      const red = values.zone_red_min;
+      if (typeof yellow === 'number' && typeof red === 'number' && yellow >= red) {
+        errors.zone_yellow_min = t('settings.validation.zoneOrder');
+      }
       for (const body of RECIPIENTS) {
         const invalid = values.recipient_emails[body].find((address) => !EMAIL_PATTERN.test(address));
-        if (invalid !== undefined) errors[`recipient_emails.${body}`] = t('settings.validation.email', { value: invalid });
+        if (invalid !== undefined)
+          errors[`recipient_emails.${body}`] = t('settings.validation.email', { value: invalid });
       }
       return errors;
     },

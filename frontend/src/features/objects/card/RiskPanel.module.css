@@ -68,3 +68,34 @@
   padding-top: 16px;
   border-top: 1px solid var(--border);
 }
+
+.rule {
+  margin-top: 16px;
+}
+
+.ruleList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--text-3);
+  font-size: 0.75rem;
+}
+
+.ruleList li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.ruleList li > :first-child {
+  flex: none;
+  align-self: center;
+}
+
+.ruleCurrent {
+  color: var(--text);
+  font-weight: 600;
+}

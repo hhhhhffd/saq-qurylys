@@ -1,42 +1,21 @@
 import { Button } from '@mantine/core';
-import { IconCheck } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useConfirmHit } from '@/api/hooks/ads';
 import type { PhraseHit } from '@/api/types';
-import { Chip } from '@/components/Chip';
+import { HitSourceChip } from '@/components/HitSourceChip';
 import { useEnum } from '@/i18n/useEnum';
-import { hitState } from './segments';
+import { hitSource } from '@/lib/hitSource';
 import classes from './PhraseHitList.module.css';
-
-function HitState({ hit }: { hit: PhraseHit }) {
-  const { t } = useTranslation('ads');
-  const state = hitState(hit);
-  if (state === 'confirmed') {
-    return (
-      <Chip tone="green">
-        <IconCheck size={12} stroke={2.4} aria-hidden />
-        {t('hits.confirmed')}
-      </Chip>
-    );
-  }
-  if (state === 'rejected') return <Chip>{t('hits.rejected')}</Chip>;
-  if (hit.detected_by === 'llm') {
-    return (
-      <Chip tone="yellow" title={t('hits.llmUnreviewedHint')}>
-        {t('hits.llmUnreviewed')}
-      </Chip>
-    );
-  }
-  return <span className={classes.unreviewed}>{t('hits.unreviewed')}</span>;
-}
 
 interface Props {
   adId: number;
   hits: PhraseHit[];
   editable: boolean;
+  /** the hit a risk-factor evidence link points to */
+  focusHitId?: number | null;
 }
 
-export function PhraseHitList({ adId, hits, editable }: Props) {
+export function PhraseHitList({ adId, hits, editable, focusHitId = null }: Props) {
   const { t } = useTranslation('ads');
   const e = useEnum();
   const confirmHit = useConfirmHit();
@@ -45,43 +24,50 @@ export function PhraseHitList({ adId, hits, editable }: Props) {
 
   return (
     <ul className={classes.list} aria-label={t('hits.title')}>
-      {sorted.map((hit) => (
-        <li key={hit.id} className={`${classes.hit} ${hit.confirmed === false ? classes.rejected : ''}`}>
-          <div className={classes.main}>
-            <span className={classes.matched}>«{hit.matched_text}»</span>
-            <span className={classes.meta}>
-              <span>{e('phrase_category', hit.category)}</span>
-              <span className="tnum">{t('hits.weight', { weight: hit.weight })}</span>
-              {hit.detected_by === 'llm' ? <Chip outline>{e('detected_by', 'llm')}</Chip> : <span>{e('detected_by', 'dictionary')}</span>}
-            </span>
-          </div>
-          <div className={classes.state}>
-            <HitState hit={hit} />
-          </div>
-          {editable && (
-            <div className={classes.actions}>
-              <Button
-                size="compact-xs"
-                variant="default"
-                disabled={hit.confirmed === true}
-                loading={pending?.hitId === hit.id && pending.confirmed}
-                onClick={() => confirmHit.mutate({ adId, hitId: hit.id, confirmed: true })}
-              >
-                {t('confirm', { ns: 'common' })}
-              </Button>
-              <Button
-                size="compact-xs"
-                variant="default"
-                disabled={hit.confirmed === false}
-                loading={pending?.hitId === hit.id && !pending.confirmed}
-                onClick={() => confirmHit.mutate({ adId, hitId: hit.id, confirmed: false })}
-              >
-                {t('hits.reject')}
-              </Button>
+      {sorted.map((hit) => {
+        const source = hitSource(hit);
+        const hypothesis = hit.detected_by === 'llm';
+        return (
+          <li
+            key={hit.id}
+            id={`hit-${hit.id}`}
+            className={`${classes.hit} ${hit.confirmed === false ? classes.rejected : ''} ${hit.id === focusHitId ? classes.focused : ''}`}
+          >
+            <div className={classes.main}>
+              <span className={classes.matched}>«{hit.matched_text}»</span>
+              <span className={classes.meta}>
+                <span>{e('phrase_category', hit.category)}</span>
+                <span className="tnum">{t('hits.weight', { weight: hit.weight })}</span>
+              </span>
             </div>
-          )}
-        </li>
-      ))}
+            <div className={classes.state}>
+              <HitSourceChip hit={hit} />
+            </div>
+            {editable && (
+              <div className={classes.actions}>
+                <Button
+                  size="compact-xs"
+                  variant="default"
+                  disabled={source === 'confirmed'}
+                  loading={pending?.hitId === hit.id && pending.confirmed}
+                  onClick={() => confirmHit.mutate({ adId, hitId: hit.id, confirmed: true })}
+                >
+                  {hypothesis ? t('hits.accept') : t('confirm', { ns: 'common' })}
+                </Button>
+                <Button
+                  size="compact-xs"
+                  variant="default"
+                  disabled={source === 'rejected'}
+                  loading={pending?.hitId === hit.id && !pending.confirmed}
+                  onClick={() => confirmHit.mutate({ adId, hitId: hit.id, confirmed: false })}
+                >
+                  {t('hits.reject')}
+                </Button>
+              </div>
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 }

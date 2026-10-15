@@ -28,6 +28,25 @@
   flex-wrap: wrap;
 }
 
+.label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 0.75rem;
+  font-weight: 650;
+  line-height: 1.55;
+}
+
+.off .label {
+  background: var(--zone-none-bg);
+  color: var(--text-3);
+}
+
 .name {
   font-weight: 600;
 }
@@ -37,21 +56,13 @@
   font-weight: 540;
 }
 
+.on {
+  padding-left: 12px;
+  box-shadow: inset 3px 0 0 var(--zone-yellow);
+}
+
 .desc {
   margin: 2px 0 0;
-  color: var(--text-3);
-  font-size: 0.75rem;
-}
-
-.refs {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 4px 6px;
-  margin-top: 8px;
-}
-
-.refsLabel {
   color: var(--text-3);
   font-size: 0.75rem;
 }

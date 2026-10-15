@@ -12,7 +12,7 @@ import { AdFilters, type AdFilterValues } from './AdFilters';
 import { AdsPager } from './AdsPager';
 import { CaptureModal } from './CaptureModal';
 import { ManualAdModal } from './ManualAdModal';
-import { PAGE_SIZE, parseAdStatus, parseId, parsePlatform } from './constants';
+import { PAGE_SIZE, parseAdStatus, parseDemo, parseId, parsePlatform } from './constants';
 import classes from './AdsPage.module.css';
 
 function FeedSkeleton({ count = 3 }: { count?: number }) {
@@ -44,15 +44,18 @@ export function AdsPage() {
     platform: parsePlatform(params.get('platform')),
     objectId: parseId(params.get('object_id')),
     status: parseAdStatus(params.get('status')),
+    demo: parseDemo(params.get('is_demo')),
     q: params.get('q') ?? '',
   };
   const page = parseId(params.get('page')) ?? 1;
   const adId = parseId(params.get('ad'));
+  const focusHitId = parseId(params.get('hit'));
 
   const ads = useAds({
     platform: filters.platform ?? undefined,
     object_id: filters.objectId ?? undefined,
     status: filters.status ?? undefined,
+    is_demo: filters.demo ?? undefined,
     q: filters.q.trim() || undefined,
     limit: PAGE_SIZE,
     offset: (page - 1) * PAGE_SIZE,
@@ -62,8 +65,9 @@ export function AdsPage() {
 
   const items = ads.data?.items ?? [];
   const total = ads.data?.total ?? 0;
-  const showPinned =
-    adId !== null && ads.data !== undefined && !ads.isPlaceholderData && !items.some((ad) => ad.id === adId);
+  // The opened publication is pinned above the feed (and left out of it): cards above it in the feed grow as
+  // their details load, which would push it out of view after the scroll.
+  const showPinned = adId !== null;
   const canReset = params.size > 0;
 
   const updateParams = (patch: Record<string, string | null>) =>
@@ -80,6 +84,7 @@ export function AdsPage() {
     const next: Record<string, string | null> = { page: null };
     if (patch.platform !== undefined) next.platform = patch.platform;
     if (patch.status !== undefined) next.status = patch.status;
+    if (patch.demo !== undefined) next.is_demo = patch.demo === null ? null : String(patch.demo);
     if (patch.q !== undefined) next.q = patch.q;
     if (patch.objectId !== undefined) next.object_id = patch.objectId === null ? null : String(patch.objectId);
     updateParams(next);
@@ -90,7 +95,7 @@ export function AdsPage() {
     feedRef.current?.scrollIntoView({ block: 'start' });
   };
 
-  const showAd = (id: number) => updateParams({ ad: String(id) });
+  const showAd = (id: number) => updateParams({ ad: String(id), hit: null });
 
   return (
     <>
@@ -103,7 +108,11 @@ export function AdsPage() {
               <Button leftSection={<IconCamera size={16} stroke={1.8} />} onClick={() => setCaptureOpen(true)}>
                 {t('actions.capture')}
               </Button>
-              <Button variant="default" leftSection={<IconPlus size={16} stroke={1.8} />} onClick={() => setManualOpen(true)}>
+              <Button
+                variant="default"
+                leftSection={<IconPlus size={16} stroke={1.8} />}
+                onClick={() => setManualOpen(true)}
+              >
                 {t('actions.manual')}
               </Button>
             </>
@@ -121,17 +130,21 @@ export function AdsPage() {
         <section className={classes.pinned} aria-label={t('feed.pinned')}>
           <div className={classes.pinnedHead}>
             <span className="muted">{t('feed.pinned')}</span>
-            <Button variant="subtle" size="compact-xs" onClick={() => updateParams({ ad: null })}>
+            <Button variant="subtle" size="compact-xs" onClick={() => updateParams({ ad: null, hit: null })}>
               {t('feed.unpin')}
             </Button>
           </div>
           {pinnedAd.isPending && <FeedSkeleton count={1} />}
           {pinnedAd.isError && <ErrorBlock error={pinnedAd.error} onRetry={() => void pinnedAd.refetch()} />}
-          {pinnedAd.data && <AdCard ad={pinnedAd.data} highlighted />}
+          {pinnedAd.data && <AdCard ad={pinnedAd.data} highlighted focusHitId={focusHitId} />}
         </section>
       )}
 
-      <div ref={feedRef} className={`${classes.feed} ${ads.isPlaceholderData ? classes.stale : ''}`} aria-busy={ads.isFetching}>
+      <div
+        ref={feedRef}
+        className={`${classes.feed} ${ads.isPlaceholderData ? classes.stale : ''}`}
+        aria-busy={ads.isFetching}
+      >
         {ads.isPending && <FeedSkeleton />}
         {ads.isError && <ErrorBlock error={ads.error} onRetry={() => void ads.refetch()} />}
         {ads.data && items.length === 0 && (
@@ -157,9 +170,11 @@ export function AdsPage() {
             )}
           </EmptyState>
         )}
-        {items.map((ad) => (
-          <AdCard key={ad.id} ad={ad} highlighted={ad.id === adId} />
-        ))}
+        {items
+          .filter((ad) => ad.id !== adId)
+          .map((ad) => (
+            <AdCard key={ad.id} ad={ad} />
+          ))}
       </div>
 
       {items.length > 0 && <AdsPager page={page} total={total} onPageChange={changePage} />}

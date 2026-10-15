@@ -43,3 +43,21 @@ export function useKeyStatusLabel() {
     [e],
   );
 }
+
+const SCORE_RANGE = /^score_(\d+)_(\d+)$/;
+const SCORE_WITHOUT_R1_R2 = /^score_(\d+)_without_r1_r2$/;
+
+/** `zone_reasons` codes embed the zone thresholds (`score_25_59`), so they are turned into text by their numbers. */
+export function useZoneReasonLabel() {
+  const e = useEnum();
+  return useCallback(
+    (code: string): string => {
+      const range = SCORE_RANGE.exec(code);
+      if (range) return e('zone_reason', 'score_range', { from: range[1], to: range[2] });
+      const without = SCORE_WITHOUT_R1_R2.exec(code);
+      if (without) return e('zone_reason', 'score_without_r1_r2', { from: without[1] });
+      return e('zone_reason', code);
+    },
+    [e],
+  );
+}

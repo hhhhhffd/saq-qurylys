@@ -20,10 +20,22 @@
   padding: 0 1px;
 }
 
-/* Counts towards the score: dictionary hits and confirmed AI hits. */
+/* Rule-based fact that counts towards the score: a dictionary match. */
 .solid {
   background: var(--zone-yellow-bg);
   box-shadow: inset 0 -2px 0 var(--zone-yellow);
+}
+
+/* Confirmed by an analyst (dictionary hit or AI hypothesis). */
+.confirmed {
+  background: var(--zone-green-bg);
+  box-shadow: inset 0 -2px 0 var(--zone-green);
+}
+
+/* The phrase a risk factor points to. */
+.focus {
+  outline: 2px solid var(--zone-red);
+  outline-offset: 1px;
 }
 
 /* AI assumption that nobody has confirmed yet. */

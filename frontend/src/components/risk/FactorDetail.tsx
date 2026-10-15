@@ -10,10 +10,10 @@ const CODE_GROUPS: EnumGroup[] = [
   'payment_scheme',
   'phrase_category',
   'check_status',
+  'legal_basis_status',
   'construction_status',
   'complaint_status',
   'platform',
-  'zone_reason',
 ];
 const CODE = /^[a-z][a-z0-9_]*$/;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}(?:T.*)?$/;
@@ -59,8 +59,8 @@ function DetailValue({ value }: { value: unknown }) {
   return String(value);
 }
 
-/** `detail` of a score factor as readable key/value pairs. */
-export function FactorDetail({ detail }: { detail: Record<string, unknown> }) {
+/** `detail` of a score factor as readable key/value pairs (nested objects such as R1 `checks` are indented). */
+export function FactorDetail({ detail }: { detail: object }) {
   const { t } = useTranslation('objects');
   return (
     <dl className={classes.root}>

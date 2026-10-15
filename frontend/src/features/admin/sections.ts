@@ -1,4 +1,12 @@
-export const ADMIN_SECTIONS = ['users', 'factors', 'phrases', 'holidays', 'settings', 'territories'] as const;
+export const ADMIN_SECTIONS = [
+  'users',
+  'factors',
+  'phrases',
+  'holidays',
+  'settings',
+  'territories',
+  'registry',
+] as const;
 
 export type AdminSection = (typeof ADMIN_SECTIONS)[number];
 

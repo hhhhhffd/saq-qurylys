@@ -2,31 +2,42 @@ import { Fragment, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { PhraseHit } from '@/api/types';
 import { useEnum } from '@/i18n/useEnum';
-import { buildSegments, hitState } from './segments';
+import { hitSource } from '@/lib/hitSource';
+import { buildSegments } from './segments';
 import classes from './HighlightedText.module.css';
 
 const CLAMP_CHARS = 420;
 const CLAMP_LINES = 6;
 
 function markClass(hit: PhraseHit): string {
-  const state = hitState(hit);
-  if (state === 'rejected') return classes.rejected;
-  // An unreviewed AI assumption does not count yet: dashed outline instead of the solid marker.
-  if (state === 'unreviewed' && hit.detected_by === 'llm') return classes.assumption;
-  return classes.solid;
+  switch (hitSource(hit)) {
+    case 'rejected':
+      return classes.rejected;
+    // An AI hypothesis nobody has accepted does not count yet: dashed outline instead of the solid marker.
+    case 'ai_hypothesis':
+      return classes.assumption;
+    case 'confirmed':
+      return classes.confirmed;
+    case 'dictionary':
+      return classes.solid;
+  }
 }
 
 interface Props {
   text: string;
   hits: PhraseHit[];
+  /** the hit a risk-factor evidence link points to: drawn stronger than the rest */
+  focusHitId?: number | null;
 }
 
 /** Ad text with phrase hits marked by their character offsets; long texts are clamped. */
-export function HighlightedText({ text, hits }: Props) {
+export function HighlightedText({ text, hits, focusHitId = null }: Props) {
   const { t } = useTranslation('ads');
   const e = useEnum();
-  const [expanded, setExpanded] = useState(false);
+  const [toggled, setToggled] = useState(false);
   const textId = useId();
+  // The phrase a link points to must not be hidden by the clamp.
+  const expanded = toggled || (focusHitId !== null && hits.some((hit) => hit.id === focusHitId));
   const long = text.length > CLAMP_CHARS || text.split('\n').length > CLAMP_LINES;
 
   return (
@@ -36,8 +47,8 @@ export function HighlightedText({ text, hits }: Props) {
           segment.hit ? (
             <mark
               key={index}
-              className={`${classes.mark} ${markClass(segment.hit)}`}
-              title={`${e('phrase_category', segment.hit.category)} · ${e('detected_by', segment.hit.detected_by)}`}
+              className={`${classes.mark} ${markClass(segment.hit)} ${segment.hit.id === focusHitId ? classes.focus : ''}`}
+              title={`${e('phrase_category', segment.hit.category)} · ${e('hit_source', hitSource(segment.hit))}`}
             >
               {segment.text}
             </mark>
@@ -52,7 +63,7 @@ export function HighlightedText({ text, hits }: Props) {
           className={classes.toggle}
           aria-expanded={expanded}
           aria-controls={textId}
-          onClick={() => setExpanded((value) => !value)}
+          onClick={() => setToggled(!expanded)}
         >
           {expanded ? t('text.collapse') : t('text.expand')}
         </button>

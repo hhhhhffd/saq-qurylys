@@ -7,6 +7,7 @@ import { useAd } from '@/api/hooks/ads';
 import type { AdRow, AdStatus } from '@/api/types';
 import { useAuth } from '@/auth/useAuth';
 import { Chip, type ChipTone } from '@/components/Chip';
+import { DemoBadge } from '@/components/DemoBadge';
 import { EvidenceThumbs } from '@/components/evidence/EvidenceImage';
 import { useEnum } from '@/i18n/useEnum';
 import { useFormat } from '@/i18n/useFormat';
@@ -28,9 +29,11 @@ interface Props {
   ad: AdRow;
   /** the publication opened through `?ad=`: scrolled into view and ringed */
   highlighted?: boolean;
+  /** the phrase hit the risk-factor evidence points to (`?hit=`) */
+  focusHitId?: number | null;
 }
 
-export function AdCard({ ad, highlighted = false }: Props) {
+export function AdCard({ ad, highlighted = false, focusHitId = null }: Props) {
   const { t } = useTranslation('ads');
   const e = useEnum();
   const f = useFormat();
@@ -75,15 +78,20 @@ export function AdCard({ ad, highlighted = false }: Props) {
             </Chip>
           )}
         </div>
-        <Chip tone={STATUS_TONE[view.status]}>{e('ad_status', view.status)}</Chip>
+        <div className={classes.headerMain}>
+          {view.is_demo && <DemoBadge />}
+          <Chip tone={STATUS_TONE[view.status]}>{e('ad_status', view.status)}</Chip>
+        </div>
       </header>
 
       <div className={classes.meta}>
         <span>
-          <span className="faint">{t('card.publishedAt')}</span> <span className="tnum">{f.dateTime(view.published_at)}</span>
+          <span className="faint">{t('card.publishedAt')}</span>{' '}
+          <span className="tnum">{f.dateTime(view.published_at)}</span>
         </span>
         <span>
-          <span className="faint">{t('card.capturedAt')}</span> <span className="tnum">{f.dateTime(view.captured_at)}</span>
+          <span className="faint">{t('card.capturedAt')}</span>{' '}
+          <span className="tnum">{f.dateTime(view.captured_at)}</span>
         </span>
         <span>
           <span className="faint">{t('card.weight')}</span>{' '}
@@ -130,7 +138,7 @@ export function AdCard({ ad, highlighted = false }: Props) {
 
       <div className={classes.section}>
         {view.text ? (
-          <HighlightedText text={view.text} hits={detail?.phrase_hits ?? []} />
+          <HighlightedText text={view.text} hits={detail?.phrase_hits ?? []} focusHitId={focusHitId} />
         ) : (
           <p className="faint">{t('card.noText')}</p>
         )}
@@ -144,7 +152,7 @@ export function AdCard({ ad, highlighted = false }: Props) {
           </div>
         )}
         {detail && detail.phrase_hits.length > 0 && (
-          <PhraseHitList adId={ad.id} hits={detail.phrase_hits} editable={canEditRegistry} />
+          <PhraseHitList adId={ad.id} hits={detail.phrase_hits} editable={canEditRegistry} focusHitId={focusHitId} />
         )}
       </div>
 

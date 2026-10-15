@@ -16,16 +16,15 @@ import { useApplySignal } from './useApplySignal';
 
 type Dialog = 'send' | 'return' | 'respond';
 
-function PdfButton({ detail }: { detail: SignalDetail }) {
-  const { t } = useTranslation('signals');
+/** Downloads a file with the busy state and the error toast (`downloadFile` is not a mutation, so the global toast does not cover it). */
+function DownloadButton({ path, filename, label }: { path: string; filename: string; label: string }) {
   const { t: tc } = useTranslation();
   const [loading, setLoading] = useState(false);
 
-  // downloadFile is not a mutation, so the global error toast does not cover it.
   const download = async () => {
     setLoading(true);
     try {
-      await downloadFile(`/signals/${detail.id}/pdf`, `${detail.number}.pdf`);
+      await downloadFile(path, filename);
     } catch (error) {
       notifications.show({ color: 'red', title: tc('error'), message: errorMessage(error) });
     } finally {
@@ -34,8 +33,16 @@ function PdfButton({ detail }: { detail: SignalDetail }) {
   };
 
   return (
-    <Button variant="default" leftSection={<IconFileTypePdf size={16} />} loading={loading} onClick={() => void download()}>
-      {t('detail.pdf')}
+    <Button
+      variant="default"
+      leftSection={<IconFileTypePdf size={16} />}
+      loading={loading}
+      // The label of the sent copy is long: it wraps on a narrow screen instead of widening the page.
+      maw="100%"
+      styles={{ root: { height: 'auto', minHeight: 36, paddingBlock: 6 }, label: { whiteSpace: 'normal' } }}
+      onClick={() => void download()}
+    >
+      {label}
     </Button>
   );
 }
@@ -56,7 +63,10 @@ export function ActionsBar({ detail, recipient, dirty }: Props) {
   const apply = useApplySignal();
 
   const canReview = canManageSignals && detail.status === 'requires_confirmation';
-  const canRespond = isRecipient && detail.status === 'sent' && user?.role === detail.recipient;
+  // A card addressed to the MIO itself is answered by a mio officer (OPEN_QUESTIONS #15).
+  const canRespond =
+    detail.status === 'sent' &&
+    ((isRecipient && user?.role === detail.recipient) || (user?.role === 'mio_officer' && detail.recipient === 'mio'));
   const canClose = canManageSignals && detail.status === 'responded';
 
   let sendBlocker: string | null = null;
@@ -67,7 +77,14 @@ export function ActionsBar({ detail, recipient, dirty }: Props) {
 
   return (
     <>
-      <PdfButton detail={detail} />
+      <DownloadButton path={`/signals/${detail.id}/pdf`} filename={`${detail.number}.pdf`} label={t('detail.pdf')} />
+      {detail.sent_pdf_evidence_id !== null && (
+        <DownloadButton
+          path={`/evidence/${detail.sent_pdf_evidence_id}/content`}
+          filename={`${detail.number}-sent.pdf`}
+          label={t('detail.sentPdf')}
+        />
+      )}
       {canReview && (
         <>
           <Button variant="default" onClick={() => setDialog('return')}>

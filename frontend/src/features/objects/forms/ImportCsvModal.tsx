@@ -16,6 +16,9 @@ export interface ImportCsvModalProps {
 
 /** Header columns the backend requires in each kind of file. */
 const REQUIRED_COLUMNS = { objects: 'name, territory_code', complaints: 'object_code, received_at' } as const;
+/** Optional complaint columns; `is_verified` marks an already checked complaint (R4 counts only those). */
+const COMPLAINT_OPTIONAL_COLUMNS =
+  'source, external_id, is_collective, signatories_count, summary, status, confirmed_payments, is_verified';
 
 export function ImportCsvModal({ opened, onClose, kind }: ImportCsvModalProps) {
   const { t } = useTranslation('objectForms');
@@ -58,7 +61,17 @@ function ImportForm({ kind, onClose }: Omit<ImportCsvModalProps, 'opened'>) {
     >
       <FileInput
         label={t('import.file')}
-        description={t('import.hint', { columns: REQUIRED_COLUMNS[kind] })}
+        description={
+          <>
+            {t('import.hint', { columns: REQUIRED_COLUMNS[kind] })}
+            {kind === 'complaints' && (
+              <>
+                <br />
+                {t('import.optionalHint', { columns: COMPLAINT_OPTIONAL_COLUMNS })}
+              </>
+            )}
+          </>
+        }
         placeholder={tc('selectFile')}
         accept=".csv,text/csv"
         clearable

@@ -8,6 +8,7 @@ import { useCreateSignal } from '@/api/hooks/signals';
 import type { ObjectDetail } from '@/api/types';
 import { useAuth } from '@/auth/useAuth';
 import { Chip } from '@/components/Chip';
+import { DemoBadge } from '@/components/DemoBadge';
 import { ZoneBadge } from '@/components/Zone';
 import { ZoneDisclaimer } from '@/components/ZoneDisclaimer';
 import { useFormat } from '@/i18n/useFormat';
@@ -71,7 +72,7 @@ export function ObjectHeader({ object }: { object: ObjectDetail }) {
       <div className={classes.status}>
         <ZoneBadge zone={object.zone} score={object.score} size="md" />
         {object.key_status && <Chip>{keyStatusLabel(object.key_status, object.key_status_detail)}</Chip>}
-        {object.is_demo && <Chip tone="info">{t('card.demo')}</Chip>}
+        {object.is_demo && <DemoBadge />}
         <span className={classes.meta}>
           {object.last_scored_at
             ? t('card.header.lastScored', { value: dateTime(object.last_scored_at) })

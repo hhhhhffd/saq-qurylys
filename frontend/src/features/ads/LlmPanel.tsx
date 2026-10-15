@@ -30,7 +30,9 @@ function StatusLine({ status }: { status: AdRow['llm_status'] }) {
   );
 }
 
-/** Result of the LLM pass: an assumption that affects the score only after a human accepts it. */
+const percent = (value: number) => Math.round(value * 100);
+
+/** Result of the LLM pass: a hypothesis that affects the score only after a human accepts it. */
 export function LlmPanel({ ad, extraction, editable }: Props) {
   const { t } = useTranslation('ads');
   const e = useEnum();
@@ -39,13 +41,17 @@ export function LlmPanel({ ad, extraction, editable }: Props) {
   if (ad.llm_status !== 'done' || !extraction) return <StatusLine status={ad.llm_status} />;
 
   const schemes = extraction.payment_schemes ?? [];
-  const quotes = extraction.quotes ?? [];
+  const findings = extraction.findings ?? [];
   const readiness = extraction.claimed_readiness_pct;
 
   return (
     <section className={classes.llm} aria-label={t('llm.badge')}>
       <div className={classes.llmHead}>
-        <Chip outline>{t('llm.badge')}</Chip>
+        <Chip tone="yellow" outline>
+          {t('llm.badge')}
+          {extraction.confidence != null && <span className="tnum">{`· ${percent(extraction.confidence)}%`}</span>}
+        </Chip>
+        {extraction.uncertain && <Chip tone="red">{t('hits.uncertain')}</Chip>}
         <span className="faint">{t('llm.note')}</span>
       </div>
       <dl className={classes.llmList}>
@@ -74,21 +80,29 @@ export function LlmPanel({ ad, extraction, editable }: Props) {
           <dd>{extraction.price_before_completion ? t('yes', { ns: 'common' }) : t('no', { ns: 'common' })}</dd>
         </div>
       </dl>
-      {quotes.length > 0 && (
+      {findings.length > 0 && (
         <div>
-          <span className={classes.label}>{t('llm.quotes')}</span>
+          <span className={classes.label}>{t('llm.findings')}</span>
           <ul className={classes.quotes}>
-            {quotes.map((quote, index) => (
-              <li key={index}>«{quote}»</li>
+            {findings.map((finding, index) => (
+              <li key={index}>
+                <span>«{finding.quote}»</span>
+                <span className={classes.findingMeta}>
+                  <span>{e('phrase_category', finding.category)}</span>
+                  <span className="tnum">{t('llm.confidence', { value: percent(finding.confidence) })}</span>
+                  {finding.uncertain && <Chip tone="red">{t('hits.uncertain')}</Chip>}
+                </span>
+              </li>
             ))}
           </ul>
         </div>
       )}
       {editable && (
-        <div>
+        <div className={classes.llmActions}>
           <Button size="xs" variant="default" loading={acceptLlm.isPending} onClick={() => acceptLlm.mutate(ad.id)}>
             {t('llm.accept')}
           </Button>
+          <span className="faint">{t('llm.acceptHint')}</span>
         </div>
       )}
     </section>

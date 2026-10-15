@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { FactorsSection } from './FactorsSection';
 import { HolidaysSection } from './HolidaysSection';
 import { PhrasesSection } from './PhrasesSection';
+import { RegistrySection } from './RegistrySection';
 import { SettingsSection } from './SettingsSection';
 import { TerritoriesSection } from './TerritoriesSection';
 import { UsersSection } from './UsersSection';
@@ -18,6 +19,7 @@ const SECTION_VIEWS: Record<AdminSection, ComponentType> = {
   holidays: HolidaysSection,
   settings: SettingsSection,
   territories: TerritoriesSection,
+  registry: RegistrySection,
 };
 
 export function AdminPage() {

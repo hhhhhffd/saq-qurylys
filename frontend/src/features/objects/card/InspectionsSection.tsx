@@ -9,7 +9,7 @@ import { Panel } from '@/components/Panel';
 import { EvidenceThumbs } from '@/components/evidence/EvidenceImage';
 import { useFormat } from '@/i18n/useFormat';
 import { InspectionFormModal } from '../forms/InspectionFormModal';
-import { anchorId } from './anchors';
+import { anchorId } from '@/components/risk/anchors';
 import classes from './Section.module.css';
 import ownClasses from './InspectionsSection.module.css';
 

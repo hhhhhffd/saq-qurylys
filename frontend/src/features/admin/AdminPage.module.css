@@ -21,7 +21,9 @@
   font-weight: 520;
   text-decoration: none;
   white-space: nowrap;
-  transition: color var(--dur) var(--ease), background-color var(--dur) var(--ease);
+  transition:
+    color var(--dur) var(--ease),
+    background-color var(--dur) var(--ease);
 }
 
 .tab:hover {
@@ -171,4 +173,10 @@
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
+}
+
+.panelStack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }

@@ -27,22 +27,10 @@ export type Zone = 'green' | 'yellow' | 'red';
 
 export type ConstructionStatus = 'not_started' | 'active' | 'stalled' | 'completed';
 export type DocType =
-  | 'smr_notice'
-  | 'psd'
-  | 'expertise'
-  | 'dsu_permit'
-  | 'guarantee'
-  | 'ddu_registration'
-  | 'land_title';
+  'smr_notice' | 'psd' | 'expertise' | 'dsu_permit' | 'guarantee' | 'ddu_registration' | 'land_title';
 export type CheckStatus = 'confirmed' | 'not_found' | 'checking';
 export type CheckSource =
-  | 'housing_portal'
-  | 'kazreestr'
-  | 'mio_registry'
-  | 'cadastre'
-  | 'eotinish'
-  | 'manual'
-  | 'other';
+  'housing_portal' | 'kazreestr' | 'mio_registry' | 'cadastre' | 'eotinish' | 'manual' | 'other';
 export type ComplaintSource = 'eotinish' | 'manual' | 'other';
 export type ComplaintStatus = 'new' | 'in_review' | 'closed';
 export type LinkedEntityKind = 'ad_account' | 'sales_office' | 'phone' | 'website' | 'bank_details';
@@ -63,27 +51,30 @@ export type PhraseCategory =
   | 'price_before_completion'
   | 'covert_contract';
 export type DetectedBy = 'dictionary' | 'llm';
-export type EvidenceKind = 'screenshot_png' | 'archive_mhtml' | 'photo' | 'document_scan' | 'pdf';
+export type EvidenceKind = 'screenshot_png' | 'archive_mhtml' | 'photo' | 'document_scan' | 'pdf' | 'registry_response';
 
 export type KeyStatus =
-  | 'no_permit_with_offer'
-  | 'no_permit'
-  | 'permit_checking'
+  | 'no_legal_basis_with_offer'
+  | 'no_legal_basis'
   | 'money_offer'
+  | 'legal_basis_unknown'
   | 'stalled'
-  | 'overdue'
-  | 'complaints'
-  | 'readiness_overstated'
+  | 'delayed'
+  | 'collective_complaint'
+  | 'readiness_mismatch'
+  | 'active_ads'
   | 'ok';
+
+/** SPEC 6.0: only `absent_established` gives R1; `unknown` is a "needs check" flag, not a finding. */
+export type LegalBasisStatus = 'confirmed' | 'absent_established' | 'unknown';
+/** Result of the check of one legal-basis document type; `none` = no record of a check. */
+export type LegalCheck = CheckStatus | 'none';
 
 export type SignalStatus = 'requires_confirmation' | 'returned' | 'sent' | 'responded' | 'closed';
 export type SignalRecipient = 'mio' | 'gask' | 'law_enforcement';
 export type SignalOrigin = 'auto' | 'manual';
 export type ProposedMeasure =
-  | 'request_documents'
-  | 'site_inspection'
-  | 'interview_complainants'
-  | 'request_payments_info';
+  'request_documents' | 'site_inspection' | 'interview_complainants' | 'request_payments_info';
 
 export type NotificationKind =
   | 'red_zone'
@@ -182,6 +173,12 @@ export interface AppSettings {
   review_days: number;
   ad_window_days: number;
   readiness_gap_pp: number;
+  significant_delay_days: number;
+  /** score from which an object is yellow (below it: green) */
+  zone_yellow_min: number;
+  /** score from which an object with both R1 and R2 is red */
+  zone_red_min: number;
+  /** no longer used by the risk model (R4 needs a verified collective complaint); never shown */
   complaints_threshold: number;
   stalled_days: number;
   recheck_after_days: number;
@@ -285,6 +282,10 @@ export interface Complaint {
   summary: string | null;
   status: ComplaintStatus;
   confirmed_payments: boolean;
+  /** checked by an analyst; R4 counts only verified collective complaints */
+  is_verified: boolean;
+  verified_by: number | null;
+  verified_at: string | null;
 }
 
 export interface LinkedEntity {
@@ -296,24 +297,118 @@ export interface LinkedEntity {
   note: string | null;
 }
 
+/** A record a risk factor is based on. R2 evidence also carries the hit and the quoted phrase. */
 export interface EvidenceRef {
-  type: 'document' | 'ad_post' | 'complaint' | 'inspection' | 'evidence' | string;
+  /** `ad_post`, `document`, `complaint`, `inspection` */
+  type: string;
   id: number;
+  phrase_hit_id?: number;
+  fragment?: string;
 }
 
-export interface ScoreFactor {
-  code: string;
+export interface R1Detail {
+  legal_basis_status: LegalBasisStatus;
+  checks: { guarantee: LegalCheck; dsu_permit: LegalCheck };
+}
+
+export interface R2Detail {
+  window_days: number;
+  count: number;
+  categories: PhraseCategory[];
+  payment_schemes: PaymentScheme[];
+}
+
+export interface R3Detail {
+  window_days: number;
+  count: number;
+  construction_status: ConstructionStatus;
+}
+
+export interface R4Detail {
+  count: number;
+  collective_count: number;
+  verified_count: number;
+  unverified_count: number;
+}
+
+export interface R5Detail {
+  claimed_pct: number | null;
+  actual_pct: number | null;
+  gap_pp: number | null;
+  threshold: number;
+  /** both values come from a dated source: a confirmed publication and a photo inspection */
+  sourced: boolean;
+  inspected_at: string | null;
+}
+
+export interface R6Detail {
+  construction_status: ConstructionStatus;
+  stalled: boolean;
+  stalled_days: number | null;
+  stalled_threshold: number;
+  delayed: boolean;
+  forecast_delay_days: number | null;
+  planned_overdue_days: number | null;
+  significant_delay_days: number;
+}
+
+interface FactorBase<Code extends string, Detail> {
+  code: Code;
+  /** `R1`..`R6` */
+  label: string;
   weight: number;
   triggered: boolean;
   evidence: EvidenceRef[];
-  detail: Record<string, unknown> | null;
+  detail: Detail;
+}
+
+export type ScoreFactor =
+  | FactorBase<'r1_no_legal_basis', R1Detail>
+  | FactorBase<'r2_money_offer', R2Detail>
+  | FactorBase<'r3_active_ads', R3Detail>
+  | FactorBase<'r4_collective_complaint', R4Detail>
+  | FactorBase<'r5_readiness_mismatch', R5Detail>
+  | FactorBase<'r6_stalled_or_delayed', R6Detail>;
+
+export type RiskFactorCode = ScoreFactor['code'];
+
+/** "Needs check" flags: unknown or unconfirmed facts. They never add points. */
+export type NeedsCheck =
+  | { code: 'legal_basis_unknown'; detail: { checks: R1Detail['checks'] } }
+  | { code: 'complaint_unverified'; detail: { count: number; complaint_ids: number[] } }
+  | { code: 'readiness_unverified'; detail: { claimed_pct: number } }
+  | { code: 'ai_hypotheses_pending'; detail: { count: number; ad_post_ids: number[] } }
+  | { code: 'link_unverified'; detail: { count: number; ad_post_ids: number[] } };
+
+export type NeedsCheckCode = NeedsCheck['code'];
+
+export interface RiskBreakdown {
+  /** every active factor, the ones that did not fire included */
+  factors: ScoreFactor[];
+  needs_check: NeedsCheck[];
+  legal_basis_status: LegalBasisStatus;
+}
+
+export function findFactor<Code extends RiskFactorCode>(
+  breakdown: RiskBreakdown | null,
+  code: Code,
+): Extract<ScoreFactor, { code: Code }> | undefined {
+  return breakdown?.factors.find((factor): factor is Extract<ScoreFactor, { code: Code }> => factor.code === code);
+}
+
+export function readBreakdown(
+  score: { breakdown: RiskBreakdown | unknown[] } | null | undefined,
+): RiskBreakdown | null {
+  return score && !Array.isArray(score.breakdown) ? score.breakdown : null;
 }
 
 export interface RiskScore {
   score: number;
   zone: Zone;
+  /** `score_0_24`, `score_25_59`, `score_60_without_r1_r2` or `r1_and_r2` (the numbers follow the zone settings) */
   zone_reasons: string[];
-  breakdown: ScoreFactor[];
+  /** a score calculated before the case model holds a plain list and carries no factors (see `readBreakdown`) */
+  breakdown: RiskBreakdown | unknown[];
   calculated_at: string;
   trigger?: ScoreTrigger;
 }
@@ -418,6 +513,7 @@ export interface ComplaintInput {
   summary?: string;
   status: ComplaintStatus;
   confirmed_payments: boolean;
+  is_verified?: boolean;
 }
 
 export interface LinkedEntityInput {
@@ -437,7 +533,7 @@ export interface ScoreHistoryItem extends RiskScore {
 export interface SourceAccount {
   id: number;
   platform: Platform;
-  handle: string | null;
+  handle: string;
   url: string | null;
   object_id: number | null;
   developer_id: number | null;
@@ -461,16 +557,30 @@ export interface PhraseHit {
   end: number;
   weight: number;
   detected_by: DetectedBy;
-  /** null = not reviewed yet */
+  /** null = not reviewed yet: a dictionary match is a rule-based fact, an LLM match is a hypothesis */
   confirmed: boolean | null;
   confirmed_by: number | null;
+  /** 0..1, only for LLM hits */
+  confidence?: number | null;
+  /** LLM was unsure (confidence below 0.5) */
+  uncertain?: boolean;
 }
 
+export interface LlmFinding {
+  category: PhraseCategory;
+  quote: string;
+  confidence: number;
+  uncertain: boolean;
+}
+
+/** What the LLM extracted from the text: a hypothesis until an analyst accepts it. */
 export interface LlmExtraction {
+  findings?: LlmFinding[];
   payment_schemes?: PaymentScheme[];
   claimed_readiness_pct?: number | null;
   price_before_completion?: boolean;
-  quotes?: string[];
+  confidence?: number;
+  uncertain: boolean;
 }
 
 export interface AdRow {
@@ -497,11 +607,13 @@ export interface AdRow {
   max_phrase_weight: number;
   total_phrase_weight: number;
   is_outdoor: boolean;
+  is_demo: boolean;
   lat: number | null;
   lon: number | null;
   last_checked_at: string | null;
   removed_detected_at: string | null;
-  capture_status: CaptureStatus;
+  /** null for a publication entered by hand */
+  capture_status: CaptureStatus | null;
   capture_error: string | null;
 }
 
@@ -516,6 +628,7 @@ export interface AdListParams {
   platform?: Platform;
   object_id?: number;
   status?: AdStatus;
+  is_demo?: boolean;
   q?: string;
   limit?: number;
   offset?: number;
@@ -583,6 +696,16 @@ export interface SignalRow {
   created_at: string;
 }
 
+/** A phrase hit of a publication on the card: a fact (dictionary or analyst-confirmed) or an AI hypothesis. */
+export interface PublicationHit {
+  id: number;
+  category: PhraseCategory;
+  fragment: string;
+  detected_by: DetectedBy;
+  confirmed: boolean | null;
+  kind: 'fact' | 'ai_hypothesis';
+}
+
 export interface SignalSections {
   object_developer: {
     object_code: string;
@@ -595,7 +718,11 @@ export interface SignalSections {
     director: string | null;
     founders: string[];
   };
-  risk_factors: { code: string; weight: number; detail: Record<string, unknown> | null }[];
+  /** the factors that fired when the card was formed */
+  risk_factors: Pick<ScoreFactor, 'code' | 'label' | 'weight' | 'detail' | 'evidence'>[];
+  legal_basis_status: LegalBasisStatus | null;
+  needs_check: NeedsCheck[];
+  is_demo: boolean;
   permit_checks: {
     doc_type: DocType;
     source: CheckSource | null;
@@ -612,6 +739,8 @@ export interface SignalSections {
     captured_at: string | null;
     evidence_ids: number[];
     status: AdStatus;
+    is_demo: boolean;
+    hits: PublicationHit[];
   }[];
   scheme_payments: {
     payment_schemes: PaymentScheme[];
@@ -642,6 +771,8 @@ export interface SignalDetail extends SignalRow {
   review_days: number;
   sent_at: string | null;
   sent_by: number | null;
+  /** immutable copy of the PDF that was sent (evidence kind `pdf`) */
+  sent_pdf_evidence_id: number | null;
   return_comment: string | null;
   response_text: string | null;
   response_at: string | null;
@@ -658,7 +789,8 @@ export interface SignalListParams {
 }
 
 export interface SignalPatch {
-  sections?: SignalSections;
+  /** only the parts an officer may edit; the rest of the sections is a snapshot and is ignored by the backend */
+  sections?: Partial<Pick<SignalSections, 'scheme_payments' | 'proposed_measures' | 'note'>>;
   recipient?: SignalRecipient;
   review_days?: number;
 }
@@ -673,4 +805,38 @@ export interface AppNotification {
   payload: Record<string, unknown> | null;
   created_at: string;
   read_at: string | null;
+}
+
+// ---------------------------------------------------------------- admin jobs
+
+/** `POST /phrases/reanalyze` (202) */
+export interface ReanalysisQueued {
+  queued: boolean;
+}
+
+export interface RegistrySyncResult {
+  ok: boolean;
+  region_id: number;
+  started_at: string;
+  finished_at: string;
+  fetched: number;
+  objects_created: number;
+  documents_created: number;
+  documents_updated: number;
+  /** confirmed by the registry before, absent now: set back to `checking` for a manual check */
+  documents_unconfirmed: number;
+  skipped: number;
+  errors: string[];
+}
+
+/** `POST /registry-sync/homeportal` (202) */
+export interface SyncStarted {
+  task_id: string;
+}
+
+/** `GET /registry-sync/status` */
+export interface RegistrySyncStatus {
+  /** the scheduled daily run is on (`HOMEPORTAL_SYNC_ENABLED`); a run can always be started by hand */
+  scheduled_enabled: boolean;
+  last_sync: RegistrySyncResult | null;
 }
