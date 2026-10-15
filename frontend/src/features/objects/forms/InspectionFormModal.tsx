@@ -1,13 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
-import { ActionIcon, FileInput, Modal, NumberInput, SimpleGrid, Textarea } from '@mantine/core';
-import { useForm } from '@mantine/form';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { IconX } from '@tabler/icons-react';
+import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
+import { z } from 'zod';
 import { useCreateInspection } from '@/api/hooks/objects';
-import { CoordinateFields, DateField, FormFooter } from './fields';
-import classes from './forms.module.css';
+import { FileInput } from '@/components/form/FileInput';
+import { NumberInput } from '@/components/form/NumberInput';
+import { TextArea } from '@/components/form/TextArea';
+import { Button } from '@/components/ui/button';
+import { CoordinateFields, DateField, FormDialog, FormFooter, FormGrid, fullWidth } from './fields';
 import {
-  coordinateRule,
+  checkCoordinates,
   emptyToNull,
   fileTooLarge,
   MAX_FILE_MB,
@@ -43,10 +47,9 @@ const MAX_PHOTOS = 20;
 export function InspectionFormModal({ opened, onClose, objectId }: InspectionFormModalProps) {
   const { t } = useTranslation('objectForms');
   return (
-    <Modal opened={opened} onClose={onClose} title={t('inspection.createTitle')} size="lg" closeOnClickOutside={false}>
-      {/* The form mounts together with the modal body, so every opening starts from fresh values. */}
+    <FormDialog opened={opened} onClose={onClose} title={t('inspection.createTitle')}>
       <InspectionForm objectId={objectId} onClose={onClose} />
-    </Modal>
+    </FormDialog>
   );
 }
 
@@ -57,7 +60,6 @@ function InspectionForm({ objectId, onClose }: Omit<InspectionFormModalProps, 'o
 
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [photosError, setPhotosError] = useState<string | null>(null);
-  const resetPicker = useRef<() => void>(null);
   const objectUrls = useRef(new Set<string>());
 
   useEffect(() => {
@@ -68,24 +70,37 @@ function InspectionForm({ objectId, onClose }: Omit<InspectionFormModalProps, 'o
     };
   }, []);
 
-  const form = useForm<InspectionFormValues>({
-    initialValues: { inspected_at: today(), readiness_pct: '', lat: '', lon: '', note: '' },
-    validate: {
-      inspected_at: (value) => (value ? null : tc('required')),
-      readiness_pct: (value) =>
-        typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 100
-          ? null
-          : t('validation.percentRange'),
-      lat: coordinateRule('lat', t),
-      lon: coordinateRule('lon', t),
-    },
+  const schema = useMemo(
+    () =>
+      z
+        .object({
+          inspected_at: z.string().nullable().refine(Boolean, tc('required')),
+          readiness_pct: z.union([z.number(), z.string()]),
+          lat: z.union([z.number(), z.string()]),
+          lon: z.union([z.number(), z.string()]),
+          note: z.string(),
+        })
+        .superRefine((values, ctx) => {
+          const pct = values.readiness_pct;
+          if (!(typeof pct === 'number' && Number.isInteger(pct) && pct >= 0 && pct <= 100)) {
+            ctx.addIssue({ code: 'custom', path: ['readiness_pct'], message: t('validation.percentRange') });
+          }
+          checkCoordinates(values, ctx, t);
+        }),
+    [t, tc],
+  );
+
+  const {
+    register,
+    control,
+    handleSubmit,
+  } = useForm<InspectionFormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { inspected_at: today(), readiness_pct: '', lat: '', lon: '', note: '' },
   });
 
   const addPhotos = (files: File[]) => {
-    // Resetting the picker reports an empty selection back here, hence the early return first.
     if (files.length === 0) return;
-    // After every selection the picker is cleared so that it works as an "add photos" button.
-    resetPicker.current?.();
     const known = new Set(photos.map((photo) => photo.key));
     const added: Photo[] = [];
     let error: string | null = null;
@@ -133,28 +148,42 @@ function InspectionForm({ objectId, onClose }: Omit<InspectionFormModalProps, 'o
   };
 
   return (
-    <form onSubmit={form.onSubmit(submit)}>
-      <SimpleGrid cols={{ base: 1, sm: 2 }}>
-        <DateField label={t('inspection.inspectedAt')} withAsterisk {...form.getInputProps('inspected_at')} />
-        <NumberInput
-          label={t('inspection.readiness')}
-          allowDecimal={false}
-          allowNegative={false}
-          hideControls
-          withAsterisk
-          data-autofocus
-          {...form.getInputProps('readiness_pct')}
+    <form onSubmit={handleSubmit(submit)} noValidate>
+      <FormGrid>
+        <Controller
+          control={control}
+          name="inspected_at"
+          render={({ field, fieldState }) => (
+            <DateField
+              label={t('inspection.inspectedAt')}
+              required
+              value={field.value}
+              onChange={field.onChange}
+              error={fieldState.error?.message}
+            />
+          )}
         />
-        <CoordinateFields latProps={form.getInputProps('lat')} lonProps={form.getInputProps('lon')} />
-        <Textarea
-          className={classes.full}
-          label={t('inspection.note')}
-          autosize
-          minRows={2}
-          maxRows={6}
-          {...form.getInputProps('note')}
+        <Controller
+          control={control}
+          name="readiness_pct"
+          render={({ field, fieldState }) => (
+            <NumberInput
+              label={t('inspection.readiness')}
+              allowDecimal={false}
+              allowNegative={false}
+              hideControls
+              required
+              autoFocus
+              value={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              error={fieldState.error?.message}
+            />
+          )}
         />
-        <div className={classes.full}>
+        <CoordinateFields control={control} />
+        <TextArea className={fullWidth} label={t('inspection.note')} minRows={2} maxRows={6} {...register('note')} />
+        <div className={fullWidth}>
           <FileInput
             label={t('inspection.photos')}
             description={t('inspection.photosHint', { max: MAX_PHOTOS, size: MAX_FILE_MB })}
@@ -163,28 +192,29 @@ function InspectionForm({ objectId, onClose }: Omit<InspectionFormModalProps, 'o
             multiple
             value={[]}
             onChange={addPhotos}
-            resetRef={resetPicker}
             error={photosError}
           />
           {photos.length > 0 && (
-            <ul className={classes.thumbs}>
+            <ul className="mt-2 flex flex-wrap gap-2">
               {photos.map((photo) => (
-                <li key={photo.key} className={classes.thumb}>
-                  <img src={photo.url} alt={photo.file.name} />
-                  <ActionIcon
-                    className={classes.thumbRemove}
-                    size="xs"
+                <li key={photo.key} className="relative size-18 overflow-hidden rounded-sm bg-surface-sunken shadow-1">
+                  <img src={photo.url} alt={photo.file.name} className="block size-full object-cover" />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="icon-xs"
+                    className="absolute top-0.5 right-0.5 bg-surface-glass"
                     aria-label={t('inspection.removePhoto', { name: photo.file.name })}
                     onClick={() => removePhoto(photo)}
                   >
-                    <IconX size={12} />
-                  </ActionIcon>
+                    <IconX />
+                  </Button>
                 </li>
               ))}
             </ul>
           )}
         </div>
-      </SimpleGrid>
+      </FormGrid>
       <FormFooter loading={createInspection.isPending} onCancel={onClose} submitLabel={tc('create')} />
     </form>
   );

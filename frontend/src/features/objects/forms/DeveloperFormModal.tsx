@@ -1,10 +1,13 @@
-import { Modal, SimpleGrid, TagsInput, TextInput } from '@mantine/core';
-import { useForm } from '@mantine/form';
+import { useMemo, useState } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
+import { z } from 'zod';
 import { useCreateDeveloper, useUpdateDeveloper } from '@/api/hooks/objects';
 import type { Developer, DeveloperInput } from '@/api/types';
-import { FormFooter } from './fields';
-import classes from './forms.module.css';
+import { TagsInput } from '@/components/form/TagsInput';
+import { TextInput } from '@/components/form/TextInput';
+import { FormDialog, FormFooter, FormGrid, fullWidth } from './fields';
 import { changedFields, emptyToNull } from './utils';
 
 export interface DeveloperFormModalProps {
@@ -47,16 +50,9 @@ function toEditableFields(values: DeveloperFormValues): Omit<DeveloperInput, 'bi
 export function DeveloperFormModal({ opened, onClose, developer, onSaved }: DeveloperFormModalProps) {
   const { t } = useTranslation('objectForms');
   return (
-    <Modal
-      opened={opened}
-      onClose={onClose}
-      title={developer ? t('developer.editTitle') : t('developer.createTitle')}
-      size="lg"
-      closeOnClickOutside={false}
-    >
-      {/* The form mounts together with the modal body, so every opening starts from fresh values. */}
+    <FormDialog opened={opened} onClose={onClose} title={developer ? t('developer.editTitle') : t('developer.createTitle')}>
       <DeveloperForm developer={developer} onClose={onClose} onSaved={onSaved} />
-    </Modal>
+    </FormDialog>
   );
 }
 
@@ -73,21 +69,34 @@ function DeveloperForm({ developer, onClose, onSaved }: DeveloperFormProps) {
   const updateDeveloper = useUpdateDeveloper();
   const pending = createDeveloper.isPending || updateDeveloper.isPending;
 
-  const form = useForm<DeveloperFormValues>({
-    initialValues: {
-      bin: developer?.bin ?? '',
-      name: developer?.name ?? '',
-      director: developer?.director ?? '',
-      founders: developer?.founders ?? [],
-      authorized_company: developer?.authorized_company ?? '',
-      phones: developer?.phones ?? [],
-    },
-    validate: {
-      bin: (value) => (BIN_PATTERN.test(value.trim()) ? null : t('validation.binDigits')),
-      name: (value) => (value.trim() ? null : tc('required')),
-      phones: (value) => (value.every(looksLikePhone) ? null : t('validation.phoneInvalid')),
-    },
-  });
+  const [initialValues] = useState<DeveloperFormValues>(() => ({
+    bin: developer?.bin ?? '',
+    name: developer?.name ?? '',
+    director: developer?.director ?? '',
+    founders: developer?.founders ?? [],
+    authorized_company: developer?.authorized_company ?? '',
+    phones: developer?.phones ?? [],
+  }));
+
+  const schema = useMemo(
+    () =>
+      z.object({
+        bin: z.string().refine((value) => BIN_PATTERN.test(value.trim()), t('validation.binDigits')),
+        name: z.string().trim().min(1, tc('required')),
+        director: z.string(),
+        founders: z.array(z.string()),
+        authorized_company: z.string(),
+        phones: z.array(z.string()).refine((value) => value.every(looksLikePhone), t('validation.phoneInvalid')),
+      }),
+    [t, tc],
+  );
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<DeveloperFormValues>({ resolver: zodResolver(schema), defaultValues: initialValues });
 
   const handleSaved = (saved: Developer) => {
     onSaved?.(saved);
@@ -99,7 +108,7 @@ function DeveloperForm({ developer, onClose, onSaved }: DeveloperFormProps) {
       createDeveloper.mutate({ bin: values.bin.trim(), ...toEditableFields(values) }, { onSuccess: handleSaved });
       return;
     }
-    const changes = changedFields(toEditableFields(values), toEditableFields(form.getInitialValues()));
+    const changes = changedFields(toEditableFields(values), toEditableFields(initialValues));
     if (Object.keys(changes).length === 0) {
       onClose();
       return;
@@ -108,45 +117,59 @@ function DeveloperForm({ developer, onClose, onSaved }: DeveloperFormProps) {
   };
 
   return (
-    <form onSubmit={form.onSubmit(submit)}>
-      <SimpleGrid cols={{ base: 1, sm: 2 }}>
+    <form onSubmit={handleSubmit(submit)} noValidate>
+      <FormGrid>
         <TextInput
           label={t('developer.bin')}
           description={developer ? t('developer.binLocked') : t('developer.binHint')}
           inputMode="numeric"
           maxLength={12}
           readOnly={developer !== undefined}
-          withAsterisk
-          data-autofocus={developer ? undefined : true}
-          {...form.getInputProps('bin')}
+          required
+          error={errors.bin?.message}
+          {...register('bin')}
         />
         <TextInput
           label={t('developer.name')}
-          withAsterisk
-          data-autofocus={developer ? true : undefined}
-          {...form.getInputProps('name')}
+          required
+          autoFocus={developer !== undefined}
+          error={errors.name?.message}
+          {...register('name')}
         />
-        <TextInput label={t('developer.director')} {...form.getInputProps('director')} />
-        <TextInput label={t('developer.authorizedCompany')} {...form.getInputProps('authorized_company')} />
-        <TagsInput
-          className={classes.full}
-          label={t('developer.founders')}
-          description={t('developer.foundersHint')}
-          {...form.getInputProps('founders')}
+        <TextInput label={t('developer.director')} {...register('director')} />
+        <TextInput label={t('developer.authorizedCompany')} {...register('authorized_company')} />
+        <Controller
+          control={control}
+          name="founders"
+          render={({ field }) => (
+            <TagsInput
+              className={fullWidth}
+              label={t('developer.founders')}
+              description={t('developer.foundersHint')}
+              value={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+            />
+          )}
         />
-        <TagsInput
-          className={classes.full}
-          label={t('developer.phones')}
-          description={t('developer.phonesHint')}
-          placeholder="+7 701 123 45 67"
-          {...form.getInputProps('phones')}
+        <Controller
+          control={control}
+          name="phones"
+          render={({ field, fieldState }) => (
+            <TagsInput
+              className={fullWidth}
+              label={t('developer.phones')}
+              description={t('developer.phonesHint')}
+              placeholder="+7 701 123 45 67"
+              value={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              error={fieldState.error?.message}
+            />
+          )}
         />
-      </SimpleGrid>
-      <FormFooter
-        loading={pending}
-        onCancel={onClose}
-        submitLabel={developer ? tc('save') : tc('create')}
-      />
+      </FormGrid>
+      <FormFooter loading={pending} onCancel={onClose} submitLabel={developer ? tc('save') : tc('create')} />
     </form>
   );
 }

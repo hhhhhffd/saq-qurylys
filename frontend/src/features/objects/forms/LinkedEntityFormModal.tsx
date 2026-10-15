@@ -1,11 +1,15 @@
-import { Modal, Select, SimpleGrid, Textarea, TextInput } from '@mantine/core';
-import { useForm } from '@mantine/form';
+import { useMemo } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
+import { z } from 'zod';
 import { useCreateLinkedEntity } from '@/api/hooks/objects';
 import type { LinkedEntityKind } from '@/api/types';
+import { SelectInput } from '@/components/form/SelectInput';
+import { TextArea } from '@/components/form/TextArea';
+import { TextInput } from '@/components/form/TextInput';
 import { useEnumOptions } from '@/i18n/useEnum';
-import { FormFooter } from './fields';
-import classes from './forms.module.css';
+import { FormDialog, FormFooter } from './fields';
 
 export interface LinkedEntityFormModalProps {
   opened: boolean;
@@ -24,10 +28,9 @@ const KINDS: LinkedEntityKind[] = ['ad_account', 'sales_office', 'phone', 'websi
 export function LinkedEntityFormModal({ opened, onClose, objectId }: LinkedEntityFormModalProps) {
   const { t } = useTranslation('objectForms');
   return (
-    <Modal opened={opened} onClose={onClose} title={t('linkedEntity.createTitle')} closeOnClickOutside={false}>
-      {/* The form mounts together with the modal body, so every opening starts from fresh values. */}
+    <FormDialog opened={opened} onClose={onClose} title={t('linkedEntity.createTitle')} wide={false}>
       <LinkedEntityForm objectId={objectId} onClose={onClose} />
-    </Modal>
+    </FormDialog>
   );
 }
 
@@ -37,10 +40,26 @@ function LinkedEntityForm({ objectId, onClose }: Omit<LinkedEntityFormModalProps
   const enumOptions = useEnumOptions();
   const createLinkedEntity = useCreateLinkedEntity();
 
-  const form = useForm<LinkedEntityFormValues>({
-    initialValues: { kind: 'phone', value: '', note: '' },
-    validate: { value: (value) => (value.trim() ? null : tc('required')) },
+  const schema = useMemo(
+    () =>
+      z.object({
+        kind: z.custom<LinkedEntityKind>(),
+        value: z.string().trim().min(1, tc('required')),
+        note: z.string(),
+      }),
+    [tc],
+  );
+
+  const {
+    register,
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LinkedEntityFormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { kind: 'phone', value: '', note: '' },
   });
+  const kind = useWatch({ control, name: 'kind' });
 
   const submit = (values: LinkedEntityFormValues) => {
     createLinkedEntity.mutate(
@@ -50,32 +69,30 @@ function LinkedEntityForm({ objectId, onClose }: Omit<LinkedEntityFormModalProps
   };
 
   return (
-    <form onSubmit={form.onSubmit(submit)}>
-      <SimpleGrid cols={1}>
-        <Select
-          label={t('linkedEntity.kind')}
-          data={enumOptions('linked_kind', KINDS)}
-          allowDeselect={false}
-          withAsterisk
-          {...form.getInputProps('kind')}
-        />
-        <TextInput
-          label={t('linkedEntity.value')}
-          description={form.values.kind === 'phone' ? t('linkedEntity.phoneHint') : undefined}
-          placeholder={form.values.kind === 'phone' ? '+7 701 123 45 67' : undefined}
-          withAsterisk
-          data-autofocus
-          {...form.getInputProps('value')}
-        />
-        <Textarea
-          className={classes.full}
-          label={t('linkedEntity.note')}
-          autosize
-          minRows={2}
-          maxRows={5}
-          {...form.getInputProps('note')}
-        />
-      </SimpleGrid>
+    <form onSubmit={handleSubmit(submit)} noValidate className="flex flex-col gap-3">
+      <Controller
+        control={control}
+        name="kind"
+        render={({ field }) => (
+          <SelectInput
+            label={t('linkedEntity.kind')}
+            data={enumOptions('linked_kind', KINDS)}
+            required
+            value={field.value}
+            onChange={(value) => value && field.onChange(value)}
+          />
+        )}
+      />
+      <TextInput
+        label={t('linkedEntity.value')}
+        description={kind === 'phone' ? t('linkedEntity.phoneHint') : undefined}
+        placeholder={kind === 'phone' ? '+7 701 123 45 67' : undefined}
+        required
+        autoFocus
+        error={errors.value?.message}
+        {...register('value')}
+      />
+      <TextArea label={t('linkedEntity.note')} minRows={2} maxRows={5} {...register('note')} />
       <FormFooter loading={createLinkedEntity.isPending} onCancel={onClose} submitLabel={tc('create')} />
     </form>
   );

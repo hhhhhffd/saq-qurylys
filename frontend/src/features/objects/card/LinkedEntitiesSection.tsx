@@ -1,15 +1,16 @@
 import { useState } from 'react';
-import { ActionIcon, Button, Tooltip } from '@mantine/core';
 import { IconPlus, IconTrash } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useDeleteLinkedEntity } from '@/api/hooks/objects';
 import type { LinkedEntity, LinkedEntityKind, ObjectDetail } from '@/api/types';
 import { useAuth } from '@/auth/useAuth';
 import { Panel } from '@/components/Panel';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useEnum } from '@/i18n/useEnum';
 import { confirmAction } from '@/lib/confirm';
 import { LinkedEntityFormModal } from '../forms/LinkedEntityFormModal';
-import classes from './Section.module.css';
+import { subTitleClass } from './styles';
 
 const KINDS: LinkedEntityKind[] = ['ad_account', 'sales_office', 'phone', 'website', 'bank_details'];
 const WEB_URL = /^https?:\/\//i;
@@ -41,24 +42,28 @@ export function LinkedEntitiesSection({ object }: { object: ObjectDetail }) {
       id="linked-entities"
       actions={
         canEditRegistry && (
-          <Button variant="default" size="xs" leftSection={<IconPlus size={14} />} onClick={() => setAdding(true)}>
+          <Button variant="secondary" size="sm" onClick={() => setAdding(true)}>
+            <IconPlus />
             {t('card.linked.add')}
           </Button>
         )
       }
     >
       {groups.length === 0 ? (
-        <p className={classes.muted}>{t('card.linked.empty')}</p>
+        <p className="text-text-3">{t('card.linked.empty')}</p>
       ) : (
         groups.map((group) => (
-          <section key={group.kind} className={classes.group} aria-labelledby={`linked-${group.kind}`}>
-            <h4 id={`linked-${group.kind}`} className={classes.subTitle}>
+          <section key={group.kind} className="not-first:mt-4" aria-labelledby={`linked-${group.kind}`}>
+            <h4 id={`linked-${group.kind}`} className={`${subTitleClass} mb-1`}>
               {e('linked_kind', group.kind)}
             </h4>
-            <ul className={classes.list}>
+            <ul>
               {group.items.map((entity) => (
-                <li key={entity.id} className={classes.entityRow}>
-                  <div className={classes.entityValue}>
+                <li
+                  key={entity.id}
+                  className="flex min-h-7 items-start justify-between gap-2 border-t border-border py-1 first:border-t-0"
+                >
+                  <div className="min-w-0 py-0.5 [overflow-wrap:anywhere]">
                     {entity.kind === 'website' && WEB_URL.test(entity.value) ? (
                       <a href={entity.value} target="_blank" rel="noreferrer noopener">
                         {entity.value}
@@ -66,18 +71,21 @@ export function LinkedEntitiesSection({ object }: { object: ObjectDetail }) {
                     ) : (
                       entity.value
                     )}
-                    {entity.note && <span className={classes.sub}>{entity.note}</span>}
+                    {entity.note && <span className="block text-xs text-text-3">{entity.note}</span>}
                   </div>
                   {canEditRegistry && (
-                    <Tooltip label={t('delete', { ns: 'common' })}>
-                      <ActionIcon
-                        variant="subtle"
-                        color="gray"
-                        aria-label={`${t('delete', { ns: 'common' })}: ${entity.value}`}
-                        onClick={() => confirmDelete(entity)}
-                      >
-                        <IconTrash size={16} />
-                      </ActionIcon>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`${t('delete', { ns: 'common' })}: ${entity.value}`}
+                          onClick={() => confirmDelete(entity)}
+                        >
+                          <IconTrash />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>{t('delete', { ns: 'common' })}</TooltipContent>
                     </Tooltip>
                   )}
                 </li>

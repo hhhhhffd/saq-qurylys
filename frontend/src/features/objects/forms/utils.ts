@@ -1,8 +1,6 @@
 import dayjs from 'dayjs';
 import type { TFunction } from 'i18next';
-
-const API_DATE_FORMAT = 'YYYY-MM-DD';
-export const DISPLAY_DATE_FORMAT = 'DD.MM.YYYY';
+import type { z } from 'zod';
 
 /** Client-side guard for scans, screenshots and photos; the server enforces its own (configurable) limit. */
 export const MAX_FILE_MB = 25;
@@ -11,21 +9,9 @@ const MAX_FILE_BYTES = MAX_FILE_MB * 1024 * 1024;
 export const SCAN_ACCEPT = 'image/png,image/jpeg,image/webp,application/pdf';
 export const PHOTO_ACCEPT = 'image/png,image/jpeg,image/webp';
 
-const DISPLAY_DATE = /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/;
-const API_DATE = /^\d{4}-\d{2}-\d{2}$/;
-
-/** Mantine 9 `DateInput` stores plain `YYYY-MM-DD` strings, which is the API format as well: no time zone shifts. */
+/** Today as the plain `YYYY-MM-DD` string the date fields store and the API takes: no time zone shifts. */
 export function today(): string {
-  return dayjs().format(API_DATE_FORMAT);
-}
-
-/** Parses typed `DD.MM.YYYY` (or `YYYY-MM-DD`) into the `YYYY-MM-DD` value `DateInput` stores; rejects impossible dates. */
-export function parseDateInput(text: string): string | null {
-  const trimmed = text.trim();
-  const match = DISPLAY_DATE.exec(trimmed);
-  const iso = match ? `${match[3]}-${match[2].padStart(2, '0')}-${match[1].padStart(2, '0')}` : trimmed;
-  // dayjs rolls 30 February over to March, so the round trip is what proves the date is real.
-  return API_DATE.test(iso) && dayjs(iso).format(API_DATE_FORMAT) === iso ? iso : null;
+  return dayjs().format('YYYY-MM-DD');
 }
 
 /** Date part of an API timestamp or date, for `DateInput`. */
@@ -47,18 +33,26 @@ export function changedFields<T extends object>(next: T, prev: T): Partial<T> {
   return changes;
 }
 
+/** A number, `''` when empty, or a string while an unfinished number is typed. */
 export type CoordinateValue = number | string;
 
-/** Rule for one half of a lat/lon pair: range check, and both-or-none (the backend rejects a lone value). */
-export function coordinateRule(kind: 'lat' | 'lon', t: TFunction) {
-  const limit = kind === 'lat' ? 90 : 180;
-  return (value: CoordinateValue, values: Record<'lat' | 'lon', CoordinateValue>) => {
-    const other = kind === 'lat' ? values.lon : values.lat;
-    if (value === '') return other === '' ? null : t('validation.coordinatesTogether', { ns: 'objectForms' });
-    return typeof value === 'number' && Math.abs(value) <= limit
-      ? null
-      : t(kind === 'lat' ? 'validation.latRange' : 'validation.lonRange', { ns: 'objectForms' });
-  };
+/**
+ * Adds the errors of a lat/lon pair to a schema (`superRefine`): range check, and both-or-none
+ * (the backend rejects a lone value).
+ */
+export function checkCoordinates(values: Record<'lat' | 'lon', CoordinateValue>, ctx: z.RefinementCtx, t: TFunction) {
+  for (const kind of ['lat', 'lon'] as const) {
+    const limit = kind === 'lat' ? 90 : 180;
+    const value = values[kind];
+    const other = values[kind === 'lat' ? 'lon' : 'lat'];
+    let message: string | null = null;
+    if (value === '') {
+      if (other !== '') message = t('validation.coordinatesTogether', { ns: 'objectForms' });
+    } else if (typeof value !== 'number' || Math.abs(value) > limit) {
+      message = t(kind === 'lat' ? 'validation.latRange' : 'validation.lonRange', { ns: 'objectForms' });
+    }
+    if (message) ctx.addIssue({ code: 'custom', message, path: [kind] });
+  }
 }
 
 export function fileTooLarge(file: File | null): boolean {

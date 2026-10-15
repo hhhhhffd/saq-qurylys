@@ -1,7 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import { Chip } from '@/components/Chip';
+import { cn } from '@/lib/utils';
 import { formatSigned } from './formatSigned';
-import classes from './ReadinessGap.module.css';
+import { subTitleClass } from './styles';
 
 interface Props {
   /** readiness from the latest inspection */
@@ -30,44 +31,54 @@ export function ReadinessGap({ actual, claimed, gap, overstated }: Props) {
   const showGap = actual !== null && claimed !== null && claimed > actual;
 
   return (
-    <section className={classes.root} aria-labelledby="readiness-gap-title">
-      <div className={classes.head}>
-        <h4 id="readiness-gap-title" className={classes.title}>
+    <section className="mt-4 border-t border-border pt-3" aria-labelledby="readiness-gap-title">
+      <div className="flex flex-wrap items-center gap-2">
+        <h4 id="readiness-gap-title" className={cn(subTitleClass, 'mr-auto')}>
           {t('card.readiness.title')}
         </h4>
         <span
-          className={`${classes.gap} tnum ${overstated ? classes.danger : gap !== null && gap > 0 ? classes.warn : ''}`}
+          className={cn(
+            'text-base font-bold tabular-nums',
+            overstated ? 'text-zone-red-ink' : gap !== null && gap > 0 && 'text-zone-yellow-ink',
+          )}
         >
           {gapText}
         </span>
         {overstated && <Chip tone="red">{t('card.readiness.overThreshold')}</Chip>}
       </div>
 
-      <div className={classes.bar} role="img" aria-label={summary}>
-        {actual !== null && <div className={classes.actual} style={{ width: `${clamp(actual)}%` }} />}
+      <div className="relative mt-3 mb-2.5 h-2.5 rounded-full bg-surface-sunken" role="img" aria-label={summary}>
+        {actual !== null && (
+          <div className="absolute inset-y-0 left-0 rounded-l-full bg-text-3" style={{ width: `${clamp(actual)}%` }} />
+        )}
         {showGap && (
           <div
-            className={`${classes.gapSegment} ${overstated ? classes.gapDanger : classes.gapWarn}`}
+            className={cn('absolute inset-y-0 opacity-85', overstated ? 'bg-zone-red' : 'bg-zone-yellow')}
             style={{ left: `${clamp(actual)}%`, width: `${clamp(claimed) - clamp(actual)}%` }}
           />
         )}
-        {claimed !== null && <div className={classes.claimed} style={{ left: `${clamp(claimed)}%` }} />}
+        {claimed !== null && (
+          <div
+            className="absolute -inset-y-1 -ml-[1.5px] w-[3px] rounded-[2px] bg-text"
+            style={{ left: `${clamp(claimed)}%` }}
+          />
+        )}
       </div>
 
-      <dl className={classes.legend}>
-        <div>
-          <dt>
-            <span className={classes.swatchActual} aria-hidden />
+      <dl className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+        <div className="flex items-baseline gap-1.5">
+          <dt className="inline-flex items-center gap-1.5 text-text-3">
+            <span className="inline-block h-1.5 w-3 flex-none rounded-[3px] bg-text-3" aria-hidden />
             {t('card.readiness.actual')}
           </dt>
-          <dd className="tnum">{pct(actual)}</dd>
+          <dd className="font-semibold tabular-nums">{pct(actual)}</dd>
         </div>
-        <div>
-          <dt>
-            <span className={classes.swatchClaimed} aria-hidden />
+        <div className="flex items-baseline gap-1.5">
+          <dt className="inline-flex items-center gap-1.5 text-text-3">
+            <span className="inline-block h-3 w-[3px] flex-none rounded-[2px] bg-text" aria-hidden />
             {t('card.readiness.claimed')}
           </dt>
-          <dd className="tnum">{pct(claimed)}</dd>
+          <dd className="font-semibold tabular-nums">{pct(claimed)}</dd>
         </div>
       </dl>
     </section>

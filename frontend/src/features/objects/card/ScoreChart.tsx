@@ -3,7 +3,6 @@ import type { ScoreHistoryItem } from '@/api/types';
 import { zoneColor } from '@/components/zoneColor';
 import { useEnum } from '@/i18n/useEnum';
 import { useFormat } from '@/i18n/useFormat';
-import classes from './ScoreChart.module.css';
 
 const WIDTH = 344;
 const HEIGHT = 136;
@@ -33,20 +32,28 @@ export function ScoreChart({ items }: { items: ScoreHistoryItem[] }) {
   });
 
   return (
-    <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className={classes.chart} role="img" aria-label={label}>
+    <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="block h-auto w-full overflow-visible" role="img" aria-label={label}>
       {GRID_LINES.map((value) => (
         <g key={value}>
-          <line className={classes.grid} x1={PAD.left} x2={WIDTH - PAD.right} y1={y(value)} y2={y(value)} />
-          <text className={classes.axis} x={PAD.left - 6} y={y(value)} textAnchor="end" dominantBaseline="middle">
+          <line
+            className="stroke-border"
+            strokeWidth={1}
+            x1={PAD.left}
+            x2={WIDTH - PAD.right}
+            y1={y(value)}
+            y2={y(value)}
+          />
+          <text className="fill-text-3 text-3xs" x={PAD.left - 6} y={y(value)} textAnchor="end" dominantBaseline="middle">
             {value}
           </text>
         </g>
       ))}
-      <path className={classes.line} d={path} />
+      <path className="fill-none stroke-text-3" strokeWidth={1.5} strokeLinejoin="round" d={path} />
       {items.map((item, index) => (
         <circle
           key={item.id}
-          className={classes.point}
+          className="stroke-surface"
+          strokeWidth={1.5}
           cx={x(index)}
           cy={y(item.score)}
           r={4}
@@ -61,10 +68,10 @@ export function ScoreChart({ items }: { items: ScoreHistoryItem[] }) {
           </title>
         </circle>
       ))}
-      <text className={classes.axis} x={PAD.left} y={HEIGHT - 6} textAnchor="start">
+      <text className="fill-text-3 text-3xs" x={PAD.left} y={HEIGHT - 6} textAnchor="start">
         {dateTime(items[0].calculated_at)}
       </text>
-      <text className={classes.axis} x={WIDTH - PAD.right} y={HEIGHT - 6} textAnchor="end">
+      <text className="fill-text-3 text-3xs" x={WIDTH - PAD.right} y={HEIGHT - 6} textAnchor="end">
         {dateTime(items[items.length - 1].calculated_at)}
       </text>
     </svg>

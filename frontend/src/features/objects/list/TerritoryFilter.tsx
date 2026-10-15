@@ -1,5 +1,5 @@
-import { Select } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
+import { Combobox } from '@/components/ui/combobox';
 import { parseId, useCityScope } from './filters';
 
 interface Props {
@@ -17,28 +17,26 @@ export function TerritoryFilter({ territoryId, districtId, onChange }: Props) {
   return (
     <>
       {cities.length > 1 && (
-        <Select
+        <Combobox
           aria-label={t('list.filters.city')}
           placeholder={t('list.filters.allCities')}
-          data={cities.map((item) => ({ value: String(item.id), label: item.name }))}
+          options={cities.map((item) => ({ value: String(item.id), label: item.name }))}
           value={territoryId === null ? null : String(territoryId)}
           onChange={(value) => onChange({ territory: parseId(value), district: null })}
           clearable
-          searchable
-          w={{ base: '100%', sm: 200 }}
+          className="w-full sm:w-48"
         />
       )}
       {cities.length > 0 && (
-        <Select
+        <Combobox
           aria-label={t('list.filters.district')}
           placeholder={t('list.filters.allDistricts')}
-          data={districts.map((item) => ({ value: String(item.id), label: item.name }))}
+          options={districts.map((item) => ({ value: String(item.id), label: item.name }))}
           value={districtId === null ? null : String(districtId)}
           onChange={(value) => onChange({ territory: territoryId, district: parseId(value) })}
           disabled={city === null}
           clearable
-          searchable
-          w={{ base: '100%', sm: 200 }}
+          className="w-full sm:w-48"
         />
       )}
     </>
