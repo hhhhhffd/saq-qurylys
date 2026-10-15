@@ -72,7 +72,7 @@ def test_holiday_crud(client: TestClient, db: Session, world: World) -> None:
     assert client.get("/api/v1/holidays?year=2027", headers=admin).json() == []
     assert client.delete("/api/v1/holidays/2026-03-23", headers=admin).status_code == 204
     assert client.delete("/api/v1/holidays/2026-03-23", headers=admin).status_code == 404
-    assert db.scalars(select(AuditLog.action).where(AuditLog.entity_type == "holiday")).all() == [
+    assert db.scalars(select(AuditLog.action).where(AuditLog.entity_type == "holiday").order_by(AuditLog.id)).all() == [
         "holiday.create",
         "holiday.create",
         "holiday.delete",
