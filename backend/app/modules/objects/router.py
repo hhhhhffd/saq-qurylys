@@ -123,7 +123,7 @@ def create_object(
     check_references(session, scope, body.territory_id, body.district_id, body.developer_id)
     data = body.model_dump(exclude={"lat", "lon"})
     obj = ConstructionObject(**data, location=make_point(body.lat, body.lon))
-    apply_status_rules(obj)
+    apply_status_rules(session, obj)
     session.add(obj)
     session.flush()
     session.refresh(obj)
@@ -173,7 +173,7 @@ def update_object(
     for field, value in changes.items():
         setattr(obj, field, value)
     if "construction_status" in changes or "stalled_since" in changes:
-        apply_status_rules(obj)
+        apply_status_rules(session, obj)
     session.flush()
     session.refresh(obj)
     audit.record(session, user, "object.update", "object", obj.id, before, audit.snapshot(obj), request)

@@ -157,7 +157,7 @@ def _import_row(
         obj.construction_status = status
     elif existing is None:
         obj.construction_status = ConstructionStatus.active
-    apply_status_rules(obj)
+    apply_status_rules(session, obj)
 
     if existing is None:
         session.add(obj)

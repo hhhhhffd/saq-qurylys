@@ -1,7 +1,8 @@
-from datetime import date
+from datetime import UTC, date, datetime
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import Select, func, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, object_session
 
 from app.errors import api_error, forbidden
 from app.models import ConstructionObject, Developer, District, Territory
@@ -17,9 +18,21 @@ def get_object_in_scope(session: Session, scope: TerritoryScope, object_id: int)
     return obj
 
 
+def territory_today(session: Session, territory_id: int) -> date:
+    """Today's date in the time zone of the territory (the risk engine reads dates the same way). The zone
+    is looked up once per territory and session: lists call this for every row."""
+    zones: dict[int, str] = session.info.setdefault("territory_timezones", {})
+    if territory_id not in zones:
+        zones[territory_id] = session.scalars(select(Territory.timezone).where(Territory.id == territory_id)).one()
+    return datetime.now(ZoneInfo(zones[territory_id])).date()
+
+
 def key_status_detail(obj: ConstructionObject, today: date | None = None) -> dict[str, int] | None:
     if obj.key_status is KeyStatus.stalled and obj.stalled_since is not None:
-        return {"stalled_days": ((today or date.today()) - obj.stalled_since).days}
+        if today is None:
+            session = object_session(obj)
+            today = territory_today(session, obj.territory_id) if session else datetime.now(UTC).date()
+        return {"stalled_days": (today - obj.stalled_since).days}
     return None
 
 
@@ -43,11 +56,12 @@ def check_references(
         raise api_error(422, "developer_not_found", "Застройщик не найден")
 
 
-def apply_status_rules(obj: ConstructionObject) -> None:
-    """`stalled_since` follows the status: set to today on entering `stalled`, cleared on leaving it."""
+def apply_status_rules(session: Session, obj: ConstructionObject) -> None:
+    """`stalled_since` follows the status: set to today (in the object's territory) on entering `stalled`,
+    cleared on leaving it."""
     if obj.construction_status is ConstructionStatus.stalled:
         if obj.stalled_since is None:
-            obj.stalled_since = date.today()
+            obj.stalled_since = territory_today(session, obj.territory_id)
     else:
         obj.stalled_since = None
 

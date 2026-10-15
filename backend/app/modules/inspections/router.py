@@ -12,7 +12,7 @@ from app.geo import make_point
 from app.models import Inspection
 from app.models.enums import EvidenceKind
 from app.modules.inspections.schemas import InspectionOut
-from app.modules.objects.service import get_object_in_scope
+from app.modules.objects.service import get_object_in_scope, territory_today
 from app.storage import EvidenceLink
 from app.uploads import PHOTO_TYPES, read_upload
 
@@ -40,6 +40,8 @@ def create_inspection(
     if (lat is None) != (lon is None):
         raise api_error(422, "validation_error", "Координаты lat и lon указываются вместе")
     obj = get_object_in_scope(session, scope, object_id)
+    if inspected_at > territory_today(session, obj.territory_id):
+        raise api_error(422, "inspected_at_in_future", "Дата фотофиксации не может быть в будущем")
     uploads = [upload for upload in (*(photos or []), *(photos_brackets or [])) if upload.filename]
     if len(uploads) > MAX_PHOTOS:
         raise api_error(422, "too_many_photos", f"Не более {MAX_PHOTOS} фотографий за одну фотофиксацию")
