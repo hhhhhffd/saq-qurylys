@@ -204,6 +204,8 @@ export interface ObjectRow {
   district_name: string | null;
   lat: number | null;
   lon: number | null;
+  /** fictional demo object (D18) */
+  is_demo: boolean;
 }
 
 export interface DashboardCounts {
@@ -688,6 +690,8 @@ export interface SignalRow {
   number: string;
   object_id: number;
   object_name: string;
+  /** the object of the card is a fictional demo object (D18) */
+  is_demo: boolean;
   zone: Zone | null;
   status: SignalStatus;
   recipient: SignalRecipient | null;

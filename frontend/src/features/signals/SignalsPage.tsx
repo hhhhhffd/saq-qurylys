@@ -8,6 +8,7 @@ import type { SignalRow, SignalStatus } from '@/api/types';
 import { useAuth } from '@/auth/useAuth';
 import { dataColumns } from '@/components/dataColumns';
 import { DataTable } from '@/components/DataTable';
+import { DemoBadge } from '@/components/DemoBadge';
 import { ErrorBlock } from '@/components/QueryState';
 import { ObjectSelect } from '@/components/ObjectSelect';
 import { PageHeader } from '@/components/PageHeader';
@@ -74,7 +75,15 @@ export function SignalsPage() {
         </Link>
       ),
     }),
-    col.accessor('object_name', { header: t('list.columns.object') }),
+    col.accessor('object_name', {
+      header: t('list.columns.object'),
+      cell: (info) => (
+        <span className={classes.nameCell}>
+          {info.getValue()}
+          {info.row.original.is_demo && <DemoBadge />}
+        </span>
+      ),
+    }),
     col.accessor('zone', {
       header: t('list.columns.zone'),
       cell: (info) => <ZoneBadge zone={info.getValue()} />,

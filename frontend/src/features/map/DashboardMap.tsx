@@ -64,6 +64,7 @@ function toObjectCollection(objects: ObjectRow[]) {
               name: row.name,
               score: row.score,
               zone: row.zone ?? 'none',
+              is_demo: row.is_demo,
               rank: ZONE_RANK[row.zone ?? 'none'],
               lon: row.lon,
               lat: row.lat,
@@ -251,6 +252,12 @@ function MapCanvas({ objects, districts, fallbackCenter, highlightedId, onOpen }
           ? t('map.popupScore', { score: properties.score })
           : t('zone.none', { ns: 'enums' });
       content.append(code, name, score);
+      if (properties.is_demo) {
+        const demo = document.createElement('span');
+        demo.className = classes.popupCode;
+        demo.textContent = t('demo.badge', { ns: 'common' });
+        content.append(demo);
+      }
       popup.setLngLat([Number(properties.lon), Number(properties.lat)]).setDOMContent(content).addTo(map);
     });
     map.on('mouseleave', HIT_LAYER, () => {

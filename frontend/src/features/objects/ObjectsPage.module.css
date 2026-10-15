@@ -20,3 +20,10 @@
 .disclaimer {
   margin-top: 14px;
 }
+
+.nameCell {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}

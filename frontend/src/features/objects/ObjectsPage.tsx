@@ -9,6 +9,7 @@ import type { ObjectRow } from '@/api/types';
 import { useAuth } from '@/auth/useAuth';
 import { dataColumns } from '@/components/dataColumns';
 import { DataTable } from '@/components/DataTable';
+import { DemoBadge } from '@/components/DemoBadge';
 import { ErrorBlock } from '@/components/QueryState';
 import { PageHeader } from '@/components/PageHeader';
 import { ZoneBadge, ZoneDot } from '@/components/Zone';
@@ -76,9 +77,12 @@ export function ObjectsPage() {
     col.accessor('name', {
       header: t('list.columns.name'),
       cell: (info) => (
-        <Link to={`/objects/${info.row.original.id}`} onClick={(event) => event.stopPropagation()}>
-          {info.getValue()}
-        </Link>
+        <span className={classes.nameCell}>
+          <Link to={`/objects/${info.row.original.id}`} onClick={(event) => event.stopPropagation()}>
+            {info.getValue()}
+          </Link>
+          {info.row.original.is_demo && <DemoBadge />}
+        </span>
       ),
     }),
     col.accessor('developer_name', {

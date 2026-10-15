@@ -3,6 +3,7 @@ import { Button } from '@mantine/core';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import type { ObjectRow } from '@/api/types';
+import { DemoBadge } from '@/components/DemoBadge';
 import { EmptyState } from '@/components/QueryState';
 import { ZoneBadge } from '@/components/Zone';
 import { useKeyStatusLabel } from '@/i18n/useEnum';
@@ -51,6 +52,7 @@ export function ObjectList({ rows, highlightedId, onHighlight }: Props) {
               </span>
               <span className={classes.meta}>
                 <span className="tnum">{row.code}</span>
+                {row.is_demo && <DemoBadge />}
                 {row.developer_name && <span>{row.developer_name}</span>}
               </span>
               <span className={classes.foot}>
