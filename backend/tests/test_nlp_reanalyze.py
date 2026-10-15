@@ -8,8 +8,9 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.models import AdPost, AuditLog, Phrase, PhraseHit
-from app.models.enums import DetectedBy, PhraseCategory
+from app.models.enums import DetectedBy, LinkMethod, PhraseCategory
 from app.modules.nlp import service, tasks
+from app.modules.settings.service import save_settings
 from tests.conftest import World, auth, make_object
 from tests.support_ads import add_ad
 from tests.test_nlp_service import SessionFactory
@@ -211,3 +212,48 @@ def test_manual_reanalysis_is_for_the_global_admin(
     assert queued == [("nlp.reanalyze_recent", {"queue": "nlp", "retry": False, "ignore_result": True})]
     entry = db.scalars(select(AuditLog).where(AuditLog.action == "phrase.reanalyze")).one()
     assert entry.user_id == world.users["admin"].id
+
+
+def test_reanalysis_window_is_at_least_the_ad_window(db: Session, world: World) -> None:
+    """Hits of a phrase that was switched off must stop counting for every post that the risk still looks at."""
+    obj = make_object(db, world.ust)
+    old = add_ad(db, world.ust, "Бронь квартир", object_id=obj.id, published_at=datetime.now(UTC) - timedelta(days=120))
+    service.analyze_ad(db, old)
+    booking = db.scalars(select(Phrase).where(Phrase.category == PhraseCategory.booking)).one()
+    booking.is_active = False
+
+    assert list(service.reanalyze_recent(db)) == []  # 120 days is outside the 90 days and the default ad window
+    assert old.max_phrase_weight == 10
+
+    save_settings(db, {"ad_window_days": 365})
+    assert list(service.reanalyze_recent(db)) == [{obj.id}]
+    assert old.max_phrase_weight == 0 and hits_of(db, old) == []
+
+
+def test_link_task_that_moves_a_post_refreshes_the_claims_of_both_objects(
+    db: Session, world: World, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    recalculated: list[int] = []
+    monkeypatch.setattr(tasks, "get_sessionmaker", lambda: SessionFactory(db))
+    monkeypatch.setattr(tasks, "objects_changed", lambda ids: recalculated.extend(ids))
+    old = make_object(db, world.ust, "ЖК Старый", readiness_claimed_pct=50)
+    new = make_object(db, world.ust, "ЖК Новый")
+    ad = add_ad(
+        db,
+        world.ust,
+        "ЖК Новый: готовность 50%",
+        object_id=old.id,
+        link_method=LinkMethod.name,
+        claimed_readiness_pct=50,
+        published_at=datetime.now(UTC),
+    )
+
+    tasks.link(ad.id)
+
+    assert ad.object_id == new.id
+    assert (old.readiness_claimed_pct, new.readiness_claimed_pct) == (None, 50)
+    assert sorted(recalculated) == sorted([old.id, new.id])
+
+    recalculated.clear()
+    tasks.link(ad.id)  # nothing moves the second time
+    assert recalculated == []

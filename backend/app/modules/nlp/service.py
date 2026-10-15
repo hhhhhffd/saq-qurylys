@@ -44,7 +44,8 @@ GENERIC_NAME_WORDS = frozenset(
 # Two objects whose similarity differs by less than this are indistinguishable by name.
 AMBIGUITY_MARGIN = 0.05
 MIN_NAME_LENGTH = 3
-# After a dictionary change the posts of this period are analyzed again; older ones keep their hits.
+# After a dictionary change the posts of this period are analyzed again; older ones keep their hits (unless the
+# ad window is longer).
 REANALYZE_WINDOW_DAYS = 90
 REANALYZE_BATCH_SIZE = 200
 
@@ -108,10 +109,12 @@ def analyze_ad(session: Session, ad: AdPost, phrases: list[Phrase] | None = None
 
 
 def reanalyze_recent(session: Session) -> Iterator[set[int]]:
-    """Run the dictionary analysis again over the posts of the last `REANALYZE_WINDOW_DAYS` days, after the
-    dictionary changed. Works in committed batches and yields, after each, the objects whose posts got other
-    dictionary hits (their risk has to be recalculated)."""
-    since = datetime.now(UTC) - timedelta(days=REANALYZE_WINDOW_DAYS)
+    """Run the dictionary analysis again over the recent posts, after the dictionary changed: those of the last
+    `REANALYZE_WINDOW_DAYS` days, or of the ad window when that is longer (the risk counts their hits).
+    Works in committed batches and yields, after each, the objects whose posts got other dictionary hits (their
+    risk has to be recalculated)."""
+    window_days = max(REANALYZE_WINDOW_DAYS, load_settings(session).ad_window_days)
+    since = datetime.now(UTC) - timedelta(days=window_days)
     recency = func.coalesce(AdPost.published_at, AdPost.captured_at, AdPost.created_at)
     phrases = list(session.scalars(select(Phrase).where(Phrase.is_active)))
     last_id = 0

@@ -4,6 +4,7 @@ from app.db import get_sessionmaker
 from app.events import object_changed, objects_changed
 from app.models import AdPost
 from app.models.enums import LlmStatus
+from app.modules.ads.service import refresh_claimed_readiness
 from app.modules.nlp import service
 from app.worker.celery_app import celery_app
 
@@ -29,9 +30,12 @@ def link(ad_post_id: int) -> None:
             logger.warning("nlp.link: ad_post %s does not exist", ad_post_id)
             return
         previous, current = service.link_ad(session, ad)
+        moved = [object_id for object_id in (previous, current) if object_id is not None] if previous != current else []
+        for object_id in moved:
+            # The claims of the post moved from one object to the other.
+            refresh_claimed_readiness(session, object_id)
         session.commit()
-    if previous != current:
-        objects_changed(object_id for object_id in (previous, current) if object_id is not None)
+    objects_changed(moved)
 
 
 @celery_app.task(name="nlp.llm_extract")
