@@ -14,7 +14,7 @@ from sqlalchemy import Select, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models import AdPost, ConstructionObject, Developer, LinkedEntity, SourceAccount, Territory
-from app.models.enums import LinkedEntityKind, Platform
+from app.models.enums import AdStatus, LinkedEntityKind, Platform
 from app.modules.ads.urls import detect_platform, handle_from_url
 from app.modules.developers.service import visible_developers
 from app.modules.graph.schemas import EdgeType, Graph, GraphEdge, GraphFinding, GraphNode
@@ -148,6 +148,7 @@ def _ads_stmt(session: Session, scope: TerritoryScope) -> Select[Any]:
         select(
             AdPost.id,
             AdPost.object_id,
+            AdPost.status,
             AdPost.phones,
             AdPost.links,
             AdPost.source_account_id,
@@ -186,7 +187,7 @@ def _add_source_accounts(graph: _Graph, session: Session, scope: TerritoryScope)
 
 
 def _add_ads(graph: _Graph, session: Session, scope: TerritoryScope, source_keys: dict[int, str]) -> None:
-    for ad_id, object_id, phones, links, source_id, platform, is_demo, snippet, url in session.execute(
+    for ad_id, object_id, status, phones, links, source_id, platform, is_demo, snippet, url in session.execute(
         _ads_stmt(session, scope)
     ):
         key = graph.add(
@@ -199,7 +200,9 @@ def _add_ads(graph: _Graph, session: Session, scope: TerritoryScope, source_keys
                 platform=platform,
             )
         )
-        if object_id is not None:
+        # A link nobody confirmed may be a guess (OPEN_QUESTIONS 27, 29): it must not tie an object to the phone or
+        # account of the publication, or a realtor's number would join two developers.
+        if object_id is not None and status is not AdStatus.verification:
             graph.link(key, f"object:{object_id}", "ad_object")
         for phone in phones:
             graph.link(key, graph.phone(phone, normalize=False), "ad_phone")  # stored in E.164 already

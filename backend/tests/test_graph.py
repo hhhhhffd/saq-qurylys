@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.models import ConstructionObject, Developer, LinkedEntity, SourceAccount
-from app.models.enums import LinkedEntityKind, Platform, Zone
+from app.models.enums import AdStatus, LinkedEntityKind, Platform, Zone
 from app.modules.graph import service
 from app.modules.settings.service import save_settings
 from app.scope import TerritoryScope
@@ -287,6 +287,37 @@ def test_a_shared_account_is_a_finding(client: TestClient, db: Session, world: W
     assert finding["kind"] == "shared_account" and finding["value"] == "instagram/agency_x"
     assert finding["label"] == "Один аккаунт у 2 застройщиков"
     assert finding["developer_ids"] == sorted([d1.id, d2.id])
+
+
+def test_an_unconfirmed_link_of_a_publication_ties_no_developers(client: TestClient, db: Session, world: World) -> None:
+    """A guessed link (status verification) plus a number the publication names must not be a finding."""
+    d1, d2 = make_developer(db, phones=["+77000009451"]), make_developer(db)
+    o1 = make_object(db, world.ust, "ЖК 1", developer_id=d1.id)
+    o2 = make_object(db, world.ust, "ЖК 2", developer_id=d2.id)
+    source = SourceAccount(platform=Platform.telegram, handle="agency_y", object_id=o1.id, territory_id=world.ust.id)
+    db.add(source)
+    db.flush()
+    guessed = add_ad(
+        db,
+        world.ust,
+        "Звоните",
+        object_id=o2.id,
+        phones=["+77000009451"],
+        source_account_id=source.id,
+        status=AdStatus.verification,
+    )
+
+    graph = get_graph(client, "admin", world)
+
+    assert graph["findings"] == []
+    assert (f"ad:{guessed.id}", f"object:{o2.id}", "ad_object") not in edges(graph)
+    assert (f"ad:{guessed.id}", "phone:+77000009451", "ad_phone") in edges(graph)  # still shown as what it names
+
+    guessed.status = AdStatus.captured  # a person confirms the link
+    db.flush()
+    findings = get_graph(client, "admin", world)["findings"]
+    assert {finding["kind"] for finding in findings} == {"shared_phone", "shared_account"}
+    assert all(finding["developer_ids"] == sorted([d1.id, d2.id]) for finding in findings)
 
 
 def test_one_developer_behind_many_objects_is_not_a_finding(client: TestClient, db: Session, world: World) -> None:
