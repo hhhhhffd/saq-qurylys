@@ -13,6 +13,7 @@ import type {
   RiskFactorChange,
   Territory,
   TerritoryInput,
+  TerritoryUpdate,
   UserInput,
 } from '../types';
 
@@ -47,7 +48,7 @@ export function useCreateTerritory() {
 export function useUpdateTerritory() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<TerritoryInput> }) =>
+    mutationFn: ({ id, data }: { id: number; data: TerritoryUpdate }) =>
       api<Territory>(`/territories/${id}`, { method: 'PATCH', body: data }),
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.territories }),
     meta: { success: 'saved' },
@@ -84,26 +85,20 @@ export function useUpdateUser() {
 
 // ---------------------------------------------------------------- settings
 
-/** Accepts either `{key: value}` or `[{key, value}]` from the backend. */
-function normalizeSettings(raw: AppSettings | { key: string; value: unknown }[]): AppSettings {
-  if (Array.isArray(raw)) return Object.fromEntries(raw.map((item) => [item.key, item.value]));
-  return raw;
-}
-
 export function useSettings() {
   return useQuery({
     queryKey: qk.settings,
-    queryFn: () => api<AppSettings | { key: string; value: unknown }[]>('/settings').then(normalizeSettings),
+    queryFn: () => api<AppSettings>('/settings'),
     staleTime: 60_000,
   });
 }
 
+/** Partial update: only the given keys change. */
 export function useUpdateSettings() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: AppSettings) =>
-      api<AppSettings | { key: string; value: unknown }[]>('/settings', { method: 'PUT', body: data }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: qk.settings }),
+    mutationFn: (data: Partial<AppSettings>) => api<AppSettings>('/settings', { method: 'PUT', body: data }),
+    onSuccess: (settings) => qc.setQueryData(qk.settings, settings),
     meta: { success: 'saved' },
   });
 }

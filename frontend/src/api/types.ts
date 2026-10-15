@@ -19,11 +19,6 @@ export interface ApiErrorBody {
   detail: { code: string; message: string };
 }
 
-export interface GeoPoint {
-  type: 'Point';
-  coordinates: [number, number]; // [lon, lat]
-}
-
 // ---------------------------------------------------------------- enums (codes)
 
 export type Role = 'admin' | 'mio_officer' | 'gask' | 'law_enforcement';
@@ -124,7 +119,9 @@ export interface AdminUser extends User {
   is_active: boolean;
 }
 
+/** `POST /users` takes every field; `PATCH /users/{id}` takes any of them except `username` (immutable). Password: 8..128 chars. */
 export interface UserInput {
+  /** lowercase: `^[a-z0-9._@-]{3,64}$` */
   username: string;
   full_name: string;
   password?: string;
@@ -141,20 +138,26 @@ export interface Territory {
   code: string;
   name: string;
   timezone: string;
-  /** Point as GeoJSON or lat/lon pair; use `toLatLon` from `src/lib/geo.ts`. */
-  center?: GeoPoint | { lat: number; lon: number } | null;
-  /** The tree may arrive nested (`children`) or flat (`parent_id`); `flattenTerritories` handles both. */
-  children?: Territory[];
+  center_lat: number | null;
+  center_lon: number | null;
+  /** `GET /territories` returns a nested tree; `flattenTerritories` flattens it. */
+  children: Territory[];
 }
 
+/** `POST /territories`; lat and lon are given together or not at all. */
 export interface TerritoryInput {
   parent_id: number | null;
   level: TerritoryLevel;
+  /** lowercase latin, digits and dashes: `^[a-z0-9][a-z0-9-]{1,63}$` */
   code: string;
   name: string;
   timezone: string;
-  center?: { lat: number; lon: number } | null;
+  lat?: number | null;
+  lon?: number | null;
 }
+
+/** `PATCH /territories/{id}`: only these fields can change. */
+export type TerritoryUpdate = Partial<Pick<TerritoryInput, 'name' | 'timezone' | 'lat' | 'lon'>>;
 
 export interface DistrictFeature {
   type: 'Feature';
@@ -174,8 +177,20 @@ export interface Holiday {
   name: string;
 }
 
-/** `GET /settings`: key to jsonb value. */
-export type AppSettings = Record<string, unknown>;
+/** `GET /settings` (typed keys with defaults) and `PUT /settings` (partial: send only the keys to change; unknown keys are rejected). */
+export interface AppSettings {
+  review_days: number;
+  ad_window_days: number;
+  readiness_gap_pp: number;
+  complaints_threshold: number;
+  stalled_days: number;
+  recheck_after_days: number;
+  link_confidence_threshold: number;
+  green_interval_days: number;
+  yellow_interval_days: number;
+  /** e-mail addresses per receiving body */
+  recipient_emails: Record<SignalRecipient, string[]>;
+}
 
 // ---------------------------------------------------------------- dashboard / objects
 
@@ -266,7 +281,7 @@ export interface Complaint {
   source: ComplaintSource;
   external_id: string | null;
   is_collective: boolean;
-  signatories_count: number | null;
+  signatories_count: number;
   summary: string | null;
   status: ComplaintStatus;
   confirmed_payments: boolean;
@@ -612,11 +627,11 @@ export interface SignalSections {
 export interface AuditEntry {
   id: number;
   user_id: number | null;
-  user_name?: string | null;
+  username: string | null;
   at: string;
   action: string;
   entity_type: string;
-  entity_id: number;
+  entity_id: number | null;
   before: Record<string, unknown> | null;
   after: Record<string, unknown> | null;
   ip?: string | null;

@@ -5,14 +5,13 @@ export interface LatLon {
   lon: number;
 }
 
-/** Territory centers may be GeoJSON points or `{lat, lon}`. */
-export function toLatLon(point: Territory['center']): LatLon | null {
-  if (!point) return null;
-  if ('coordinates' in point) return { lon: point.coordinates[0], lat: point.coordinates[1] };
-  return { lat: point.lat, lon: point.lon };
+/** Territory center as lat/lon, or null when the territory has none. */
+export function toLatLon(territory: Pick<Territory, 'center_lat' | 'center_lon'>): LatLon | null {
+  if (territory.center_lat == null || territory.center_lon == null) return null;
+  return { lat: territory.center_lat, lon: territory.center_lon };
 }
 
-/** `GET /territories` may return a nested tree or a flat list; always return a flat list. */
+/** `GET /territories` returns a nested tree (`children`); a flat list is accepted too. */
 export function flattenTerritories(items: Territory[]): Territory[] {
   const result: Territory[] = [];
   const visit = (node: Territory) => {
