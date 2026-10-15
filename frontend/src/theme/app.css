@@ -101,7 +101,7 @@
 
   /* Type: dense scale, Tektur is wide */
   --font-sans: var(--font-sans);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-heading);
   --font-mono: var(--font-mono);
   --text-3xs: 10px;
   --text-3xs--line-height: 1.3;

@@ -63,6 +63,8 @@
 
   /* Type */
   --font-sans: 'Tektur Variable', system-ui, sans-serif;
+  /* Wordmark, page titles, uppercase panel headers, nav tabs: `font-heading`. Body text stays on --font-sans. */
+  --font-heading: 'Tektur Variable', system-ui, sans-serif;
   --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
 
   /* Motion */
