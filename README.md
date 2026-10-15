@@ -1,152 +1,224 @@
 # SAQ QURYLYS
 
-Risk monitoring of residential construction objects. The binding contract is [docs/SPEC.md](docs/SPEC.md).
+Интеллектуальный мониторинг рисков в долевом жилищном строительстве. Решение кейса Codemasters Hackathon 8.0
+(Усть-Каменогорск, 2026).
 
-## Dev quickstart
+> Система подсвечивает признаки и помогает принять решение. Она не устанавливает факт правонарушения и не отправляет
+> материалы в государственные органы автоматически: каждое решение по сигналу принимает человек.
+> Красная зона означает высокий риск и необходимость проверки, а не установленную виновность.
 
-Requirements: Docker with Compose v2, [uv](https://docs.astral.sh/uv/) for running the backend on the host.
+## Проблема и ценность
 
-```bash
-cp .env.example .env          # dev-only placeholder values; never commit .env
-docker compose up -d --build db redis minio api worker beat   # add `frontend` once ./frontend exists
-docker compose exec api python -m app.seed          # reference data + initial admin (idempotent)
-docker compose exec api python -m app.seed --demo   # + demo users and fictional demo objects (prints demo passwords once)
-docker compose exec api python -m app.seed --pilot  # optional: + public registry facts about real pilot objects
-curl localhost:8000/api/v1/health
-curl -s localhost:8000/api/v1/auth/login -H 'content-type: application/json' \
-  -d '{"username":"admin","password":"change-me-admin-password"}'
+Специалист МИО или региональный аналитик вручную сводит сведения из разных мест: реклама квартир в соцсетях и на
+сайтах, реестр объектов долевого строительства АО «КЖК», разрешения МИО, кадастр, обращения граждан. Понять, какой
+ЖК требует проверки в первую очередь, долго, а реклама с предложением «внести бронь» может исчезнуть раньше, чем её
+зафиксируют.
+
+SAQ QURYLYS собирает всё в одну карточку ЖК, фиксирует публикации как неизменяемые доказательства (снимок PNG,
+архив MHTML, sha256, время фиксации), находит в тексте предложения внести деньги и считает объяснимый балл риска.
+По объекту высокого риска формируется сигнальная карточка: аналитик подтверждает или возвращает её и выгружает PDF.
+
+## Возможности
+
+| Модуль | Что реализовано |
+|---|---|
+| Карта и обзор | Карта города (MapLibre + OpenStreetMap) с метками по зонам, счётчики зон, список ЖК по убыванию балла, фильтры по району и зоне, переход в карточку |
+| Реестр ЖК | Карточка объекта: адрес, координаты, застройщик и БИН, стадия и готовность, правовое основание (гарантия КЖК / разрешение МИО) со статусом и источником проверки, документы со сканами, фотофиксации, обращения граждан, связанные телефоны и аккаунты, импорт CSV |
+| Мониторинг рекламы | Лента публикаций с подсветкой подозрительных формулировок; «Зафиксировать по ссылке» (Playwright: PNG + MHTML в хранилище с Object Lock); ручной ввод, в том числе наружной рекламы с фото и точкой на карте; автоматическая привязка к ЖК (аккаунт → телефон → нечёткое совпадение названия); перепроверка, удалена ли публикация («публикация удалена, сведения сохранены») |
+| Риск-скоринг | Модель кейса R1–R6, автоматический пересчёт по событиям и по расписанию, расшифровка каждого балла со ссылками на доказательства и фрагментом-основанием, отдельный блок «Нужна проверка» для неизвестных сведений, история баллов, веса настраивает администратор (с журналом изменений) |
+| Сигнальная карточка | Автоматический черновик для красной зоны или ручное формирование; разделы по объекту, факторам, проверке оснований, публикациям, схеме привлечения и мерам; «Подтвердить и направить» / «Вернуть на доработку» только человеком с ролью МИО; маршрут (МИО, ГАСК, правоохранительный орган) и контроль срока в рабочих днях по производственному календарю РК; PDF с неизменяемой архивной копией направленной версии; журнал действий (кто, когда, что) |
+
+Дополнительно: двуязычный интерфейс RU/KZ, роли и территориальное разграничение доступа (область → город),
+уведомления, синхронизация с публичным реестром АО «КЖК» (выключена по умолчанию), импорт реальных публичных
+данных пилота.
+
+## Модель риска
+
+Риск — оценка необходимости проверки, а не юридическое заключение. Балл = min(100, сумма весов подтверждённых
+факторов). Расчёт детерминирован: одинаковые подтверждённые данные дают одинаковый результат.
+
+| Код | Фактор | Баллы | Когда учитывается |
+|---|---|---|---|
+| R1 | Установлено отсутствие применимого правового основания | +35 | Проверены оба основания — гарантия Единого оператора и разрешение МИО — и оба не найдены. «Нет данных» или проверка в процессе — это не R1 |
+| R2 | Прямое предложение внести деньги | +25 | В связанной публикации есть бронь, депозит, первоначальный взнос, рассрочка или договор, прикрывающий привлечение средств (словарь, не отклонённый аналитиком; находка ИИ — только после подтверждения) |
+| R3 | Активная реклама строящегося жилья | +10 | Есть связанная публикация за окно мониторинга (по умолчанию 30 дней) |
+| R4 | Подтверждённое коллективное обращение | +15 | Коллективное обращение отмечено аналитиком как проверенное |
+| R5 | Несовпадение заявленной и подтверждённой готовности | +10 | Разница ≥ 20 п.п.; заявленная готовность — из подтверждённой публикации, фактическая — из фотофиксации с датой |
+| R6 | Подтверждённый простой или значимая просрочка | +5 | Простой с документированной даты дольше 30 дней или просрочка ввода от 90 дней |
+
+| Зона | Правило |
+|---|---|
+| Зелёная | 0–24 балла |
+| Жёлтая | 25–59 баллов, а также 60+ без одновременных R1 и R2 |
+| Красная | 60+ баллов и одновременно R1 и R2 — создаётся черновик сигнальной карточки |
+
+Неизвестные сведения дают 0 баллов и выводятся отдельно в блоке «Нужна проверка»: основание не проверено,
+коллективное обращение не проверено, нет фотофиксации к заявленной готовности, есть неподтверждённые гипотезы ИИ,
+привязка публикации к ЖК не подтверждена.
+
+## Как используется ИИ
+
+1. **Словарь рисковых формулировок** (детерминированно): лемматизация русского текста (pymorphy3), поиск
+   формулировок по последовательностям лемм. Например, «забронируйте» находится по «бронирование». Позиции в
+   тексте сохраняются для подсветки. Словарь пополняет администратор; после правки публикации за 90 дней
+   переанализируются.
+2. **Извлечение условий оплаты локальной LLM** (Ollama, `qwen3.5:9b-q6k`, данные не покидают сервер): модель
+   получает текст новой публикации и возвращает находки `{категория, цитата, уверенность}`, схемы оплаты, заявленную
+   готовность. Ответ проверяется по JSON-схеме, цитата должна дословно найтись в тексте. В интерфейсе это
+   «Гипотеза ИИ» с процентом уверенности (ниже 50 % — пометка «неуверенно»). Аналитик принимает или отклоняет
+   каждую находку. Пока гипотеза не подтверждена, она **не влияет на балл**.
+3. **Сопоставление публикации с ЖК**: по привязанному аккаунту, телефону (нормализация KZ, E.164) и нечёткому
+   совпадению названия или алиаса (rapidfuzz). При слабом или неоднозначном совпадении публикация уходит в статус
+   «на верификации».
+
+Без Ollama система полностью работает: словарь, связывание и скоринг детерминированы, LLM-шаг помечается как
+выключенный.
+
+## Архитектура
+
+```
+ Источники                        Сбор и анализ (Celery-воркеры)                   Ядро
+ ─────────                        ──────────────────────────────                   ────
+ Ссылка на публикацию ──► archive.capture (Playwright: PNG + MHTML) ──┐
+ Ручной ввод / наружная ─────────────────────────────────────────────┤
+ Реестр КЖК (homeportal) ─► registry.sync_homeportal (выкл.)         ▼
+ CSV (объекты, обращения)        nlp.analyze (словарь, телефоны) ─► nlp.link (ЖК) ─► nlp.llm_extract (Ollama)
+                                                                                      │
+                                                     risk.recalc_object (R1–R6, зона, «нужна проверка»)
+                                                                                      │ красная зона
+                                                                    черновик сигнальной карточки + уведомление
+                                                                                      │
+ React SPA (RU/KZ) ◄──► FastAPI (JWT, роли, территории, аудит) ◄──► PostgreSQL 16 + PostGIS
+ Карта · Объекты ·                       │                            MinIO (S3, Object Lock, sha256)
+ Реклама · Сигналы ·                     └── WeasyPrint (PDF)         Redis (брокер Celery)
+ Администрирование                                                     Celery beat (расписания)
 ```
 
-| Service | Host port | Notes |
-|---|---|---|
-| api | 8000 | OpenAPI at `/docs`; runs `alembic upgrade head` on start |
-| frontend | 8080 | nginx, proxies `/api` to `api:8000` |
-| db | 5433 | PostgreSQL 16 + PostGIS (`POSTGRES_*` in `.env`) |
-| redis | 6379 | Celery broker |
-| minio | 9000 / 9001 | S3 API / console. The evidence bucket is created with Object Lock by the backend at startup |
+- **Backend**: модульный монолит на FastAPI. Модули `objects`, `documents`, `complaints`, `ads`, `nlp`, `risk`,
+  `signals`, `dashboard`, `registry_sync` и др. — в `backend/app/modules/<имя>/` (router / service / schemas / tasks).
+- **Доказательства неизменяемы**: файлы лежат в бакете с Object Lock, хэш и время фиксации записаны в БД.
+  Таблицы `evidence`, `audit_log`, `risk_factor_change` защищены триггерами от UPDATE/DELETE.
+- **Масштабирование**: территория — атрибут данных (область → город), новые регионы подключаются данными.
+- Подробности: контракт [docs/SPEC.md](docs/SPEC.md), справочник разработчика [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md),
+  принятые решения [docs/OPEN_QUESTIONS.md](docs/OPEN_QUESTIONS.md), источники данных
+  [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md).
 
-`JWT_SECRET` is required (at least 32 characters; `openssl rand -hex 32`). The API refuses to start without it.
+## Технологии
 
-### Backend on the host
+| Слой | Технологии |
+|---|---|
+| Backend | Python 3.12, FastAPI, SQLAlchemy 2, Alembic, Pydantic 2, GeoAlchemy2 |
+| Фоновые задачи | Celery 5 + Redis, celery beat |
+| Данные | PostgreSQL 16 + PostGIS, pg_trgm; MinIO (S3 API, Object Lock) |
+| Сбор и доказательства | Playwright (Chromium), httpx; RFC 3161 метка времени (опционально) |
+| NLP и ИИ | pymorphy3, rapidfuzz, phonenumbers; Ollama + Qwen 3.5 9B (локально) |
+| Документы | Jinja2 + WeasyPrint (PDF) |
+| Frontend | React 19, TypeScript, Vite, Mantine, TanStack Query/Table, React Router, MapLibre GL, react-i18next |
+| Инфраструктура | Docker Compose, nginx |
+
+## Запуск
+
+Нужны Docker с Compose v2. Деплой не требуется.
 
 ```bash
-cd backend
-uv sync
-uv run alembic upgrade head          # uses DATABASE_URL from ../.env
-uv run uvicorn app.main:app --reload
-uv run ruff check . && uv run ruff format --check . && uv run mypy app tests
-uv run pytest                        # needs `docker compose up -d db redis minio`
+cp .env.example .env                                   # значения для разработки, без настоящих секретов
+docker compose up -d --build                           # db, redis, minio, api, worker, beat, frontend
+docker compose exec api python -m app.seed --demo      # справочники, демо-пользователи и демо-данные
+python3 scripts/verify_case_scenarios.py               # проверка сценариев A/B/C кейса (OK × 3)
 ```
 
-Tests create a separate `saq_test` database, run the Alembic migrations in it and use a real MinIO bucket
-(`evidence-test`). Override with `TEST_DATABASE_URL`, `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`.
-Every test runs in a rolled-back transaction. The Celery hook `app.events.object_changed` is disabled in tests
-(`EVENTS_ENABLED=false`).
+Откройте http://localhost:8080.
 
-## Celery contract
-
-Queues: `collect`, `archive`, `nlp`, `score`, `notify`, `default`. Tasks are implemented in each module's
-`app/modules/<module>/tasks.py` (auto-discovered) under these exact names:
-
-| Task | Queue | Schedule (UTC) |
+| Пользователь | Пароль | Роль |
 |---|---|---|
-| `archive.capture` | archive | on demand |
-| `nlp.analyze`, `nlp.link`, `nlp.llm_extract` | nlp | on demand |
-| `risk.recalc_object(object_id)` | score | on demand, via `app.events.object_changed(object_id)` |
-| `risk.sweep_due` | score | daily 02:00 |
-| `collect.run_all` | collect | daily 01:00 |
-| `registry.sync_homeportal` | collect | daily 03:00, runs only if `HOMEPORTAL_SYNC_ENABLED=true`; on demand via the API |
-| `ads.recheck_due` | collect | every 6 hours |
-| `signals.check_deadlines` | notify | daily 06:00 |
-| `notify.red_zone` | notify | on demand |
+| `admin` | `INITIAL_ADMIN_PASSWORD` из `.env` | администратор |
+| `demo_mio` | `DEMO_USER_PASSWORD` из `.env` | специалист МИО (основной сценарий) |
+| `demo_gask` | то же | получатель ГАСК |
+| `demo_police` | то же | правоохранительный орган |
 
-Call `object_changed(object_id)` **after** committing a change to an object, its documents, complaints,
-inspections or ads. It is a no-op when `EVENTS_ENABLED=false`.
+**ИИ-шаг (необязательно).** Запустите Ollama с моделью `qwen3.5:9b-q6k` (`ollama pull qwen3.5:9b-q6k`,
+`OLLAMA_HOST=0.0.0.0:11434 ollama serve`), в `.env` поставьте `LLM_ENABLED=true` и `OLLAMA_URL`. Из контейнера по
+умолчанию это `http://host.docker.internal:11434`. Если Ollama работает внутри WSL, а Docker — Docker Desktop,
+укажите IP WSL: `hostname -I`. Затем выполните `docker compose up -d api worker`.
 
-## CSV import
+**Реальные публичные данные пилота (необязательно)**: `docker compose exec api python -m app.seed --pilot`. Будет
+загружено 28 строящихся ЖК Усть-Каменогорска с krisha.kz и из реестра АО «КЖК» на 13.10.2026, только сведения о
+юрлицах и документах, без оценок. Для демонстрации не нужны.
 
-Both importers accept UTF-8 (or Windows-1251) files with a header row and `,`, `;` or tab as separator.
-Column names are case-insensitive; unknown columns are ignored. Dates are `YYYY-MM-DD` or `DD.MM.YYYY`;
-decimals may use `.` or `,`; booleans are `1/0`, `true/false`, `yes/no`, `да/нет`. Valid rows are saved even
-if other rows fail. The response is `{"created": N, "updated": N, "errors": [{"row": N, "message": "..."}]}`
-where `row` is the spreadsheet row number (the header is row 1).
+## Тестовый сценарий
 
-### `POST /api/v1/objects/import`
+Демо-данные: 16 вымышленных ЖК, 14 публикаций. Все помечены «ДЕМО», застройщики с БИН `99…`, ссылки
+`example.invalid`.
 
-| Column | Required | Description |
-|---|---|---|
-| `name` | yes | Object name |
-| `territory_code` | yes | Code of a city territory you can access, e.g. `ust-kamenogorsk` |
-| `code` | no | Existing object code (`SQ-OBJ-0001`): updates that object. An unknown code is an error |
-| `district` | no | District name within the city |
-| `developer_bin` | no | 12-digit BIN. If unknown, `developer_name` creates the developer |
-| `developer_name` | no | Used only to create a new developer |
-| `aliases` | no | Alternative names separated by `\|` (replaces the current list) |
-| `address`, `cadastral_number`, `land_purpose`, `prior_violations` | no | Text |
-| `lat`, `lon` | no | WGS84; both or neither |
-| `planned_completion`, `forecast_completion`, `stalled_since` | no | Dates |
-| `construction_status` | no | `not_started`, `active` (default on create), `stalled`, `completed` |
+| Кейс | Объект | Данные | Результат |
+|---|---|---|---|
+| A | «Северный бриз» | основание не проверено + платная бронь | R2 25 + R3 10 = **35, жёлтая**, «Нужна проверка: правовое основание» |
+| B | «Золотая осень» | гарантия и разрешение МИО проверены и не найдены + «внесите депозит» | R1 35 + R2 25 + R3 10 = **70, красная**, черновик сигнальной карточки |
+| C | «Тихая гавань» | гарантия КЖК подтверждена, обычная реклама | R3 10 = **10, зелёная**, без разрешения МИО R1 не начисляется |
 
-Without `code`, an existing object is matched by `cadastral_number`, otherwise by city + name + address (only
-when an address is given), so re-importing the same file updates instead of duplicating. A row with neither
-cadastral number nor address always creates a new object; several matches are reported as a row error.
-Only objects within your territory are matched. Empty cells leave existing values unchanged.
+Сквозной сценарий под `demo_mio`:
 
-### `POST /api/v1/complaints/import`
+1. **Обзор.** На карте отфильтруйте красную зону и откройте «Золотая осень».
+2. **Проверка.** В карточке смотрите застройщика, стадию, правовое основание со статусом проверки и источником,
+   документы.
+3. **Сигнал.** Откройте связанную публикацию: в тексте подсвечен фрагмент «внесите депозит» и показана гипотеза ИИ
+   с уверенностью.
+4. **Оценка.** Смотрите балл 70 и расшифровку R1/R2/R3 со ссылками на доказательства. Отклоните найденную словарём
+   формулировку — балл пересчитается без R2. Подтвердите её снова — балл вернётся.
+5. **Решение.** Откройте автоматически созданную сигнальную карточку, «Вернуть на доработку» с комментарием,
+   отредактируйте, затем «Подтвердить и направить» в ГАСК и скачайте PDF. В журнале видно, кто, когда и что сделал.
+   Под `demo_gask` внесите результат рассмотрения.
 
-| Column | Required | Description |
-|---|---|---|
-| `object_code` | yes | Object code, e.g. `SQ-OBJ-0001` |
-| `received_at` | yes | Date received |
-| `source` | no | `eotinish` (default), `manual`, `other` |
-| `external_id` | no | Complaint number in the source system. `(source, external_id)` identifies a complaint: a repeat updates it |
-| `is_collective`, `confirmed_payments` | no | Booleans (default no) |
-| `signatories_count` | no | Integer >= 1 (default 1) |
-| `summary` | no | Text |
-| `status` | no | `new` (default), `in_review`, `closed` |
+Новая публикация: «Реклама» → ручной ввод (или «Зафиксировать по ссылке»). Текст «Старт продаж! Забронируйте
+квартиру, первоначальный взнос 10 %» с привязкой к «Берёзовая роща» (0, зелёная) добавит R2 и R3, и балл объекта
+автоматически пересчитается до 35 (жёлтая).
 
-## Seed data files
+## Проверка качества
 
-Optional files in `backend/app/seed_data/` (districts, holidays, demo objects) are loaded by `python -m app.seed`.
-Their formats are in [backend/app/seed_data/README.md](backend/app/seed_data/README.md).
+```bash
+cd backend && uv sync
+docker compose up -d db redis minio
+uv run pytest                               # ~600 тестов на реальных PostgreSQL/PostGIS и MinIO
+uv run ruff check . && uv run mypy app tests
+cd ../frontend && pnpm install && pnpm typecheck && pnpm lint && pnpm build
+python3 scripts/verify_case_scenarios.py   # на запущенном стеке с демо-данными
+```
 
-## Данные пилота
+Покрыто тестами: формула и зоны R1–R6 (включая сценарии A/B/C на уровне движка, сервиса и API), «нет данных ≠ нет
+основания», влияние гипотез ИИ только после подтверждения, жизненный цикл сигнальной карточки и права ролей,
+нумерация `SQ-ГГГГ-NNNN`, рабочие дни с праздниками РК, неизменяемость доказательств (триггеры, sha256),
+лемматизация и позиции фраз, связывание публикаций, извлечение LLM с подменённым транспортом, фиксация страницы
+реальным Chromium, импорт CSV и данных пилота, синхронизация реестра с фикстурами.
 
-Три источника данных, не смешиваются между собой:
+## Известные ограничения
 
-- **Демо** (`python -m app.seed --demo`) — 16 вымышленных ЖК в Усть-Каменогорске (`is_demo=true`, у публикаций тоже),
-  вымышленные застройщики с БИН `99…`, телефоны `+7 700 000 xx xx`, ссылки `https://example.invalid/…`. Среди них три
-  контрольных сценария кейса (SPEC 6.6): A «Северный бриз» (основание не проверено + платная бронь → 35, жёлтая),
-  B «Золотая осень» (отсутствие основания установлено + депозит → 70, красная), C «Тихая гавань» (подтверждена
-  гарантия, обычная реклама → 10, зелёная). Даты в файле относительные (`-3d`), поэтому публикации всегда
-  свежие. После загрузки публикации уходят в `nlp.analyze` → `nlp.link` (и `nlp.llm_extract` при `LLM_ENABLED`),
-  затем объект пересчитывается; гипотезы ИИ балл не меняют.
-- **Пилот** (`python -m app.seed --pilot`, необязательно) — только публичные сведения о юридических лицах и объектах:
-  26 строящихся ЖК с krisha.kz и записи реестра АО «КЖК» (homeportal.kz) от 2026-10-13, файл
-  `backend/app/seed_data/pilot/`. Без ФИО, телефонов и e-mail, без жалоб, рекламы и любых оценок: зону система считает
-  сама. Документы «Разрешение МИО» / «Участие БВУ» → `dsu_permit`, «Гарантия КЖК» → `guarantee`, статус `confirmed` с
-  источником `housing_portal`; ЖК, которых нет в реестре, получают документ `checking` («требуется ручная сверка»).
-  Повторный запуск ничего не дублирует и не затирает правки сотрудников.
-- **Синхронизация реестра КЖК** (`registry.sync_homeportal`) — обновляет те же документы по публичному API
-  `api.homeportal.kz`, сырые ответы сохраняются как доказательства (`registry_response`). По умолчанию выключена
-  (`HOMEPORTAL_SYNC_ENABLED=false`): для регулярного использования нужно согласие АО «КЖК» (docs/OPEN_QUESTIONS.md,
-  п. 11). Вручную: `POST /api/v1/registry-sync/homeportal` (администратор без территории), состояние —
-  `GET /api/v1/registry-sync/status`. Документ, пропавший из реестра, переводится в `checking`, но не в `not_found`.
+- Автоматические парсеры Instagram, TikTok и Telegram заложены интерфейсом коллектора, но не реализованы: нужны
+  служебные аккаунты. Сейчас публикации добавляются по ссылке (снимок делается автоматически) или вручную. Для
+  закрытых страниц снимок может оказаться страницей входа.
+- У «Казреестра», разрешений МИО, кадастра и e-Otinish нет публичного API: проверка вносится вручную со
+  скриншотом-доказательством. Реальной интеграции нет, и система её не изображает. Реестр АО «КЖК» читается через
+  недокументированный публичный API; автосинхронизация выключена до согласования с КЖК.
+- Границы районов города приблизительные (официальных в открытых данных нет). Производственный календарь 2027 года
+  рассчитан по закону и требует сверки после публикации.
+- Уверенность LLM плохо откалибрована (обычно 0,85–0,98), поэтому итоговое слово всегда за аналитиком.
+- До промышленной эксплуатации нужны ограничение попыток входа, отзыв токенов, отдельная роль БД без права
+  UPDATE/DELETE для приложения и режим Object Lock `COMPLIANCE`. См. [docs/OPEN_QUESTIONS.md](docs/OPEN_QUESTIONS.md).
+- Казахский перевод интерфейса требует вычитки носителем языка.
 
-## Access rules worth knowing
+## Данные и источники
 
-- Everything is filtered by the user's territory (own territory plus descendants; no territory = whole country).
-  Out-of-scope objects are answered with 404, not 403.
-- Developers have no territory: an officer sees developers that have an object in their territory or no objects
-  at all. Searching by a full 12-digit BIN finds any developer, so one registered elsewhere can be linked.
-- Settings and the holiday calendar are country-wide: only an admin without a territory may change them.
-- Receiving bodies (`gask`, `law_enforcement`) can open evidence only of signal cards sent to them (the card's
-  own files and the ids listed in its `sections.*[].evidence_ids`).
+- Демо-данные вымышлены; настоящих персональных данных в seed нет.
+- Справочники: производственный календарь РК 2026 (Минтруда РК), приблизительные районы Усть-Каменогорска
+  (© участники OpenStreetMap, ODbL).
+- Подложка карты: OpenFreeMap / OpenStreetMap (ODbL).
+- Как получить каждый тип входных данных без API — [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md).
 
-## Notes
+## Сторонние компоненты и использование AI-инструментов
 
-- Upstream MinIO no longer publishes official Docker images. Compose pins a community build of the last upstream
-  release (`alpine/minio`). The backend uses only the S3 API with Object Lock, so another S3-compatible store
-  with Object Lock can be used by changing `S3_*` in `.env`.
-- Evidence is immutable by design: `evidence`, `audit_log` and `risk_factor_change` reject UPDATE, DELETE and
-  TRUNCATE through database triggers.
+- Библиотеки перечислены в `backend/pyproject.toml` и `frontend/package.json`. Образы: `postgis/postgis`,
+  `redis`, `alpine/minio` (сборка последнего релиза MinIO), `nginx`, `node`, Playwright Chromium. MinIO (AGPL-3.0)
+  используется как отдельный сервис, без линковки.
+- Модель: Qwen 3.5 9B (открытые веса) через Ollama, локально.
+- При разработке использовался AI-ассистент Claude Code (Anthropic): код и документация созданы с его помощью
+  под контролем команды. Архитектурные решения и их обоснования — в [docs/SPEC.md](docs/SPEC.md) и
+  [docs/OPEN_QUESTIONS.md](docs/OPEN_QUESTIONS.md).
