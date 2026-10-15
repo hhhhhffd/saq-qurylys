@@ -119,7 +119,6 @@ def recalculate(
     run one after another and the "entered red" decision is made once. `FOR NO KEY UPDATE` is enough for
     that and, unlike `FOR UPDATE`, does not block other transactions adding documents or complaints.
     """
-    now = now or datetime.now(UTC)
     obj = session.scalar(
         select(ConstructionObject)
         .where(ConstructionObject.id == object_id)
@@ -128,6 +127,8 @@ def recalculate(
     )
     if obj is None:
         return None
+    # Taken after the lock: a calculation that waited for another one must not look older than its result.
+    now = now or datetime.now(UTC)
     settings = load_settings(session)
     factors = [
         engine.FactorWeight(code=factor.code, weight=factor.weight)

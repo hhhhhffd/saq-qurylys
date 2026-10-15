@@ -6,7 +6,7 @@
   </tr>
   {% for item in files %}
   <tr>
-    <td>{{ item.id }}</td><td>{{ item.kind }}</td><td>{{ item.captured_at }}</td><td>{{ item.sha256 }}</td>
+    <td>{{ item.id }}</td><td>{{ item.kind }}</td><td>{{ item.captured_at }}</td><td class="hash">{{ item.sha256 }}</td>
   </tr>
   {% endfor %}
 </table>

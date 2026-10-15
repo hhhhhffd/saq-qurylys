@@ -19,7 +19,8 @@
   h1 { font-size: 16pt; margin: 0 0 3mm; }
   h2 { font-size: 11.5pt; margin: 6mm 0 2mm; padding-bottom: 1mm; border-bottom: 0.5pt solid #bbb; break-after: avoid; }
   table { width: 100%; border-collapse: collapse; }
-  th, td { text-align: left; vertical-align: top; padding: 1.2mm 2mm; border: 0.5pt solid #ccc; overflow-wrap: anywhere; }
+  th, td { text-align: left; vertical-align: top; padding: 1.2mm 2mm; border: 0.5pt solid #ccc; overflow-wrap: break-word; }
+  .hash { word-break: break-all; }
   th { background: #f0f0f2; font-weight: bold; }
   table.kv th { width: 38%; }
   tr { break-inside: avoid; }
@@ -34,7 +35,7 @@
   .evidence table { font-size: 8pt; }
   figure { margin: 2mm 0 0; break-inside: avoid; }
   figure img { max-width: 100%; max-height: 190mm; object-fit: contain; border: 0.5pt solid #ccc; }
-  figcaption { font-size: 8pt; color: #555; margin-top: 1mm; }
+  figcaption { font-size: 8pt; color: #555; margin-top: 1mm; overflow-wrap: anywhere; }
   .note { white-space: pre-wrap; }
 </style>
 </head>
