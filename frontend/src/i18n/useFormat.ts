@@ -7,6 +7,8 @@ import { flattenTerritories } from '@/lib/geo';
 const DEFAULT_TIME_ZONE = 'Asia/Almaty';
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 const INTL_LOCALE = { ru: 'ru-RU', kk: 'kk-KZ' } as const;
+// Kazakh users read dates as DD.MM.YYYY too; kk-KZ would render them as ISO (2026-10-13).
+const DATE_LOCALE = 'ru-RU';
 
 /** Time zone of the user's territory (SPEC §2: display in the territory's zone). */
 export function useTimeZone(): string {
@@ -28,9 +30,9 @@ export function useFormat() {
   const locale = INTL_LOCALE[i18n.language === 'kk' ? 'kk' : 'ru'];
 
   return useMemo(() => {
-    const dateFmt = new Intl.DateTimeFormat(locale, { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
-    const zonedDateFmt = new Intl.DateTimeFormat(locale, { day: '2-digit', month: '2-digit', year: 'numeric', timeZone });
-    const dateTimeFmt = new Intl.DateTimeFormat(locale, {
+    const dateFmt = new Intl.DateTimeFormat(DATE_LOCALE, { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' });
+    const zonedDateFmt = new Intl.DateTimeFormat(DATE_LOCALE, { day: '2-digit', month: '2-digit', year: 'numeric', timeZone });
+    const dateTimeFmt = new Intl.DateTimeFormat(DATE_LOCALE, {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
