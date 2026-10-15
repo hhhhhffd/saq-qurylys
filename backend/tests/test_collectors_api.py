@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.models import AuditLog, SourceAccount
 from app.models.enums import Platform
-from tests.conftest import World, auth
+from tests.conftest import World, auth, make_object
 
 ACCOUNTS = "/api/v1/source-accounts"
 OLX_SEARCH = "https://www.olx.kz/nedvizhimost/q-novostroyka/"
@@ -238,3 +238,41 @@ def test_accounts_of_other_platforms_are_created_as_before(client: TestClient, w
 
     assert telegram.json()["handle"] == "alatau_news" and instagram.json()["handle"] == "alatau_zhk"
     assert telegram.json()["last_error"] is None and telegram.json()["last_error_at"] is None
+
+
+def test_a_saved_search_of_an_aggregator_cannot_be_bound_to_an_object(
+    client: TestClient, db: Session, world: World
+) -> None:
+    headers = auth(world.users["mio_ust"])
+    obj = make_object(db, world.ust, "Жилой комплекс Нур Плаза")
+
+    refused = client.post(
+        ACCOUNTS,
+        headers=headers,
+        json={"platform": "aggregator", "handle": "poisk", "url": OLX_SEARCH, "object_id": obj.id},
+    )
+
+    assert refused.status_code == 422 and refused.json()["detail"]["code"] == "aggregator_object_not_allowed"
+    assert db.scalars(select(SourceAccount).where(SourceAccount.platform == Platform.aggregator)).all() == []
+    created = client.post(
+        ACCOUNTS, headers=headers, json={"platform": "aggregator", "handle": "poisk", "url": OLX_SEARCH}
+    )
+    assert created.status_code == 201 and created.json()["object_id"] is None
+    url = f"{ACCOUNTS}/{created.json()['id']}"
+    patched = client.patch(url, headers=headers, json={"object_id": obj.id})
+    assert patched.status_code == 422 and patched.json()["detail"]["code"] == "aggregator_object_not_allowed"
+    # Clearing is allowed (a search bound before this rule), and so is an update that leaves the object alone.
+    assert client.patch(url, headers=headers, json={"object_id": None, "is_watched": False}).status_code == 200
+
+
+def test_accounts_of_a_single_publisher_are_still_bound_to_an_object(
+    client: TestClient, db: Session, world: World
+) -> None:
+    headers = auth(world.users["mio_ust"])
+    obj = make_object(db, world.ust, "Жилой комплекс Нур Плаза")
+
+    created = client.post(
+        ACCOUNTS, headers=headers, json={"platform": "telegram", "handle": "nur_plaza", "object_id": obj.id}
+    )
+
+    assert created.status_code == 201 and created.json()["object_id"] == obj.id

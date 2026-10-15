@@ -40,7 +40,11 @@ export function SourceFormModal({ onClose }: { onClose: () => void }) {
 
   const submit = form.onSubmit((values) => {
     if (values.platform === null) return;
-    const input: SourceAccountInput = { platform: values.platform, object_id: values.object_id };
+    // A search of an aggregator finds the listings of any seller: it is not bound to an object.
+    const input: SourceAccountInput = {
+      platform: values.platform,
+      object_id: values.platform === 'aggregator' ? null : values.object_id,
+    };
     const handle = values.handle.trim();
     if (values.platform === 'aggregator') {
       input.url = values.url.trim();
@@ -99,12 +103,16 @@ export function SourceFormModal({ onClose }: { onClose: () => void }) {
               {...form.getInputProps('url')}
             />
           )}
-          <ObjectSelect
-            label={t('form.object')}
-            value={form.values.object_id}
-            onChange={(id) => form.setFieldValue('object_id', id)}
-          />
-          <p className={classes.formNote}>{t('form.objectNote')}</p>
+          {platform !== 'aggregator' && (
+            <>
+              <ObjectSelect
+                label={t('form.object')}
+                value={form.values.object_id}
+                onChange={(id) => form.setFieldValue('object_id', id)}
+              />
+              <p className={classes.formNote}>{t('form.objectNote')}</p>
+            </>
+          )}
           <Group justify="flex-end" mt="xs">
             <Button variant="default" onClick={onClose}>
               {tc('cancel')}

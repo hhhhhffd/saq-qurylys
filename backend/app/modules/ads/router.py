@@ -433,6 +433,16 @@ def _checked_search_url(url: str | None) -> str:
 
 def _search_label(url: str) -> str:
     """Name of a search the user did not name: its address without the scheme, so that two searches differ."""
+def _reject_aggregator_object(object_id: int | None) -> None:
+    """A saved search returns the listings of any seller, so it cannot vouch for an object (OPEN_QUESTIONS 29)."""
+    if object_id is not None:
+        raise api_error(
+            422,
+            "aggregator_object_not_allowed",
+            "Поиск на агрегаторе нельзя привязать к объекту: он находит объявления любых продавцов",
+        )
+
+
     parts = urlsplit(url)
     label = split_url(url)[0] + parts.path.rstrip("/") + (f"?{parts.query}" if parts.query else "")
     return label[:255].lower()
@@ -485,6 +495,7 @@ def create_source_account(
         url = _checked_search_url(body.url)
         handle = handle or _search_label(url)
     elif handle is None and body.url is not None:
+        _reject_aggregator_object(body.object_id)
         handle = handle_from_url(body.platform, body.url)
     if not handle:
         raise api_error(422, "validation_error", "Не удалось определить имя аккаунта: укажите handle")
@@ -520,8 +531,10 @@ def update_source_account(
     _check_account_references(
         session, scope, changes.get("object_id"), changes.get("developer_id"), changes.get("territory_id")
     )
-    if account.platform is Platform.aggregator and "url" in changes:
-        _checked_search_url(changes["url"])
+    if account.platform is Platform.aggregator:
+        if "url" in changes:
+            _checked_search_url(changes["url"])
+        _reject_aggregator_object(changes.get("object_id"))
     if "handle" in changes:
         changes["handle"] = _normalize_handle(changes["handle"])
         _ensure_account_unique(session, account.platform, changes["handle"], account.id)
