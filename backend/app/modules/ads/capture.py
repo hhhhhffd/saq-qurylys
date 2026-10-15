@@ -16,7 +16,7 @@ from app.models import AdPost, Notification
 from app.models.enums import AdVersionSource, CaptureStatus, EvidenceKind, NotificationKind, Platform
 from app.modules.ads.urls import UnsafeUrlError, detect_platform, ensure_public_url, telegram_embed_url
 from app.modules.ads.versions import SOURCE_TEXT_ORIGINS, record_version
-from app.modules.nlp.text import OCR_MARKER, split_ocr
+from app.modules.nlp.text import split_ocr, strip_ocr_marker
 from app.storage import EvidenceLink
 
 logger = logging.getLogger(__name__)
@@ -283,7 +283,7 @@ def capture_ad(
     now = datetime.now(UTC)
     if not (ad.text or "").strip():
         # The page is not trusted to carry the OCR marker: text after it would pass for text read from the photos.
-        ad.text = captured.text.replace(OCR_MARKER, "\n\n") or None
+        ad.text = strip_ocr_marker(captured.text) or None
     elif (
         captured.text
         and split_ocr(ad.text or "")[0].strip()

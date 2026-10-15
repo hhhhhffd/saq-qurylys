@@ -293,7 +293,11 @@ def link_ad(session: Session, ad: AdPost) -> tuple[int | None, int | None]:
         # guessed link; an account that staff bound to the object is not a guess (OPEN_QUESTIONS 29).
         if ad.origin in UNREVIEWED_ORIGINS and method is not LinkMethod.account:
             confident = False
-        ad.status = AdStatus.captured if confident else AdStatus.verification
+        if not confident:
+            ad.status = AdStatus.verification
+        else:
+            # A post found removed while its link was unconfirmed keeps that fact once the link is certain.
+            ad.status = AdStatus.removed_saved if ad.removed_detected_at is not None else AdStatus.captured
     return previous, object_id
 
 

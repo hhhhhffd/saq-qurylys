@@ -1,6 +1,8 @@
 """Linking a post to an object by name: only the distinctive words of the name count, and a name is strong only
 when all of them are found."""
 
+from datetime import UTC, datetime
+
 import pytest
 from sqlalchemy.orm import Session
 
@@ -139,3 +141,25 @@ def test_a_saved_search_bound_to_an_object_does_not_link_what_it_finds(db: Sessi
         AdStatus.verification,
     )
     assert (nameless.object_id, nameless.link_method) == (None, None)
+
+
+def test_a_removed_post_keeps_the_removal_once_its_link_is_certain(db: Session, world: World) -> None:
+    obj = make_object(db, world.ust, "Жилой комплекс Нур Плаза")
+    account = SourceAccount(
+        platform=Platform.telegram, handle="nur_removed", object_id=obj.id, territory_id=world.ust.id
+    )
+    db.add(account)
+    db.flush()
+    ad = add_ad(
+        db,
+        world.ust,
+        "Старт продаж",
+        origin=AdOrigin.collector,
+        source_account_id=account.id,
+        status=AdStatus.verification,
+        removed_detected_at=datetime.now(UTC),
+    )
+
+    service.link_ad(db, ad)
+
+    assert (ad.object_id, ad.status) == (obj.id, AdStatus.removed_saved)
