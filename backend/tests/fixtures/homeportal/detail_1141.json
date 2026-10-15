@@ -1,0 +1,88 @@
+{
+  "success": true,
+  "message": "Object Details retrieved successfully",
+  "data": {
+    "basicData": {
+      "name": "ЖК \"Золотой квадрат\"",
+      "authority": {
+        "id": 2,
+        "name": "Гарантия АО \"КЖК\""
+      },
+      "warranty_number": "ДПГ-25-16-078/194",
+      "issue_date": "18.08.2025",
+      "start_date": "01.06.2025",
+      "commissioning_date": "01.11.2026",
+      "construction_progress": "0",
+      "address": "г. Усть-Каменогорск, ул. Кайсенова, уч. 55/1",
+      "region": {
+        "id": 16,
+        "name_kz": "Шығыс Қазақстан",
+        "name_ru": "Восточно-Казахстанская",
+        "name_en": "East Kazakhstan"
+      },
+      "city": {
+        "id": 73,
+        "name_kz": "Өскемен қ.",
+        "name_ru": "г. Усть-Каменогорск",
+        "name_en": "Ust-Kamenogorsk c."
+      },
+      "website_of_residential_complex": "https://zolotoi-kvadrat.kz/",
+      "name_of_stb": null,
+      "developerData": {
+        "bin": "970640000190",
+        "name": "ТОО \"НАУАН Корп\"",
+        "email": null,
+        "phone": null,
+        "develpoer_website": null
+      },
+      "link_to_report": "https://khc.kz/ru/engineering-otchet/430/?house=&year=",
+      "program": "Орда Аймақ",
+      "program_link": "https://homeportal.kz/orda",
+      "act_number": "",
+      "act_date": "",
+      "act_registration_number": "",
+      "act_registration_date": "",
+      "act_created_at": ""
+    },
+    "apartmentData": [],
+    "objectData": {},
+    "locationData": {
+      "cadastral_number": "05-085-070-424",
+      "link_to_land_cadastral_number": "https://www.aisgzk.kz/aisgzk/ru/content/maps?type=cosmos",
+      "latitude": "49.945497",
+      "longitude": "82.622997"
+    },
+    "companyData": {
+      "developerData": {
+        "bin": "970640000190",
+        "name": "ТОО \"НАУАН Корп\"",
+        "email": null,
+        "phone": null,
+        "develpoer_website": null
+      },
+      "authorizedData": {
+        "bin": "211140032196",
+        "name": "ТОО «SA-Инжиниринг»",
+        "email": null,
+        "phone": null,
+        "develpoer_website": null
+      },
+      "supervisingData": {
+        "bin": "171240027649",
+        "name": "ТОО QURYLYSKZ",
+        "email": null,
+        "phone": null,
+        "develpoer_website": null
+      },
+      "technicalSupervisingData": {
+        "bin": "130440013597",
+        "name": "ТОО \"Engineering Services\"",
+        "email": null,
+        "phone": null,
+        "develpoer_website": null
+      }
+    },
+    "images": []
+  },
+  "markerLocations": []
+}

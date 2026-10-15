@@ -146,12 +146,23 @@ def test_celery_registers_contract_tasks_and_schedule() -> None:
     from app.worker.celery_app import celery_app
 
     scheduled = {entry["task"] for entry in celery_app.conf.beat_schedule.values()}
-    assert scheduled == {"collect.run_all", "risk.sweep_due", "ads.recheck_due", "signals.check_deadlines"}
+    assert scheduled == {
+        "collect.run_all",
+        "risk.sweep_due",
+        "ads.recheck_due",
+        "signals.check_deadlines",
+        "registry.sync_homeportal",
+    }
+    registry_entry = celery_app.conf.beat_schedule["registry-sync-homeportal"]
+    assert registry_entry["kwargs"] == {"scheduled": True}  # the task itself checks HOMEPORTAL_SYNC_ENABLED
+    assert (registry_entry["schedule"].hour, registry_entry["schedule"].minute) == ({3}, {0})
     routed = set(celery_app.conf.task_routes)
     assert routed == {
         "archive.capture", "nlp.analyze", "nlp.link", "nlp.llm_extract", "ads.recheck_due",
         "collect.run_all", "risk.recalc_object", "risk.sweep_due", "signals.check_deadlines", "notify.red_zone",
+        "registry.sync_homeportal",
     }  # fmt: skip
+    assert celery_app.conf.task_routes["registry.sync_homeportal"] == {"queue": "collect"}
     assert {queue.name for queue in celery_app.conf.task_queues} == {
         "collect",
         "archive",

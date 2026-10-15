@@ -1,0 +1,175 @@
+{
+  "suceess": "1",
+  "message": "'Objects successfully retrieved'",
+  "data": {
+    "objects": {
+      "data": [
+        {
+          "id": 1505,
+          "name": "МЖК \"PARK LINE\"",
+          "slug": "mzk-park-line",
+          "authority": "Разрешение МИО",
+          "address": "г. Усть-Каменогорск, пр. И. Есенберлина, д. 56",
+          "bin": "220740026935",
+          "developerName": "ТОО \"Mercury Construction\"",
+          "latitude": "49.917561",
+          "longitude": "82.619097"
+        },
+        {
+          "id": 1452,
+          "name": "ЖК \"Satti City\"",
+          "slug": "zk-satti-city",
+          "authority": "Разрешение МИО",
+          "address": "г. Усть-Каменогорск, ул. Есенберлина, д. 84",
+          "bin": "211040009188",
+          "developerName": "ТОО \"СТ-77\"",
+          "latitude": "49.919223",
+          "longitude": "82.616442"
+        },
+        {
+          "id": 1428,
+          "name": "МЖК \"Renesans\"",
+          "slug": "mzk-renesans",
+          "authority": "Разрешение МИО",
+          "address": "г. Усть-Каменогорск, пр. а И. Есенберлина, д. 20/1",
+          "bin": "220740026935",
+          "developerName": "ТОО \"Mercury Construction\"",
+          "latitude": "48.994636",
+          "longitude": "84.770508"
+        },
+        {
+          "id": 1398,
+          "name": "ЖК \"Viva Life\"",
+          "slug": "zk-viva-life",
+          "authority": "Участие БВУ",
+          "address": "г. Усть-Каменогорск, пр. И. Есенберлина, д. 88/1",
+          "bin": "021040009554",
+          "developerName": "ТОО \"K-Story LTD\"",
+          "latitude": "49.920359",
+          "longitude": "82.618754"
+        },
+        {
+          "id": 1375,
+          "name": "ЖК \"Asyl Tau\"",
+          "slug": "zk-asyl-tau",
+          "authority": "Участие БВУ",
+          "address": "г. Усть-Каменогорск, ул. Сатпаева, д. 32",
+          "bin": "190940009528",
+          "developerName": "ТОО \"Comfort-Uly Dala\"",
+          "latitude": "49.904538",
+          "longitude": "82.620846"
+        },
+        {
+          "id": 1331,
+          "name": "ЖК \"ASYLTAS\"",
+          "slug": "zk-asyltas",
+          "authority": "Участие БВУ",
+          "address": "г. Усть-Каменогорск, ул. Кокжал Барака, уч. 1",
+          "bin": "201040022748",
+          "developerName": "ТОО \"EKM COMPANY\"",
+          "latitude": "49.887791",
+          "longitude": "82.610139"
+        },
+        {
+          "id": 1330,
+          "name": "ЖК \"ASYLTAS\"",
+          "slug": "zk-asyltas",
+          "authority": "Участие БВУ",
+          "address": "г. Усть-Каменогорск, ул. Кокжал Барака, уч. 2",
+          "bin": "201040022748",
+          "developerName": "ТОО \"EKM COMPANY\"",
+          "latitude": "49.888656",
+          "longitude": "82.610568"
+        },
+        {
+          "id": 1329,
+          "name": "ЖК \"Orda\"",
+          "slug": "zk-orda",
+          "authority": "Разрешение МИО",
+          "address": "г. Усть-Каменогорск, ул. Кокжал Барака, д. 19а",
+          "bin": "040140006326",
+          "developerName": "ТОО «СЕО GROUP»",
+          "latitude": "49.890363",
+          "longitude": "82.618099"
+        },
+        {
+          "id": 1241,
+          "name": "ЖК \"AINALAIYN\"",
+          "slug": "zk-ainalaiyn",
+          "authority": "Разрешение МИО",
+          "address": "г. Усть-Каменогорск, пр. И. Есенберлина, уч. 2",
+          "bin": "231140022638",
+          "developerName": "ТОО \"АА2А\"",
+          "latitude": "49.893724",
+          "longitude": "82.589908"
+        },
+        {
+          "id": 1218,
+          "name": "ЖК \"ASYLYM\"",
+          "slug": "zk-asylym",
+          "authority": "Гарантия АО \"КЖК\"",
+          "address": "г. Усть-Каменогорск, ул. Кокжал Барака, д. 18б",
+          "bin": "201040022748",
+          "developerName": "ТОО \"EKM COMPANY\"",
+          "latitude": "49.890356",
+          "longitude": "82.608519"
+        },
+        {
+          "id": 1141,
+          "name": "ЖК \"Золотой квадрат\"",
+          "slug": "zk-zolotoi-kvadrat",
+          "authority": "Гарантия АО \"КЖК\"",
+          "address": "г. Усть-Каменогорск, ул. Кайсенова, уч. 55/1",
+          "bin": "970640000190",
+          "developerName": "ТОО \"НАУАН Корп\"",
+          "latitude": "49.945497",
+          "longitude": "82.622997"
+        },
+        {
+          "id": 1077,
+          "name": "ЖК \"Tumar Towers Oskemen\"",
+          "slug": "zk-tumar-towers-oskemen",
+          "authority": "Разрешение МИО",
+          "address": "г. Усть-Каменогорск, пр. Победы, д. 2",
+          "bin": "040540018865",
+          "developerName": "ТОО «TUMAR Group»",
+          "latitude": "49.943912",
+          "longitude": "82.622740"
+        },
+        {
+          "id": 1027,
+          "name": "ЖК \"Жаным\"",
+          "slug": "zk-zanym",
+          "authority": "Гарантия АО \"КЖК\"",
+          "address": "г. Усть-Каменогорск, пр. И. Есенберлина, д. 92",
+          "bin": "171240023488",
+          "developerName": "ТОО \"Biryuza Development\"",
+          "latitude": "49.921112",
+          "longitude": "82.617788"
+        },
+        {
+          "id": 953,
+          "name": "ЖК \"Жаным\" (блок А)",
+          "slug": "zk-zanym-blok-a",
+          "authority": "Гарантия АО \"КЖК\"",
+          "address": "г. Усть-Каменогорск, пр. Илияса Есенберлина, 92",
+          "bin": "171240023488",
+          "developerName": "ТОО \"Biryuza Development\"",
+          "latitude": "49.921246",
+          "longitude": "82.61748"
+        },
+        {
+          "id": 807,
+          "name": "ЖК \"Жаным\"",
+          "slug": "zk-zanym",
+          "authority": "Гарантия АО \"КЖК\"",
+          "address": "г. Усть-Каменогорск, пр. И. Есенберлина, д.92",
+          "bin": "171240023488",
+          "developerName": "ТОО \"Biryuza Development\"",
+          "latitude": "49.921432",
+          "longitude": "82.617903"
+        }
+      ]
+    }
+  }
+}

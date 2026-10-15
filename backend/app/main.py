@@ -25,6 +25,7 @@ from app.modules.linked_entities.router import router as linked_entities_router
 from app.modules.nlp.router import router as nlp_router
 from app.modules.notifications.router import router as notifications_router
 from app.modules.objects.router import router as objects_router
+from app.modules.registry_sync.router import router as registry_sync_router
 from app.modules.risk.router import router as risk_router
 from app.modules.settings.router import router as settings_router
 from app.modules.signals.router import router as signals_router
@@ -94,6 +95,7 @@ for module_router in (
     complaints_router,
     linked_entities_router,
     evidence_router,
+    registry_sync_router,
     notifications_router,
     audit_router,
     # Implemented by other modules; routers are empty stubs until then.

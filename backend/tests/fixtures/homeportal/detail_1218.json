@@ -1,0 +1,88 @@
+{
+  "success": true,
+  "message": "Object Details retrieved successfully",
+  "data": {
+    "basicData": {
+      "name": "ЖК \"ASYLYM\"",
+      "authority": {
+        "id": 2,
+        "name": "Гарантия АО \"КЖК\""
+      },
+      "warranty_number": "ДПГ-25-16-082/200",
+      "issue_date": "31.10.2025",
+      "start_date": "15.08.2025",
+      "commissioning_date": "15.10.2026",
+      "construction_progress": "0",
+      "address": "г. Усть-Каменогорск, ул. Кокжал Барака, д. 18б",
+      "region": {
+        "id": 16,
+        "name_kz": "Шығыс Қазақстан",
+        "name_ru": "Восточно-Казахстанская",
+        "name_en": "East Kazakhstan"
+      },
+      "city": {
+        "id": 73,
+        "name_kz": "Өскемен қ.",
+        "name_ru": "г. Усть-Каменогорск",
+        "name_en": "Ust-Kamenogorsk c."
+      },
+      "website_of_residential_complex": null,
+      "name_of_stb": null,
+      "developerData": {
+        "bin": "201040022748",
+        "name": "ТОО \"EKM COMPANY\"",
+        "email": null,
+        "phone": null,
+        "develpoer_website": null
+      },
+      "link_to_report": "https://khc.kz/ru/engineering-otchet/436/?search=&city=&status=1",
+      "program": "Орда Аймақ",
+      "program_link": "https://homeportal.kz/orda",
+      "act_number": "",
+      "act_date": "",
+      "act_registration_number": "",
+      "act_registration_date": "",
+      "act_created_at": ""
+    },
+    "apartmentData": [],
+    "objectData": {},
+    "locationData": {
+      "cadastral_number": "05-085-102-2564",
+      "link_to_land_cadastral_number": "https://www.aisgzk.kz/aisgzk/ru/content/maps?type=cosmos",
+      "latitude": "49.890356",
+      "longitude": "82.608519"
+    },
+    "companyData": {
+      "developerData": {
+        "bin": "201040022748",
+        "name": "ТОО \"EKM COMPANY\"",
+        "email": null,
+        "phone": null,
+        "develpoer_website": null
+      },
+      "authorizedData": {
+        "bin": "250740033666",
+        "name": "ТОО «EKM Invest»",
+        "email": null,
+        "phone": null,
+        "develpoer_website": null
+      },
+      "supervisingData": {
+        "bin": "990540001085",
+        "name": "ТОО \"QAZSAURAN\"",
+        "email": null,
+        "phone": null,
+        "develpoer_website": null
+      },
+      "technicalSupervisingData": {
+        "bin": "000540006264",
+        "name": "ТОО «ВЕХИ»",
+        "email": null,
+        "phone": null,
+        "develpoer_website": null
+      }
+    },
+    "images": []
+  },
+  "markerLocations": []
+}

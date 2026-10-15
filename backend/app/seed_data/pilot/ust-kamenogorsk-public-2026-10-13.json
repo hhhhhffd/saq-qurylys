@@ -1,0 +1,2036 @@
+{
+ "meta": {
+  "collected_at": "2026-10-13",
+  "city": "Усть-Каменогорск (Өскемен), ВКО",
+  "primary_source": "https://krisha.kz/complex/search/ust-kamenogorsk/ (каталог новостроек; статус «Строящийся»; 40 ЖК в каталоге, из них 26 со статусом «Строящийся», 14 — «Сдан в эксплуатацию»)",
+  "secondary_source": "https://homeportal.kz/ru/shared-construction-objects (публичный реестр АО «КЖК»; 15 записей по ВКО) — см. homeportal_registry_matches и homeportal_registry_objects_vko",
+  "method": "Автоматизированный сбор публичных HTML-страниц (список + карточки ЖК, ~40 запросов, пауза ≥1.5 с; robots.txt разрешает /complex/). Поля krisha.kz приведены как показаны на источнике и не верифицированы; дополнительно выполнено сопоставление с публичным реестром Жилищного портала АО «КЖК» (см. homeportal_registry_matches).",
+  "caveats": [
+   "Статус и сроки сдачи — со слов источника (krisha.kz); у части ЖК срок сдачи уже прошёл к дате сбора (поле planned_completion_before_collection_date) — статус на площадке может быть устаревшим либо объект не завершён; это не оценка законности.",
+   "developer_name — как в поле «Застройщик» на krisha.kz: часто бренд/группа, а не юрлицо; юрлицо указано в developer_legal_names_mentioned только когда оно названо на публичной странице.",
+   "documents_displayed_on_source — строки, которые отображает krisha.kz в блоке «Есть документы на ЖК» (номера разрешений МИО/участия БВУ и гарантий АО «КЖК»), вносятся застройщиком/площадкой и не содержат оценок; для объектов с записью в реестре Жилищного портала см. homeportal_registry_matches (там номер и дата документа по данным реестра).",
+   "developer_bin заполнен только там, где БИН найден в публичном источнике (см. developer_bin_source); иначе null. На krisha.kz БИН не публикуется.",
+   "Координаты — метки krisha.kz; контрольное геокодирование Nominatim по улице совпало с точностью до сотен метров для большинства ЖК (для протяжённых проспектов расхождение до нескольких км — это погрешность геокодера по улице, а не метки).",
+   "Перечень неполный: охвачены только ЖК, размещённые в каталоге krisha.kz; объекты без размещения в каталоге (в т.ч. небольшие дома, ИЖС, «позиции» на сайтах застройщиков) могут отсутствовать."
+  ],
+  "count": 26,
+  "homeportal_registry": {
+   "what": "Публичный реестр объектов долевого строительства на Жилищном портале АО «Казахстанская жилищная компания» (homeportal.kz → «Объекты долевого строительства»); запрос региона 16 (Восточно-Казахстанская): всего 15 записей (10 «строящихся», 5 «завершённых» по счётчику портала), все в г. Усть-Каменогорске.",
+   "how_collected": "POST https://api.homeportal.kz/api/v1/getobjects {\"region_id\":16} и GET https://api.homeportal.kz/api/v1/objects-detail/<id> для каждой записи (публичные эндпойнты, которые использует сам сайт; недокументированы; 16 запросов, пауза 1.5 с). Контакты (email/телефон) застройщиков в файл не включены.",
+   "caveat": "Отсутствие записи объекта krisha.kz в этом реестре само по себе ничего не утверждает о законности: охват реестра (давность, правовые основания, ручное внесение застройщиками), актуальность и соответствие названий не установлены. Сопоставление объектов — по названию и координатам (match_basis).",
+   "count": 15
+  },
+  "count_registry": 15
+ },
+ "objects": [
+  {
+   "krisha_complex_id": "23688046",
+   "name": "ЖК Viva Life",
+   "developer_name": "BTS Architects",
+   "developer_name_source": "krisha.kz, поле «Застройщик» (может быть брендом, а не юрлицом)",
+   "developer_legal_names_mentioned": null,
+   "developer_bin": "021040009554",
+   "developer_bin_source": "https://api.homeportal.kz/api/v1/objects-detail/1398",
+   "developer_bin_note": "БИН из публичной карточки объекта на Жилищном портале АО «КЖК» (homeportal.kz); юрлицо в реестре: ТОО \"K-Story LTD\". На krisha.kz в поле «Застройщик» указано: BTS Architects.",
+   "address": "Усть-Каменогорск, ул. Есенберлина, 88/1",
+   "lat": 49.92232,
+   "lon": 82.619522,
+   "coord_source": "krisha.kz, метка на карте карточки ЖК (задаётся площадкой/застройщиком; приблизительно)",
+   "planned_completion_text": "IV квартал 2027 г.",
+   "planned_completion_quarter": "2027-Q4",
+   "planned_completion_quarter_end": "2027-12-31",
+   "planned_completion_before_collection_date": false,
+   "status_on_source": "Строящийся",
+   "source_last_checked_text": "проверено 1 июня",
+   "documents_displayed_on_source": [
+    "Участие БВУ: 597/МҚЗТ-К-83у от 08.05.2026"
+   ],
+   "params_on_source": {
+    "class": "комфорт",
+    "floors": "9 этажей",
+    "walls": "монолитный",
+    "apartments": "120"
+   },
+   "source_url": "https://krisha.kz/complex/show/ust-kamenogorsk/vivalife/",
+   "other_sources": null,
+   "homeportal_registry_matches": [
+    {
+     "registry_id": 1398,
+     "name": "ЖК \"Viva Life\"",
+     "basis": "Участие БВУ",
+     "permit_or_guarantee_number": "597/МҚЗТ-К-83у",
+     "issue_date": "08.05.2026",
+     "construction_start_date": "28.04.2026",
+     "commissioning_date": "28.08.2027",
+     "address": "г. Усть-Каменогорск, пр. И. Есенберлина, д. 88/1",
+     "cadastral_number": "05-085-091-1658",
+     "lat": 49.920359,
+     "lon": 82.618754,
+     "developer": {
+      "name": "ТОО \"K-Story LTD\"",
+      "bin": "021040009554"
+     },
+     "authorized_company": {
+      "name": "ТОО «CRONUS STROY»",
+      "bin": "210540016344"
+     },
+     "supervising_company": {
+      "name": "ТОО \"Forward ДТ\"",
+      "bin": "141140017305"
+     },
+     "technical_supervising_company": {
+      "name": "ТОО \"УК ПроектТехНадзор\"",
+      "bin": "181040024738"
+     },
+     "bank": "АО \"Евразийский банк\"",
+     "program": null,
+     "houses": "1",
+     "floors": "9",
+     "apartments_total": 120,
+     "apartments_sold": 0,
+     "commissioning_date_passed": false,
+     "detail_url": "https://api.homeportal.kz/api/v1/objects-detail/1398",
+     "page_url": "https://homeportal.kz/ru/shared-construction-objects",
+     "match_basis": "название, адрес, координаты",
+     "coord_distance_m": 224
+    }
+   ]
+  },
+  {
+   "krisha_complex_id": "20531221",
+   "name": "ЖК Золотой квадрат",
+   "developer_name": "ТОО «Науан Корп»",
+   "developer_name_source": "krisha.kz, поле «Застройщик» (может быть брендом, а не юрлицом)",
+   "developer_legal_names_mentioned": [
+    {
+     "name": "ТОО «НАУАН Корп»",
+     "role": "застройщик (по описанию объявления)",
+     "source": "https://krisha.kz/a/show/1002693560"
+    },
+    {
+     "name": "ТОО «SA-Инжиниринг»",
+     "role": "уполномоченная компания (по описанию объявления)",
+     "source": "https://krisha.kz/a/show/1002693560"
+    }
+   ],
+   "developer_bin": "970640000190",
+   "developer_bin_source": "https://api.homeportal.kz/api/v1/objects-detail/1141",
+   "developer_bin_note": "БИН из публичной карточки объекта на Жилищном портале АО «КЖК» (homeportal.kz); юрлицо в реестре: ТОО \"НАУАН Корп\". На krisha.kz в поле «Застройщик» указано: ТОО «Науан Корп».",
+   "address": "Усть-Каменогорск, ул. К.Кайсенова, 55/1",
+   "lat": 49.945653,
+   "lon": 82.622829,
+   "coord_source": "krisha.kz, метка на карте карточки ЖК (задаётся площадкой/застройщиком; приблизительно)",
+   "planned_completion_text": "IV квартал 2026 г.",
+   "planned_completion_quarter": "2026-Q4",
+   "planned_completion_quarter_end": "2026-12-31",
+   "planned_completion_before_collection_date": false,
+   "status_on_source": "Строящийся",
+   "source_last_checked_text": "проверено 1 августа",
+   "documents_displayed_on_source": [
+    "Гарантия АО «КЖК»: ДПГ-25-16-078/194 от 18.08.2025"
+   ],
+   "params_on_source": {
+    "class": "бизнес",
+    "floors": "19 этажей",
+    "walls": "монолитный",
+    "apartments": "234"
+   },
+   "source_url": "https://krisha.kz/complex/show/ust-kamenogorsk/zolotoykvadrat/",
+   "other_sources": [
+    {
+     "url": "https://krisha.kz/a/show/1002693560",
+     "note": "В описании объявления продавца: «Разрешение на гарантию от КЖК... № 270-ДПГ-25-16-078/194. Выдана застройщику ТОО «НАУАН Корп» и уполномоченной компании ТОО «SA-Инжиниринг» от 18.08.2025 года» (текст продавца, не проверен по реестру)."
+    }
+   ],
+   "homeportal_registry_matches": [
+    {
+     "registry_id": 1141,
+     "name": "ЖК \"Золотой квадрат\"",
+     "basis": "Гарантия АО \"КЖК\"",
+     "permit_or_guarantee_number": "ДПГ-25-16-078/194",
+     "issue_date": "18.08.2025",
+     "construction_start_date": "01.06.2025",
+     "commissioning_date": "01.11.2026",
+     "address": "г. Усть-Каменогорск, ул. Кайсенова, уч. 55/1",
+     "cadastral_number": "05-085-070-424",
+     "lat": 49.945497,
+     "lon": 82.622997,
+     "developer": {
+      "name": "ТОО \"НАУАН Корп\"",
+      "bin": "970640000190"
+     },
+     "authorized_company": {
+      "name": "ТОО «SA-Инжиниринг»",
+      "bin": "211140032196"
+     },
+     "supervising_company": {
+      "name": "ТОО QURYLYSKZ",
+      "bin": "171240027649"
+     },
+     "technical_supervising_company": {
+      "name": "ТОО \"Engineering Services\"",
+      "bin": "130440013597"
+     },
+     "bank": null,
+     "program": "Орда Аймақ",
+     "houses": "3",
+     "floors": "19",
+     "apartments_total": 252,
+     "apartments_sold": 49,
+     "commissioning_date_passed": false,
+     "detail_url": "https://api.homeportal.kz/api/v1/objects-detail/1141",
+     "page_url": "https://homeportal.kz/ru/shared-construction-objects",
+     "match_basis": "название, адрес, координаты",
+     "coord_distance_m": 21
+    }
+   ]
+  },
+  {
+   "krisha_complex_id": "23169746",
+   "name": "ЖК ASYLTAS",
+   "developer_name": "AN Groups",
+   "developer_name_source": "krisha.kz, поле «Застройщик» (может быть брендом, а не юрлицом)",
+   "developer_legal_names_mentioned": null,
+   "developer_bin": "201040022748",
+   "developer_bin_source": "https://api.homeportal.kz/api/v1/objects-detail/1331",
+   "developer_bin_note": "БИН из публичной карточки объекта на Жилищном портале АО «КЖК» (homeportal.kz); юрлицо в реестре: ТОО \"EKM COMPANY\". На krisha.kz в поле «Застройщик» указано: AN Groups.",
+   "address": "Усть-Каменогорск, ул. Увалиева, 8/3",
+   "lat": 49.888526,
+   "lon": 82.61033,
+   "coord_source": "krisha.kz, метка на карте карточки ЖК (задаётся площадкой/застройщиком; приблизительно)",
+   "planned_completion_text": "I квартал 2027 г.",
+   "planned_completion_quarter": "2027-Q1",
+   "planned_completion_quarter_end": "2027-03-31",
+   "planned_completion_before_collection_date": false,
+   "status_on_source": "Строящийся",
+   "source_last_checked_text": null,
+   "documents_displayed_on_source": [
+    "Участие БВУ: KZ53VWE00002680 от 17.02.2026",
+    "Участие БВУ: KZ26VWE00002681 от 17.02.2026"
+   ],
+   "params_on_source": {
+    "class": "комфорт",
+    "floors": "5 этажей",
+    "walls": "кирпичный",
+    "apartments": "140"
+   },
+   "source_url": "https://krisha.kz/complex/show/ust-kamenogorsk/asyltas/",
+   "other_sources": null,
+   "homeportal_registry_matches": [
+    {
+     "registry_id": 1331,
+     "name": "ЖК \"ASYLTAS\"",
+     "basis": "Участие БВУ",
+     "permit_or_guarantee_number": "KZ53VWE00002680",
+     "issue_date": "17.02.2026",
+     "construction_start_date": "23.12.2025",
+     "commissioning_date": "31.12.2026",
+     "address": "г. Усть-Каменогорск, ул. Кокжал Барака, уч. 1",
+     "cadastral_number": "05-085-102-2617",
+     "lat": 49.887791,
+     "lon": 82.610139,
+     "developer": {
+      "name": "ТОО \"EKM COMPANY\"",
+      "bin": "201040022748"
+     },
+     "authorized_company": {
+      "name": "ТОО \"EKM Garant\"",
+      "bin": "250940009541"
+     },
+     "supervising_company": {
+      "name": "ТОО \"QAZSAURAN\"",
+      "bin": "990540001085"
+     },
+     "technical_supervising_company": {
+      "name": "ТОО «ВЕХИ»",
+      "bin": "000540006264"
+     },
+     "bank": "АО \"First Heartland Jusan Bank\"",
+     "program": null,
+     "houses": "1",
+     "floors": "5",
+     "apartments_total": 60,
+     "apartments_sold": 3,
+     "commissioning_date_passed": false,
+     "detail_url": "https://api.homeportal.kz/api/v1/objects-detail/1331",
+     "page_url": "https://homeportal.kz/ru/shared-construction-objects",
+     "match_basis": "название и координаты",
+     "coord_distance_m": 82
+    },
+    {
+     "registry_id": 1330,
+     "name": "ЖК \"ASYLTAS\"",
+     "basis": "Участие БВУ",
+     "permit_or_guarantee_number": "KZ26VWE00002681",
+     "issue_date": "17.02.2026",
+     "construction_start_date": "23.12.2025",
+     "commissioning_date": "31.12.2026",
+     "address": "г. Усть-Каменогорск, ул. Кокжал Барака, уч. 2",
+     "cadastral_number": "05-085-102-2618",
+     "lat": 49.888656,
+     "lon": 82.610568,
+     "developer": {
+      "name": "ТОО \"EKM COMPANY\"",
+      "bin": "201040022748"
+     },
+     "authorized_company": {
+      "name": "ТОО \"EKM Garant\"",
+      "bin": "250940009541"
+     },
+     "supervising_company": {
+      "name": "ТОО \"QAZSAURAN\"",
+      "bin": "990540001085"
+     },
+     "technical_supervising_company": {
+      "name": "ТОО «ВЕХИ»",
+      "bin": "000540006264"
+     },
+     "bank": "АО \"First Heartland Jusan Bank\"",
+     "program": null,
+     "houses": "1",
+     "floors": "5",
+     "apartments_total": 80,
+     "apartments_sold": 8,
+     "commissioning_date_passed": false,
+     "detail_url": "https://api.homeportal.kz/api/v1/objects-detail/1330",
+     "page_url": "https://homeportal.kz/ru/shared-construction-objects",
+     "match_basis": "название и координаты",
+     "coord_distance_m": 22
+    }
+   ]
+  },
+  {
+   "krisha_complex_id": "20763656",
+   "name": "ЖК AINALAIYN",
+   "developer_name": "AN Groups",
+   "developer_name_source": "krisha.kz, поле «Застройщик» (может быть брендом, а не юрлицом)",
+   "developer_legal_names_mentioned": null,
+   "developer_bin": "231140022638",
+   "developer_bin_source": "https://api.homeportal.kz/api/v1/objects-detail/1241",
+   "developer_bin_note": "БИН из публичной карточки объекта на Жилищном портале АО «КЖК» (homeportal.kz); юрлицо в реестре: ТОО \"АА2А\". На krisha.kz в поле «Застройщик» указано: AN Groups.",
+   "address": "Усть-Каменогорск, ул. Есенберлина, 5/1",
+   "lat": 49.89333,
+   "lon": 82.589523,
+   "coord_source": "krisha.kz, метка на карте карточки ЖК (задаётся площадкой/застройщиком; приблизительно)",
+   "planned_completion_text": "Первая очередь - IV квартал 2025 г.",
+   "planned_completion_quarter": "2025-Q4",
+   "planned_completion_quarter_end": "2025-12-31",
+   "planned_completion_before_collection_date": true,
+   "status_on_source": "Строящийся",
+   "source_last_checked_text": "проверено 1 января",
+   "documents_displayed_on_source": [
+    "Разрешение МИО: KZ40VWE00002526 от 15.07.2025"
+   ],
+   "params_on_source": {
+    "class": "комфорт",
+    "floors": "5 этажей",
+    "walls": "кирпичный",
+    "apartments": "140"
+   },
+   "source_url": "https://krisha.kz/complex/show/ust-kamenogorsk/ainalayin/",
+   "other_sources": null,
+   "homeportal_registry_matches": [
+    {
+     "registry_id": 1241,
+     "name": "ЖК \"AINALAIYN\"",
+     "basis": "Разрешение МИО",
+     "permit_or_guarantee_number": "KZ40VWE00002526",
+     "issue_date": "15.07.2025",
+     "construction_start_date": "24.10.2024",
+     "commissioning_date": "31.12.2025",
+     "address": "г. Усть-Каменогорск, пр. И. Есенберлина, уч. 2",
+     "cadastral_number": "05-085-102-2457",
+     "lat": 49.893724,
+     "lon": 82.589908,
+     "developer": {
+      "name": "ТОО \"АА2А\"",
+      "bin": "231140022638"
+     },
+     "authorized_company": {
+      "name": "ТОО \"АА2А Invest\"",
+      "bin": "250740002567"
+     },
+     "supervising_company": {
+      "name": "ТОО \"QAZSAURAN\"",
+      "bin": "990540001085"
+     },
+     "technical_supervising_company": {
+      "name": "ТОО «ВЕХИ»",
+      "bin": "000540006264"
+     },
+     "bank": null,
+     "program": null,
+     "houses": "1",
+     "floors": "5",
+     "apartments_total": 79,
+     "apartments_sold": 0,
+     "commissioning_date_passed": true,
+     "detail_url": "https://api.homeportal.kz/api/v1/objects-detail/1241",
+     "page_url": "https://homeportal.kz/ru/shared-construction-objects",
+     "match_basis": "название и координаты",
+     "coord_distance_m": 52
+    }
+   ]
+  },
+  {
+   "krisha_complex_id": "24317798",
+   "name": "ЖК Easton",
+   "developer_name": "BS Holding Oskemen",
+   "developer_name_source": "krisha.kz, поле «Застройщик» (может быть брендом, а не юрлицом)",
+   "developer_legal_names_mentioned": null,
+   "developer_bin": null,
+   "developer_bin_source": null,
+   "developer_bin_note": null,
+   "address": "Усть-Каменогорск, ул. Есенберлина, 38/3",
+   "lat": 49.9257,
+   "lon": 82.619018,
+   "coord_source": "krisha.kz, метка на карте карточки ЖК (задаётся площадкой/застройщиком; приблизительно)",
+   "planned_completion_text": "IV квартал 2027 г.",
+   "planned_completion_quarter": "2027-Q4",
+   "planned_completion_quarter_end": "2027-12-31",
+   "planned_completion_before_collection_date": false,
+   "status_on_source": "Строящийся",
+   "source_last_checked_text": null,
+   "documents_displayed_on_source": null,
+   "params_on_source": {
+    "class": "бизнес",
+    "floors": "9-12 этажей",
+    "walls": "монолитный",
+    "apartments": "208"
+   },
+   "source_url": "https://krisha.kz/complex/show/ust-kamenogorsk/easton/",
+   "other_sources": null,
+   "homeportal_registry_matches": []
+  },
+  {
+   "krisha_complex_id": "21356750",
+   "name": "ЖК Altyn Uia 2",
+   "developer_name": "ALTYN UIA",
+   "developer_name_source": "krisha.kz, поле «Застройщик» (может быть брендом, а не юрлицом)",
+   "developer_legal_names_mentioned": null,
+   "developer_bin": null,
+   "developer_bin_source": null,
+   "developer_bin_note": null,
+   "address": "Усть-Каменогорск, Проспект Каныша Сатпаева, 15e",
+   "lat": 49.901512,
+   "lon": 82.625697,
+   "coord_source": "krisha.kz, метка на карте карточки ЖК (задаётся площадкой/застройщиком; приблизительно)",
+   "planned_completion_text": "III квартал 2026 г.",
+   "planned_completion_quarter": "2026-Q3",
+   "planned_completion_quarter_end": "2026-09-30",
+   "planned_completion_before_collection_date": true,
+   "status_on_source": "Строящийся",
+   "source_last_checked_text": null,
+   "documents_displayed_on_source": null,
+   "params_on_source": {
+    "class": "бизнес",
+    "floors": "9 этажей",
+    "walls": "монолитный",
+    "apartments": "76"
+   },
+   "source_url": "https://krisha.kz/complex/show/ust-kamenogorsk/altynuiya/",
+   "other_sources": null,
+   "homeportal_registry_matches": []
+  },
+  {
+   "krisha_complex_id": "21679993",
+   "name": "ЖК Asyl Tau",
+   "developer_name": "Орда Трейдинг",
+   "developer_name_source": "krisha.kz, поле «Застройщик» (может быть брендом, а не юрлицом)",
+   "developer_legal_names_mentioned": null,
+   "developer_bin": "190940009528",
+   "developer_bin_source": "https://api.homeportal.kz/api/v1/objects-detail/1375",
+   "developer_bin_note": "БИН из публичной карточки объекта на Жилищном портале АО «КЖК» (homeportal.kz); юрлицо в реестре: ТОО \"Comfort-Uly Dala\". На krisha.kz в поле «Застройщик» указано: Орда Трейдинг.",
+   "address": "Усть-Каменогорск, Улица Кокжал Барака, 26",
+   "lat": 49.889714,
+   "lon": 82.620071,
+   "coord_source": "krisha.kz, метка на карте карточки ЖК (задаётся площадкой/застройщиком; приблизительно)",
+   "planned_completion_text": "IV квартал 2026 г.",
+   "planned_completion_quarter": "2026-Q4",
+   "planned_completion_quarter_end": "2026-12-31",
+   "planned_completion_before_collection_date": false,
+   "status_on_source": "Строящийся",
+   "source_last_checked_text": null,
+   "documents_displayed_on_source": [
+    "Участие БВУ: KZ62VWE00002712 от 10.04.2026"
+   ],
+   "params_on_source": {
+    "class": "бизнес",
+    "floors": "12-16-18 этажей",
+    "walls": "монолитный",
+    "apartments": "160"
+   },
+   "source_url": "https://krisha.kz/complex/show/ust-kamenogorsk/asyltau/",
+   "other_sources": null,
+   "homeportal_registry_matches": [
+    {
+     "registry_id": 1375,
+     "name": "ЖК \"Asyl Tau\"",
+     "basis": "Участие БВУ",
+     "permit_or_guarantee_number": "KZ62VWE00002712",
+     "issue_date": "10.04.2026",
+     "construction_start_date": "31.03.2026",
+     "commissioning_date": "31.07.2027",
+     "address": "г. Усть-Каменогорск, ул. Сатпаева, д. 32",
+     "cadastral_number": "05-085-102-1117",
+     "lat": 49.904538,
+     "lon": 82.620846,
+     "developer": {
+      "name": "ТОО \"Comfort-Uly Dala\"",
+      "bin": "190940009528"
+     },
+     "authorized_company": {
+      "name": "ТОО \"Орда Трейдинг\"",
+      "bin": "200140023192"
+     },
+     "supervising_company": {
+      "name": "ТОО «Astana Megapolis Project»",
+      "bin": "120840013788"
+     },
+     "technical_supervising_company": {
+      "name": "ТОО \"Adal Engineering KZ\"",
+      "bin": "220240038623"
+     },
+     "bank": "АО \"Bereke Bank\"",
+     "program": null,
+     "houses": "1",
+     "floors": "18,16,1",
+     "apartments_total": 160,
+     "apartments_sold": 21,
+     "commissioning_date_passed": false,
+     "detail_url": "https://api.homeportal.kz/api/v1/objects-detail/1375",
+     "page_url": "https://homeportal.kz/ru/shared-construction-objects",
+     "match_basis": "название; адрес и координаты различаются (реестр: ул. Сатпаева 32; krisha: ул. Кокжал Барака 26, ~1.7 км) — возможно другая очередь/участок, не подтверждено",
+     "coord_distance_m": 1640
+    }
+   ]
+  },
+  {
+   "krisha_complex_id": "22460531",
+   "name": "ЖК ASYLYM",
+   "developer_name": "AN Groups",
+   "developer_name_source": "krisha.kz, поле «Застройщик» (может быть брендом, а не юрлицом)",
+   "developer_legal_names_mentioned": [
+    {
+     "name": "ТОО «EKM Invest»",
+     "role": "застройщик",
+     "source": "https://krisha.kz/complex/show/ust-kamenogorsk/asylym/ (раздел «О застройщике»); https://hcsbk.kz/ru/news/bank_news/uvazhaemye-vkladchiki-zhk-asylym/"
+    },
+    {
+     "name": "ТОО «EKM COMPANY»",
+     "role": "заказчик строительства",
+     "source": "https://krisha.kz/complex/show/ust-kamenogorsk/asylym/ (раздел «О застройщике»)"
+    }
+   ],
+   "developer_bin": "201040022748",
+   "developer_bin_source": "https://api.homeportal.kz/api/v1/objects-detail/1218",
+   "developer_bin_note": "БИН из публичной карточки объекта на Жилищном портале АО «КЖК» (homeportal.kz); юрлицо в реестре: ТОО \"EKM COMPANY\". На krisha.kz в поле «Застройщик» указано: AN Groups.",
+   "address": "Усть-Каменогорск, ул. Кокжал Барака, 18 а, б, в",
+   "lat": 49.890323,
+   "lon": 82.609002,
+   "coord_source": "krisha.kz, метка на карте карточки ЖК (задаётся площадкой/застройщиком; приблизительно)",
+   "planned_completion_text": "IV квартал 2026 г.",
+   "planned_completion_quarter": "2026-Q4",
+   "planned_completion_quarter_end": "2026-12-31",
+   "planned_completion_before_collection_date": false,
+   "status_on_source": "Строящийся",
+   "source_last_checked_text": null,
+   "documents_displayed_on_source": [
+    "Гарантия АО «КЖК»: ДПГ-25-16-082/200 от 31.10.2025"
+   ],
+   "params_on_source": {
+    "class": "комфорт",
+    "floors": "5 этажей",
+    "walls": "кирпичный",
+    "apartments": "190"
+   },
+   "source_url": "https://krisha.kz/complex/show/ust-kamenogorsk/asylym/",
+   "other_sources": [
+    {
+     "url": "https://hcsbk.kz/ru/news/bank_news/uvazhaemye-vkladchiki-zhk-asylym/",
+     "note": "Уведомление АО «Отбасы банк» от 22.05.2026: застройщик ТОО «EKM Invest», стр. участок №59, жилой массив «Арай», 19-й жилой район; новый срок ввода в эксплуатацию — 15.10.2026. На krisha.kz в поле «Застройщик» указан бренд «AN Groups»."
+    }
+   ],
+   "homeportal_registry_matches": [
+    {
+     "registry_id": 1218,
+     "name": "ЖК \"ASYLYM\"",
+     "basis": "Гарантия АО \"КЖК\"",
+     "permit_or_guarantee_number": "ДПГ-25-16-082/200",
+     "issue_date": "31.10.2025",
+     "construction_start_date": "15.08.2025",
+     "commissioning_date": "15.10.2026",
+     "address": "г. Усть-Каменогорск, ул. Кокжал Барака, д. 18б",
+     "cadastral_number": "05-085-102-2564",
+     "lat": 49.890356,
+     "lon": 82.608519,
+     "developer": {
+      "name": "ТОО \"EKM COMPANY\"",
+      "bin": "201040022748"
+     },
+     "authorized_company": {
+      "name": "ТОО «EKM Invest»",
+      "bin": "250740033666"
+     },
+     "supervising_company": {
+      "name": "ТОО \"QAZSAURAN\"",
+      "bin": "990540001085"
+     },
+     "technical_supervising_company": {
+      "name": "ТОО «ВЕХИ»",
+      "bin": "000540006264"
+     },
+     "bank": null,
+     "program": "Орда Аймақ",
+     "houses": "3",
+     "floors": "5",
+     "apartments_total": 190,
+     "apartments_sold": 100,
+     "commissioning_date_passed": false,
+     "detail_url": "https://api.homeportal.kz/api/v1/objects-detail/1218",
+     "page_url": "https://homeportal.kz/ru/shared-construction-objects",
+     "match_basis": "название, адрес, координаты",
+     "coord_distance_m": 35
+    }
+   ]
+  },
+  {
+   "krisha_complex_id": "20173115",
+   "name": "ЖК Muztau",
+   "developer_name": "Премиум Строй НС",
+   "developer_name_source": "krisha.kz, поле «Застройщик» (может быть брендом, а не юрлицом)",
+   "developer_legal_names_mentioned": null,
+   "developer_bin": null,
+   "developer_bin_source": null,
+   "developer_bin_note": null,
+   "address": "Усть-Каменогорск, ул. Казыбек би, 1/3",
+   "lat": 49.893294,
+   "lon": 82.618837,
+   "coord_source": "krisha.kz, метка на карте карточки ЖК (задаётся площадкой/застройщиком; приблизительно)",
+   "planned_completion_text": "II квартал 2026 г.",
+   "planned_completion_quarter": "2026-Q2",
+   "planned_completion_quarter_end": "2026-06-30",
+   "planned_completion_before_collection_date": true,
+   "status_on_source": "Строящийся",
+   "source_last_checked_text": null,
+   "documents_displayed_on_source": null,
+   "params_on_source": {
+    "class": "бизнес",
+    "floors": "9 этажей",
+    "walls": "кирпичный",
+    "apartments": "85"
+   },
+   "source_url": "https://krisha.kz/complex/show/ust-kamenogorsk/muztau/",
+   "other_sources": null,
+   "homeportal_registry_matches": []
+  },
+  {
+   "krisha_complex_id": "22902316",
+   "name": "ЖК ORDA",
+   "developer_name": "CEO Group",
+   "developer_name_source": "krisha.kz, поле «Застройщик» (может быть брендом, а не юрлицом)",
+   "developer_legal_names_mentioned": [
+    {
+     "name": "CEO Group",
+     "role": "застройщик (по разделу «О застройщике»; организационно-правовая форма не указана)",
+     "source": "https://krisha.kz/complex/show/ust-kamenogorsk/orda/"
+    }
+   ],
+   "developer_bin": "040140006326",
+   "developer_bin_source": "https://api.homeportal.kz/api/v1/objects-detail/1329",
+   "developer_bin_note": "БИН из публичной карточки объекта на Жилищном портале АО «КЖК» (homeportal.kz); юрлицо в реестре: ТОО «СЕО GROUP». На krisha.kz в поле «Застройщик» указано: CEO Group.",
+   "address": "Усть-Каменогорск, ул. Кокжал Барака, 17",
+   "lat": 49.89054,
+   "lon": 82.618237,
+   "coord_source": "krisha.kz, метка на карте карточки ЖК (задаётся площадкой/застройщиком; приблизительно)",
+   "planned_completion_text": "IV квартал 2026 г.",
+   "planned_completion_quarter": "2026-Q4",
+   "planned_completion_quarter_end": "2026-12-31",
+   "planned_completion_before_collection_date": false,
+   "status_on_source": "Строящийся",
+   "source_last_checked_text": null,
+   "documents_displayed_on_source": [
+    "Разрешение МИО: 1383/МҚЗТ-С-331 от 13.10.2025"
+   ],
+   "params_on_source": {
+    "class": "бизнес",
+    "floors": "9 этажей",
+    "walls": "монолитный",
+    "apartments": "128"
+   },
+   "source_url": "https://krisha.kz/complex/show/ust-kamenogorsk/orda/",
+   "other_sources": null,
+   "homeportal_registry_matches": [
+    {
+     "registry_id": 1329,
+     "name": "ЖК \"Orda\"",
+     "basis": "Разрешение МИО",
+     "permit_or_guarantee_number": "1383/МҚЗТ-С-331",
+     "issue_date": "13.10.2025",
+     "construction_start_date": "17.10.2024",
+     "commissioning_date": "28.02.2027",
+     "address": "г. Усть-Каменогорск, ул. Кокжал Барака, д. 19а",
+     "cadastral_number": "05-085-096-1553",
+     "lat": 49.890363,
+     "lon": 82.618099,
+     "developer": {
+      "name": "ТОО «СЕО GROUP»",
+      "bin": "040140006326"
+     },
+     "authorized_company": {
+      "name": "ТОО \"ВОСТОК СТРОЙАЛЬЯНС\"",
+      "bin": "050440000210"
+     },
+     "supervising_company": {
+      "name": "ТОО ПИ СИБАКАДЕМПРОЕКТ",
+      "bin": "070540004419"
+     },
+     "technical_supervising_company": {
+      "name": "ТОО \"ВостокБурСтрой\"",
+      "bin": "110140018503"
+     },
+     "bank": null,
+     "program": null,
+     "houses": "1",
+     "floors": "9",
+     "apartments_total": 54,
+     "apartments_sold": 0,
+     "commissioning_date_passed": false,
+     "detail_url": "https://api.homeportal.kz/api/v1/objects-detail/1329",
+     "page_url": "https://homeportal.kz/ru/shared-construction-objects",
+     "match_basis": "название и координаты",
+     "coord_distance_m": 22
+    }
+   ]
+  },
+  {
+   "krisha_complex_id": "13121665",
+   "name": "ЖК Престиж",
+   "developer_name": "OKS Group - Усть-Каменогорск",
+   "developer_name_source": "krisha.kz, поле «Застройщик» (может быть брендом, а не юрлицом)",
+   "developer_legal_names_mentioned": null,
+   "developer_bin": null,
+   "developer_bin_source": null,
+   "developer_bin_note": null,
+   "address": "Усть-Каменогорск, ул. Увалиева 7",
+   "lat": 49.889653,
+   "lon": 82.614509,
+   "coord_source": "krisha.kz, метка на карте карточки ЖК (задаётся площадкой/застройщиком; приблизительно)",
+   "planned_completion_text": "IV квартал 2026 г.",
+   "planned_completion_quarter": "2026-Q4",
+   "planned_completion_quarter_end": "2026-12-31",
+   "planned_completion_before_collection_date": false,
+   "status_on_source": "Строящийся",
+   "source_last_checked_text": null,
+   "documents_displayed_on_source": [
+    "Гарантия АО «КЖК»: ДС №1 к ДПГ-22-16-055/120 от 10.05.2024"
+   ],
+   "params_on_source": {
+    "class": "бизнес",
+    "floors": "5 этажей",
+    "walls": "кирпичный",
+    "apartments": "93"
+   },
+   "source_url": "https://krisha.kz/complex/show/ust-kamenogorsk/prestizh/",
+   "other_sources": null,
+   "homeportal_registry_matches": []
+  },
+  {
+   "krisha_complex_id": "14235871",
+   "name": "ЖК ЖАНЫМ",
+   "developer_name": "Группа компаний Biryza.kz",
+   "developer_name_source": "krisha.kz, поле «Застройщик» (может быть брендом, а не юрлицом)",
+   "developer_legal_names_mentioned": [
+    {
+     "name": "ТОО Biryuza Development",
+     "role": "застройщик (по разделу «О застройщике»)",
+     "source": "https://krisha.kz/complex/show/ust-kamenogorsk/v-club/"
+    }
+   ],
+   "developer_bin": "171240023488",
+   "developer_bin_source": "https://api.homeportal.kz/api/v1/objects-detail/1027",
+   "developer_bin_note": "БИН из публичной карточки объекта на Жилищном портале АО «КЖК» (homeportal.kz); юрлицо в реестре: ТОО \"Biryuza Development\". На krisha.kz в поле «Застройщик» указано: Группа компаний Biryza.kz.",
+   "address": "Усть-Каменогорск, ул. Ильяса Есенберлина, 92",
+   "lat": 49.9212,
+   "lon": 82.616869,
+   "coord_source": "krisha.kz, метка на карте карточки ЖК (задаётся площадкой/застройщиком; приблизительно)",
+   "planned_completion_text": "Первая очередь - I квартал 2025 г.",
+   "planned_completion_quarter": "2025-Q1",
+   "planned_completion_quarter_end": "2025-03-31",
+   "planned_completion_before_collection_date": true,
+   "status_on_source": "Строящийся",
+   "source_last_checked_text": null,
+   "documents_displayed_on_source": [
+    "Гарантия АО «КЖК»: ДПГ-23-16-068/155 от 11.10.2023"
+   ],
+   "params_on_source": {
+    "class": "бизнес",
+    "floors": "9 этажей",
+    "walls": "монолитный",
+    "apartments": "126"
+   },
+   "source_url": "https://krisha.kz/complex/show/ust-kamenogorsk/v-club/",
+   "other_sources": null,
+   "homeportal_registry_matches": [
+    {
+     "registry_id": 1027,
+     "name": "ЖК \"Жаным\"",
+     "basis": "Гарантия АО \"КЖК\"",
+     "permit_or_guarantee_number": "ДПГ-23-16-068/155",
+     "issue_date": "11.10.2023",
+     "construction_start_date": "06.06.2024",
+     "commissioning_date": "06.02.2026",
+     "address": "г. Усть-Каменогорск, пр. И. Есенберлина, д. 92",
+     "cadastral_number": "05-085-091-1400",
+     "lat": 49.921112,
+     "lon": 82.617788,
+     "developer": {
+      "name": "ТОО \"Biryuza Development\"",
+      "bin": "171240023488"
+     },
+     "authorized_company": {
+      "name": "ТОО \"УК Шанырак Строй\"",
+      "bin": "230340036850"
+     },
+     "supervising_company": {
+      "name": "ТОО \"Корсар Инжиниринг\"",
+      "bin": "130740019150"
+     },
+     "technical_supervising_company": {
+      "name": "ТОО \"Алатау Сапа Курылыс\"",
+      "bin": "050140003046"
+     },
+     "bank": null,
+     "program": null,
+     "houses": "1",
+     "floors": "9",
+     "apartments_total": 39,
+     "apartments_sold": 23,
+     "commissioning_date_passed": true,
+     "detail_url": "https://api.homeportal.kz/api/v1/objects-detail/1027",
+     "page_url": "https://homeportal.kz/ru/shared-construction-objects",
+     "match_basis": "название (Жаным), адрес Есенберлина 92",
+     "coord_distance_m": 67
+    },
+    {
+     "registry_id": 953,
+     "name": "ЖК \"Жаным\" (блок А)",
+     "basis": "Гарантия АО \"КЖК\"",
+     "permit_or_guarantee_number": "ДС № 2 к ДПГ-23-16-068/155",
+     "issue_date": "12.08.2024",
+     "construction_start_date": "19.06.2024",
+     "commissioning_date": "19.12.2025",
+     "address": "г. Усть-Каменогорск, пр. Илияса Есенберлина, 92",
+     "cadastral_number": null,
+     "lat": 49.921246,
+     "lon": 82.61748,
+     "developer": {
+      "name": "ТОО \"Biryuza Development\"",
+      "bin": "171240023488"
+     },
+     "authorized_company": {
+      "name": "ТОО \"УК Шанырак Строй\"",
+      "bin": "230340036850"
+     },
+     "supervising_company": {
+      "name": "ТОО \"Корсар Инжиниринг\"",
+      "bin": "130740019150"
+     },
+     "technical_supervising_company": {
+      "name": "ТОО \"Алатау Сапа Курылыс\"",
+      "bin": "050140003046"
+     },
+     "bank": null,
+     "program": null,
+     "houses": "1",
+     "floors": "9",
+     "apartments_total": 24,
+     "apartments_sold": 16,
+     "commissioning_date_passed": true,
+     "detail_url": "https://api.homeportal.kz/api/v1/objects-detail/953",
+     "page_url": "https://homeportal.kz/ru/shared-construction-objects",
+     "match_basis": "название (Жаным, блок А), адрес Есенберлина 92",
+     "coord_distance_m": 44
+    },
+    {
+     "registry_id": 807,
+     "name": "ЖК \"Жаным\"",
+     "basis": "Гарантия АО \"КЖК\"",
+     "permit_or_guarantee_number": "ДС№4 к ДПГ-23-16-068/155",
+     "issue_date": "11.10.2023",
+     "construction_start_date": "21.08.2023",
+     "commissioning_date": "21.03.2025",
+     "address": "г. Усть-Каменогорск, пр. И. Есенберлина, д.92",
+     "cadastral_number": "05:085:091:1400",
+     "lat": 49.921432,
+     "lon": 82.617903,
+     "developer": {
+      "name": "ТОО \"Biryuza Development\"",
+      "bin": "171240023488"
+     },
+     "authorized_company": {
+      "name": "ТОО \"УК Шанырак Строй\"",
+      "bin": "230340036850"
+     },
+     "supervising_company": null,
+     "technical_supervising_company": null,
+     "bank": null,
+     "program": null,
+     "houses": "2",
+     "floors": "9",
+     "apartments_total": 66,
+     "apartments_sold": 0,
+     "commissioning_date_passed": true,
+     "detail_url": "https://api.homeportal.kz/api/v1/objects-detail/807",
+     "page_url": "https://homeportal.kz/ru/shared-construction-objects",
+     "match_basis": "название (Жаным), адрес Есенберлина 92",
+     "coord_distance_m": 78
+    }
+   ]
+  },
+  {
+   "krisha_complex_id": "14255317",
+   "name": "ЖК Park Line",
+   "developer_name": "ТОО \"Elit Stroy group\"",
+   "developer_name_source": "krisha.kz, поле «Застройщик» (может быть брендом, а не юрлицом)",
+   "developer_legal_names_mentioned": [
+    {
+     "name": "ТОО \"Elit Stroy group\"",
+     "role": "указан в поле «Застройщик»",
+     "source": "https://krisha.kz/complex/show/ust-kamenogorsk/parkline/"
+    }
+   ],
+   "developer_bin": "220740026935",
+   "developer_bin_source": "https://api.homeportal.kz/api/v1/objects-detail/1505",
+   "developer_bin_note": "БИН из публичной карточки объекта на Жилищном портале АО «КЖК» (homeportal.kz); юрлицо в реестре: ТОО \"Mercury Construction\". На krisha.kz в поле «Застройщик» указано: ТОО \"Elit Stroy group\".",
+   "address": "Усть-Каменогорск, проспект Каныша Сатпаева, 82/9",
+   "lat": 49.916998,
+   "lon": 82.619177,
+   "coord_source": "krisha.kz, метка на карте карточки ЖК (задаётся площадкой/застройщиком; приблизительно)",
+   "planned_completion_text": "Первая очередь - IV квартал 2024 г.",
+   "planned_completion_quarter": "2024-Q4",
+   "planned_completion_quarter_end": "2024-12-31",
+   "planned_completion_before_collection_date": true,
+   "status_on_source": "Строящийся",
+   "source_last_checked_text": null,
+   "documents_displayed_on_source": [
+    "Разрешение МИО: KZ25PDD00004205 от 07.10.2026"
+   ],
+   "params_on_source": {
+    "class": "комфорт",
+    "floors": "9 этажей",
+    "walls": "монолитный",
+    "apartments": "116"
+   },
+   "source_url": "https://krisha.kz/complex/show/ust-kamenogorsk/parkline/",
+   "other_sources": null,
+   "homeportal_registry_matches": [
+    {
+     "registry_id": 1505,
+     "name": "МЖК \"PARK LINE\"",
+     "basis": "Разрешение МИО",
+     "permit_or_guarantee_number": "KZ25PDD00004205",
+     "issue_date": "07.10.2026",
+     "construction_start_date": "18.09.2026",
+     "commissioning_date": "18.11.2027",
+     "address": "г. Усть-Каменогорск, пр. И. Есенберлина, д. 56",
+     "cadastral_number": "05-085-091-1463",
+     "lat": 49.917561,
+     "lon": 82.619097,
+     "developer": {
+      "name": "ТОО \"Mercury Construction\"",
+      "bin": "220740026935"
+     },
+     "authorized_company": {
+      "name": "TOO \"Elit Stroy group\"",
+      "bin": "190740008285"
+     },
+     "supervising_company": {
+      "name": "ТОО \"GAL Partners\"",
+      "bin": "110540019506"
+     },
+     "technical_supervising_company": {
+      "name": "ТЕХНОЛОГИЯ КАЧЕСТВА ЖШС",
+      "bin": "190640018576"
+     },
+     "bank": null,
+     "program": null,
+     "houses": "1",
+     "floors": "9",
+     "apartments_total": 112,
+     "apartments_sold": 0,
+     "commissioning_date_passed": false,
+     "detail_url": "https://api.homeportal.kz/api/v1/objects-detail/1505",
+     "page_url": "https://homeportal.kz/ru/shared-construction-objects",
+     "match_basis": "совпадение координат; адрес в реестре: пр. Есенберлина 56",
+     "coord_distance_m": 63
+    }
+   ]
+  },
+  {
+   "krisha_complex_id": "12541179",
+   "name": "ЖК Satti City 2",
+   "developer_name": "Satti",
+   "developer_name_source": "krisha.kz, поле «Застройщик» (может быть брендом, а не юрлицом)",
+   "developer_legal_names_mentioned": null,
+   "developer_bin": "211040009188",
+   "developer_bin_source": "https://api.homeportal.kz/api/v1/objects-detail/1452",
+   "developer_bin_note": "БИН из публичной карточки объекта на Жилищном портале АО «КЖК» (homeportal.kz); юрлицо в реестре: ТОО \"СТ-77\". На krisha.kz в поле «Застройщик» указано: Satti.",
+   "address": "Усть-Каменогорск, ул. Илияса Есенберлина, 80",
+   "lat": 49.919992,
+   "lon": 82.615832,
+   "coord_source": "krisha.kz, метка на карте карточки ЖК (задаётся площадкой/застройщиком; приблизительно)",
+   "planned_completion_text": "Первая очередь - IV квартал 2023 г.",
+   "planned_completion_quarter": "2023-Q4",
+   "planned_completion_quarter_end": "2023-12-31",
+   "planned_completion_before_collection_date": true,
+   "status_on_source": "Строящийся",
+   "source_last_checked_text": null,
+   "documents_displayed_on_source": null,
+   "params_on_source": {
+    "class": "бизнес",
+    "floors": "7 этажей",
+    "walls": "монолитный",
+    "apartments": "108"
+   },
+   "source_url": "https://krisha.kz/complex/show/ust-kamenogorsk/satticity/",
+   "other_sources": null,
+   "homeportal_registry_matches": [
+    {
+     "registry_id": 1452,
+     "name": "ЖК \"Satti City\"",
+     "basis": "Разрешение МИО",
+     "permit_or_guarantee_number": "KZ05PDD00004080",
+     "issue_date": "17.08.2026",
+     "construction_start_date": "03.12.2025",
+     "commissioning_date": "30.01.2027",
+     "address": "г. Усть-Каменогорск, ул. Есенберлина, д. 84",
+     "cadastral_number": "05-085-091-1159",
+     "lat": 49.919223,
+     "lon": 82.616442,
+     "developer": {
+      "name": "ТОО \"СТ-77\"",
+      "bin": "211040009188"
+     },
+     "authorized_company": {
+      "name": "ТОО \"GB (Good Build)\"",
+      "bin": "060540000988"
+     },
+     "supervising_company": {
+      "name": "ТОО \"Тaxion\"",
+      "bin": "101040015239"
+     },
+     "technical_supervising_company": {
+      "name": "ТОО \"Жол-Dau эксперт\"",
+      "bin": "190540030244"
+     },
+     "bank": null,
+     "program": null,
+     "houses": "1",
+     "floors": "7",
+     "apartments_total": 69,
+     "apartments_sold": 0,
+     "commissioning_date_passed": false,
+     "detail_url": "https://api.homeportal.kz/api/v1/objects-detail/1452",
+     "page_url": "https://homeportal.kz/ru/shared-construction-objects",
+     "match_basis": "название «Satti City» (на krisha «Satti City 2») и координаты; соответствие вероятное, не подтверждено",
+     "coord_distance_m": 96
+    }
+   ]
+  },
+  {
+   "krisha_complex_id": "12349873",
+   "name": "ЖК Emeralds",
+   "developer_name": "ATQ corporate",
+   "developer_name_source": "krisha.kz, поле «Застройщик» (может быть брендом, а не юрлицом)",
+   "developer_legal_names_mentioned": null,
+   "developer_bin": null,
+   "developer_bin_source": null,
+   "developer_bin_note": null,
+   "address": "Усть-Каменогорск, ул. Кокжал Барака, 7/3",
+   "lat": 49.895535,
+   "lon": 82.605109,
+   "coord_source": "krisha.kz, метка на карте карточки ЖК (задаётся площадкой/застройщиком; приблизительно)",
+   "planned_completion_text": "IV квартал 2023 г.",
+   "planned_completion_quarter": "2023-Q4",
+   "planned_completion_quarter_end": "2023-12-31",
+   "planned_completion_before_collection_date": true,
+   "status_on_source": "Строящийся",
+   "source_last_checked_text": null,
+   "documents_displayed_on_source": null,
+   "params_on_source": {
+    "class": "комфорт",
+    "floors": "7 этажей",
+    "walls": "кирпичный",
+    "apartments": "168"
+   },
+   "source_url": "https://krisha.kz/complex/show/ust-kamenogorsk/emeralds/",
+   "other_sources": null,
+   "homeportal_registry_matches": []
+  },
+  {
+   "krisha_complex_id": "15209317",
+   "name": "ЖК Gran Via",
+   "developer_name": "TAZH Group Construction",
+   "developer_name_source": "krisha.kz, поле «Застройщик» (может быть брендом, а не юрлицом)",
+   "developer_legal_names_mentioned": null,
+   "developer_bin": null,
+   "developer_bin_source": null,
+   "developer_bin_note": null,
+   "address": "Усть-Каменогорск, ул. Жибек жолы, 6/2",
+   "lat": 49.91783,
+   "lon": 82.611444,
+   "coord_source": "krisha.kz, метка на карте карточки ЖК (задаётся площадкой/застройщиком; приблизительно)",
+   "planned_completion_text": "II квартал 2023 г.",
+   "planned_completion_quarter": "2023-Q2",
+   "planned_completion_quarter_end": "2023-06-30",
+   "planned_completion_before_collection_date": true,
+   "status_on_source": "Строящийся",
+   "source_last_checked_text": null,
+   "documents_displayed_on_source": null,
+   "params_on_source": {
+    "class": "бизнес",
+    "floors": "5 этажей",
+    "walls": "кирпичный",
+    "apartments": "20"
+   },
+   "source_url": "https://krisha.kz/complex/show/ust-kamenogorsk/granvia/",
+   "other_sources": null,
+   "homeportal_registry_matches": []
+  },
+  {
+   "krisha_complex_id": "12496925",
+   "name": "ЖК Green Leaf",
+   "developer_name": "ТОО VK Development group",
+   "developer_name_source": "krisha.kz, поле «Застройщик» (может быть брендом, а не юрлицом)",
+   "developer_legal_names_mentioned": null,
+   "developer_bin": "160640005003",
+   "developer_bin_source": "https://statsnet.co/companies/kz/24500891",
+   "developer_bin_note": "Источник — сторонний агрегатор statsnet.co (данные получены через результат веб-поиска; сайт недоступен из среды сбора для прямой проверки). Контрольная цифра БИН и месяц регистрации в номере согласуются. Сверить в официальном реестре (stat.gov.kz / gbd_ul на data.egov.kz) перед использованием. Карточка: ТОО \"VK DEVELOPMENT GROUP\", Усть-Каменогорск, Самарское шоссе 29, рег. 06.06.2016",
+   "address": "Усть-Каменогорск, проспект Каныша Сатпаева, 55/1",
+   "lat": 49.926452,
+   "lon": 82.626751,
+   "coord_source": "krisha.kz, метка на карте карточки ЖК (задаётся площадкой/застройщиком; приблизительно)",
+   "planned_completion_text": "III квартал 2023 г.",
+   "planned_completion_quarter": "2023-Q3",
+   "planned_completion_quarter_end": "2023-09-30",
+   "planned_completion_before_collection_date": true,
+   "status_on_source": "Строящийся",
+   "source_last_checked_text": null,
+   "documents_displayed_on_source": null,
+   "params_on_source": {
+    "class": "бизнес",
+    "floors": "12 этажей",
+    "walls": "монолитный",
+    "apartments": "73"
+   },
+   "source_url": "https://krisha.kz/complex/show/ust-kamenogorsk/greenleaf/",
+   "other_sources": null,
+   "homeportal_registry_matches": []
+  },
+  {
+   "krisha_complex_id": "14655179",
+   "name": "Клубный дом Khan Saray",
+   "developer_name": "ТОО ДЕЙНЕКА",
+   "developer_name_source": "krisha.kz, поле «Застройщик» (может быть брендом, а не юрлицом)",
+   "developer_legal_names_mentioned": [
+    {
+     "name": "ТОО Дейнека",
+     "role": "застройщик (по разделу «О застройщике»)",
+     "source": "https://krisha.kz/complex/show/ust-kamenogorsk/khansaray/"
+    }
+   ],
+   "developer_bin": "000140004382",
+   "developer_bin_source": "https://statsnet.co/companies/kz/25143967",
+   "developer_bin_note": "Источник — сторонний агрегатор statsnet.co (данные получены через результат веб-поиска; сайт недоступен из среды сбора для прямой проверки). Контрольная цифра БИН и месяц регистрации в номере согласуются. Сверить в официальном реестре (stat.gov.kz / gbd_ul на data.egov.kz) перед использованием. Карточка: ТОО «ДЕЙНЕКА», Усть-Каменогорск, пр. Қазыбек Би 42, рег. 26.01.2000",
+   "address": "Усть-Каменогорск, ул. Крылова, 114",
+   "lat": 49.949768,
+   "lon": 82.607988,
+   "coord_source": "krisha.kz, метка на карте карточки ЖК (задаётся площадкой/застройщиком; приблизительно)",
+   "planned_completion_text": "II квартал 2023 г.",
+   "planned_completion_quarter": "2023-Q2",
+   "planned_completion_quarter_end": "2023-06-30",
+   "planned_completion_before_collection_date": true,
+   "status_on_source": "Строящийся",
+   "source_last_checked_text": null,
+   "documents_displayed_on_source": null,
+   "params_on_source": {
+    "class": "бизнес",
+    "floors": "5 этажей",
+    "walls": "кирпичный",
+    "apartments": "10"
+   },
+   "source_url": "https://krisha.kz/complex/show/ust-kamenogorsk/khansaray/",
+   "other_sources": null,
+   "homeportal_registry_matches": []
+  },
+  {
+   "krisha_complex_id": "14639939",
+   "name": "ЖК Krilova",
+   "developer_name": "Железобетонный комбинат",
+   "developer_name_source": "krisha.kz, поле «Застройщик» (может быть брендом, а не юрлицом)",
+   "developer_legal_names_mentioned": null,
+   "developer_bin": null,
+   "developer_bin_source": null,
+   "developer_bin_note": null,
+   "address": "Усть-Каменогорск, ул. Крылова, 70/1",
+   "lat": 49.946515,
+   "lon": 82.614838,
+   "coord_source": "krisha.kz, метка на карте карточки ЖК (задаётся площадкой/застройщиком; приблизительно)",
+   "planned_completion_text": "II квартал 2023 г.",
+   "planned_completion_quarter": "2023-Q2",
+   "planned_completion_quarter_end": "2023-06-30",
+   "planned_completion_before_collection_date": true,
+   "status_on_source": "Строящийся",
+   "source_last_checked_text": null,
+   "documents_displayed_on_source": null,
+   "params_on_source": {
+    "class": "комфорт",
+    "floors": "9 этажей",
+    "walls": "монолитный",
+    "apartments": "40"
+   },
+   "source_url": "https://krisha.kz/complex/show/ust-kamenogorsk/krilova/",
+   "other_sources": null,
+   "homeportal_registry_matches": []
+  },
+  {
+   "krisha_complex_id": "15129753",
+   "name": "ЖК Шанырак",
+   "developer_name": "Группа компаний Biryza.kz",
+   "developer_name_source": "krisha.kz, поле «Застройщик» (может быть брендом, а не юрлицом)",
+   "developer_legal_names_mentioned": null,
+   "developer_bin": null,
+   "developer_bin_source": null,
+   "developer_bin_note": null,
+   "address": "Усть-Каменогорск, Сатпаева, 27Д",
+   "lat": 49.904042,
+   "lon": 82.631385,
+   "coord_source": "krisha.kz, метка на карте карточки ЖК (задаётся площадкой/застройщиком; приблизительно)",
+   "planned_completion_text": "II квартал 2023 г.",
+   "planned_completion_quarter": "2023-Q2",
+   "planned_completion_quarter_end": "2023-06-30",
+   "planned_completion_before_collection_date": true,
+   "status_on_source": "Строящийся",
+   "source_last_checked_text": null,
+   "documents_displayed_on_source": null,
+   "params_on_source": {
+    "class": "комфорт",
+    "floors": "3 этажа",
+    "walls": "кирпичный",
+    "apartments": "30"
+   },
+   "source_url": "https://krisha.kz/complex/show/ust-kamenogorsk/shanyrak/",
+   "other_sources": null,
+   "homeportal_registry_matches": []
+  },
+  {
+   "krisha_complex_id": "13416977",
+   "name": "ЖК Adal Orda",
+   "developer_name": "ТОО \"KAFA Kaz-Bio-Food\"",
+   "developer_name_source": "krisha.kz, поле «Застройщик» (может быть брендом, а не юрлицом)",
+   "developer_legal_names_mentioned": [
+    {
+     "name": "ТОО \"KAFA Kaz-Bio-Food\"",
+     "role": "указан как застройщик в поле «Застройщик»",
+     "source": "https://krisha.kz/complex/show/ust-kamenogorsk/adalorda/"
+    }
+   ],
+   "developer_bin": null,
+   "developer_bin_source": null,
+   "developer_bin_note": null,
+   "address": "Усть-Каменогорск, ул. Пахомова 14",
+   "lat": 49.895052,
+   "lon": 82.690113,
+   "coord_source": "krisha.kz, метка на карте карточки ЖК (задаётся площадкой/застройщиком; приблизительно)",
+   "planned_completion_text": "II квартал 2022 г.",
+   "planned_completion_quarter": "2022-Q2",
+   "planned_completion_quarter_end": "2022-06-30",
+   "planned_completion_before_collection_date": true,
+   "status_on_source": "Строящийся",
+   "source_last_checked_text": null,
+   "documents_displayed_on_source": null,
+   "params_on_source": {
+    "class": "бизнес",
+    "floors": "3 этажа",
+    "walls": "панельный",
+    "apartments": "36"
+   },
+   "source_url": "https://krisha.kz/complex/show/ust-kamenogorsk/adalorda/",
+   "other_sources": null,
+   "homeportal_registry_matches": []
+  },
+  {
+   "krisha_complex_id": "12951363",
+   "name": "ЖК Avenue",
+   "developer_name": "ТОО OSKEMENBUILD",
+   "developer_name_source": "krisha.kz, поле «Застройщик» (может быть брендом, а не юрлицом)",
+   "developer_legal_names_mentioned": null,
+   "developer_bin": null,
+   "developer_bin_source": null,
+   "developer_bin_note": null,
+   "address": "Усть-Каменогорск, Пр. Есенберлина, позиция 98",
+   "lat": 49.892862,
+   "lon": 82.613583,
+   "coord_source": "krisha.kz, метка на карте карточки ЖК (задаётся площадкой/застройщиком; приблизительно)",
+   "planned_completion_text": "III квартал 2022 г.",
+   "planned_completion_quarter": "2022-Q3",
+   "planned_completion_quarter_end": "2022-09-30",
+   "planned_completion_before_collection_date": true,
+   "status_on_source": "Строящийся",
+   "source_last_checked_text": null,
+   "documents_displayed_on_source": null,
+   "params_on_source": {
+    "class": "бизнес",
+    "floors": "9 этажей",
+    "walls": "монолитный",
+    "apartments": "81"
+   },
+   "source_url": "https://krisha.kz/complex/show/ust-kamenogorsk/avenue/",
+   "other_sources": null,
+   "homeportal_registry_matches": []
+  },
+  {
+   "krisha_complex_id": "12396331",
+   "name": "Клубный дом Чистое небо",
+   "developer_name": "ТОО СК БЕКСТРОЙ 2050",
+   "developer_name_source": "krisha.kz, поле «Застройщик» (может быть брендом, а не юрлицом)",
+   "developer_legal_names_mentioned": null,
+   "developer_bin": "050340011788",
+   "developer_bin_source": "https://statsnet.co/companies/kz/35048099",
+   "developer_bin_note": "Источник — сторонний агрегатор statsnet.co (данные получены через результат веб-поиска; сайт недоступен из среды сбора для прямой проверки). Контрольная цифра БИН и месяц регистрации в номере согласуются. Сверить в официальном реестре (stat.gov.kz / gbd_ul на data.egov.kz) перед использованием. Карточка: СК БЕКСТРОЙ 2050, ТОО (ранее БЕК ИМПЭКС), Усть-Каменогорск, ул. Протозанова 47",
+   "address": "Усть-Каменогорск, проспект К.Сатпаева, 15д",
+   "lat": 49.900882,
+   "lon": 82.627759,
+   "coord_source": "krisha.kz, метка на карте карточки ЖК (задаётся площадкой/застройщиком; приблизительно)",
+   "planned_completion_text": "IV квартал 2022 г.",
+   "planned_completion_quarter": "2022-Q4",
+   "planned_completion_quarter_end": "2022-12-31",
+   "planned_completion_before_collection_date": true,
+   "status_on_source": "Строящийся",
+   "source_last_checked_text": null,
+   "documents_displayed_on_source": null,
+   "params_on_source": {
+    "class": "бизнес",
+    "floors": "5 этажей",
+    "walls": "кирпичный",
+    "apartments": "56"
+   },
+   "source_url": "https://krisha.kz/complex/show/ust-kamenogorsk/chistoenebo/",
+   "other_sources": null,
+   "homeportal_registry_matches": []
+  },
+  {
+   "krisha_complex_id": "12211083",
+   "name": "ЖК Deluxe Town",
+   "developer_name": "ТОО ДЕЙНЕКА",
+   "developer_name_source": "krisha.kz, поле «Застройщик» (может быть брендом, а не юрлицом)",
+   "developer_legal_names_mentioned": null,
+   "developer_bin": "000140004382",
+   "developer_bin_source": "https://statsnet.co/companies/kz/25143967",
+   "developer_bin_note": "Источник — сторонний агрегатор statsnet.co (данные получены через результат веб-поиска; сайт недоступен из среды сбора для прямой проверки). Контрольная цифра БИН и месяц регистрации в номере согласуются. Сверить в официальном реестре (stat.gov.kz / gbd_ul на data.egov.kz) перед использованием. Карточка: ТОО «ДЕЙНЕКА», Усть-Каменогорск, пр. Қазыбек Би 42, рег. 26.01.2000",
+   "address": "Усть-Каменогорск, проспект Илияса Есенберлина, 89",
+   "lat": 49.915227,
+   "lon": 82.613775,
+   "coord_source": "krisha.kz, метка на карте карточки ЖК (задаётся площадкой/застройщиком; приблизительно)",
+   "planned_completion_text": "IV квартал 2022 г.",
+   "planned_completion_quarter": "2022-Q4",
+   "planned_completion_quarter_end": "2022-12-31",
+   "planned_completion_before_collection_date": true,
+   "status_on_source": "Строящийся",
+   "source_last_checked_text": null,
+   "documents_displayed_on_source": null,
+   "params_on_source": {
+    "class": "комфорт",
+    "floors": "9 этажей",
+    "walls": "монолитный",
+    "apartments": "100"
+   },
+   "source_url": "https://krisha.kz/complex/show/ust-kamenogorsk/deluxetown/",
+   "other_sources": null,
+   "homeportal_registry_matches": []
+  },
+  {
+   "krisha_complex_id": "13694499",
+   "name": "ЖК Эксклюзив",
+   "developer_name": "ТОО «Exclusive Group-2030»",
+   "developer_name_source": "krisha.kz, поле «Застройщик» (может быть брендом, а не юрлицом)",
+   "developer_legal_names_mentioned": null,
+   "developer_bin": "050640008818",
+   "developer_bin_source": "https://statsnet.co/companies/kz/25678884",
+   "developer_bin_note": "Источник — сторонний агрегатор statsnet.co (данные получены через результат веб-поиска; сайт недоступен из среды сбора для прямой проверки). Контрольная цифра БИН и месяц регистрации в номере согласуются. Сверить в официальном реестре (stat.gov.kz / gbd_ul на data.egov.kz) перед использованием. Карточка: EXCLUSIVE GROUP-2030, ТОО, Усть-Каменогорск, ул. Момышулы 26, рег. июнь 2005",
+   "address": "Усть-Каменогорск, ул. Тохтарова, 57",
+   "lat": 49.949025,
+   "lon": 82.618936,
+   "coord_source": "krisha.kz, метка на карте карточки ЖК (задаётся площадкой/застройщиком; приблизительно)",
+   "planned_completion_text": "IV квартал 2022 г.",
+   "planned_completion_quarter": "2022-Q4",
+   "planned_completion_quarter_end": "2022-12-31",
+   "planned_completion_before_collection_date": true,
+   "status_on_source": "Строящийся",
+   "source_last_checked_text": null,
+   "documents_displayed_on_source": null,
+   "params_on_source": {
+    "class": "элит",
+    "floors": "12 этажей",
+    "walls": "монолитный",
+    "apartments": "43"
+   },
+   "source_url": "https://krisha.kz/complex/show/ust-kamenogorsk/tohtarova57/",
+   "other_sources": null,
+   "homeportal_registry_matches": []
+  },
+  {
+   "krisha_complex_id": "11916662",
+   "name": "ЖК Премьера",
+   "developer_name": "Группа компаний Biryza.kz",
+   "developer_name_source": "krisha.kz, поле «Застройщик» (может быть брендом, а не юрлицом)",
+   "developer_legal_names_mentioned": null,
+   "developer_bin": null,
+   "developer_bin_source": null,
+   "developer_bin_note": null,
+   "address": "Усть-Каменогорск, ул. К. Сатпаева, 84/4",
+   "lat": 49.92098,
+   "lon": 82.620857,
+   "coord_source": "krisha.kz, метка на карте карточки ЖК (задаётся площадкой/застройщиком; приблизительно)",
+   "planned_completion_text": "Первая очередь - II квартал 2022 г.",
+   "planned_completion_quarter": "2022-Q2",
+   "planned_completion_quarter_end": "2022-06-30",
+   "planned_completion_before_collection_date": true,
+   "status_on_source": "Строящийся",
+   "source_last_checked_text": null,
+   "documents_displayed_on_source": null,
+   "params_on_source": {
+    "class": "комфорт",
+    "floors": "9 этажей",
+    "walls": "монолитный",
+    "apartments": "150"
+   },
+   "source_url": "https://krisha.kz/complex/show/ust-kamenogorsk/premiera/",
+   "other_sources": null,
+   "homeportal_registry_matches": []
+  }
+ ],
+ "homeportal_registry_objects_vko": [
+  {
+   "registry_id": 1505,
+   "name": "МЖК \"PARK LINE\"",
+   "basis": "Разрешение МИО",
+   "permit_or_guarantee_number": "KZ25PDD00004205",
+   "issue_date": "07.10.2026",
+   "construction_start_date": "18.09.2026",
+   "commissioning_date": "18.11.2027",
+   "address": "г. Усть-Каменогорск, пр. И. Есенберлина, д. 56",
+   "cadastral_number": "05-085-091-1463",
+   "lat": 49.917561,
+   "lon": 82.619097,
+   "developer": {
+    "name": "ТОО \"Mercury Construction\"",
+    "bin": "220740026935"
+   },
+   "authorized_company": {
+    "name": "TOO \"Elit Stroy group\"",
+    "bin": "190740008285"
+   },
+   "supervising_company": {
+    "name": "ТОО \"GAL Partners\"",
+    "bin": "110540019506"
+   },
+   "technical_supervising_company": {
+    "name": "ТЕХНОЛОГИЯ КАЧЕСТВА ЖШС",
+    "bin": "190640018576"
+   },
+   "bank": null,
+   "program": null,
+   "houses": "1",
+   "floors": "9",
+   "apartments_total": 112,
+   "apartments_sold": 0,
+   "commissioning_date_passed": false,
+   "detail_url": "https://api.homeportal.kz/api/v1/objects-detail/1505",
+   "page_url": "https://homeportal.kz/ru/shared-construction-objects",
+   "matched_krisha_object": [
+    "14255317"
+   ],
+   "krisha_note": null
+  },
+  {
+   "registry_id": 1452,
+   "name": "ЖК \"Satti City\"",
+   "basis": "Разрешение МИО",
+   "permit_or_guarantee_number": "KZ05PDD00004080",
+   "issue_date": "17.08.2026",
+   "construction_start_date": "03.12.2025",
+   "commissioning_date": "30.01.2027",
+   "address": "г. Усть-Каменогорск, ул. Есенберлина, д. 84",
+   "cadastral_number": "05-085-091-1159",
+   "lat": 49.919223,
+   "lon": 82.616442,
+   "developer": {
+    "name": "ТОО \"СТ-77\"",
+    "bin": "211040009188"
+   },
+   "authorized_company": {
+    "name": "ТОО \"GB (Good Build)\"",
+    "bin": "060540000988"
+   },
+   "supervising_company": {
+    "name": "ТОО \"Тaxion\"",
+    "bin": "101040015239"
+   },
+   "technical_supervising_company": {
+    "name": "ТОО \"Жол-Dau эксперт\"",
+    "bin": "190540030244"
+   },
+   "bank": null,
+   "program": null,
+   "houses": "1",
+   "floors": "7",
+   "apartments_total": 69,
+   "apartments_sold": 0,
+   "commissioning_date_passed": false,
+   "detail_url": "https://api.homeportal.kz/api/v1/objects-detail/1452",
+   "page_url": "https://homeportal.kz/ru/shared-construction-objects",
+   "matched_krisha_object": [
+    "12541179"
+   ],
+   "krisha_note": null
+  },
+  {
+   "registry_id": 1428,
+   "name": "МЖК \"Renesans\"",
+   "basis": "Разрешение МИО",
+   "permit_or_guarantee_number": "639",
+   "issue_date": "19.05.2026",
+   "construction_start_date": "02.06.2026",
+   "commissioning_date": "02.12.2027",
+   "address": "г. Усть-Каменогорск, пр. а И. Есенберлина, д. 20/1",
+   "cadastral_number": "05-085-096-1232",
+   "lat": 48.994636,
+   "lon": 84.770508,
+   "developer": {
+    "name": "ТОО \"Mercury Construction\"",
+    "bin": "220740026935"
+   },
+   "authorized_company": {
+    "name": "TOO \"Elit Stroy group\"",
+    "bin": "190740008285"
+   },
+   "supervising_company": {
+    "name": "ТОО Восток массивпроект",
+    "bin": "050540001004"
+   },
+   "technical_supervising_company": {
+    "name": "ТОО «Technical Check»",
+    "bin": "240540037530"
+   },
+   "bank": null,
+   "program": null,
+   "houses": "1",
+   "floors": "9",
+   "apartments_total": 171,
+   "apartments_sold": 4,
+   "commissioning_date_passed": false,
+   "detail_url": "https://api.homeportal.kz/api/v1/objects-detail/1428",
+   "page_url": "https://homeportal.kz/ru/shared-construction-objects",
+   "matched_krisha_object": null,
+   "krisha_note": "ust-kamenogorsk/renesans (на krisha статус «Сдан в эксплуатацию»; координаты в реестре ошибочны: 48.99, 84.77)"
+  },
+  {
+   "registry_id": 1398,
+   "name": "ЖК \"Viva Life\"",
+   "basis": "Участие БВУ",
+   "permit_or_guarantee_number": "597/МҚЗТ-К-83у",
+   "issue_date": "08.05.2026",
+   "construction_start_date": "28.04.2026",
+   "commissioning_date": "28.08.2027",
+   "address": "г. Усть-Каменогорск, пр. И. Есенберлина, д. 88/1",
+   "cadastral_number": "05-085-091-1658",
+   "lat": 49.920359,
+   "lon": 82.618754,
+   "developer": {
+    "name": "ТОО \"K-Story LTD\"",
+    "bin": "021040009554"
+   },
+   "authorized_company": {
+    "name": "ТОО «CRONUS STROY»",
+    "bin": "210540016344"
+   },
+   "supervising_company": {
+    "name": "ТОО \"Forward ДТ\"",
+    "bin": "141140017305"
+   },
+   "technical_supervising_company": {
+    "name": "ТОО \"УК ПроектТехНадзор\"",
+    "bin": "181040024738"
+   },
+   "bank": "АО \"Евразийский банк\"",
+   "program": null,
+   "houses": "1",
+   "floors": "9",
+   "apartments_total": 120,
+   "apartments_sold": 0,
+   "commissioning_date_passed": false,
+   "detail_url": "https://api.homeportal.kz/api/v1/objects-detail/1398",
+   "page_url": "https://homeportal.kz/ru/shared-construction-objects",
+   "matched_krisha_object": [
+    "23688046"
+   ],
+   "krisha_note": null
+  },
+  {
+   "registry_id": 1375,
+   "name": "ЖК \"Asyl Tau\"",
+   "basis": "Участие БВУ",
+   "permit_or_guarantee_number": "KZ62VWE00002712",
+   "issue_date": "10.04.2026",
+   "construction_start_date": "31.03.2026",
+   "commissioning_date": "31.07.2027",
+   "address": "г. Усть-Каменогорск, ул. Сатпаева, д. 32",
+   "cadastral_number": "05-085-102-1117",
+   "lat": 49.904538,
+   "lon": 82.620846,
+   "developer": {
+    "name": "ТОО \"Comfort-Uly Dala\"",
+    "bin": "190940009528"
+   },
+   "authorized_company": {
+    "name": "ТОО \"Орда Трейдинг\"",
+    "bin": "200140023192"
+   },
+   "supervising_company": {
+    "name": "ТОО «Astana Megapolis Project»",
+    "bin": "120840013788"
+   },
+   "technical_supervising_company": {
+    "name": "ТОО \"Adal Engineering KZ\"",
+    "bin": "220240038623"
+   },
+   "bank": "АО \"Bereke Bank\"",
+   "program": null,
+   "houses": "1",
+   "floors": "18,16,1",
+   "apartments_total": 160,
+   "apartments_sold": 21,
+   "commissioning_date_passed": false,
+   "detail_url": "https://api.homeportal.kz/api/v1/objects-detail/1375",
+   "page_url": "https://homeportal.kz/ru/shared-construction-objects",
+   "matched_krisha_object": [
+    "21679993"
+   ],
+   "krisha_note": null
+  },
+  {
+   "registry_id": 1331,
+   "name": "ЖК \"ASYLTAS\"",
+   "basis": "Участие БВУ",
+   "permit_or_guarantee_number": "KZ53VWE00002680",
+   "issue_date": "17.02.2026",
+   "construction_start_date": "23.12.2025",
+   "commissioning_date": "31.12.2026",
+   "address": "г. Усть-Каменогорск, ул. Кокжал Барака, уч. 1",
+   "cadastral_number": "05-085-102-2617",
+   "lat": 49.887791,
+   "lon": 82.610139,
+   "developer": {
+    "name": "ТОО \"EKM COMPANY\"",
+    "bin": "201040022748"
+   },
+   "authorized_company": {
+    "name": "ТОО \"EKM Garant\"",
+    "bin": "250940009541"
+   },
+   "supervising_company": {
+    "name": "ТОО \"QAZSAURAN\"",
+    "bin": "990540001085"
+   },
+   "technical_supervising_company": {
+    "name": "ТОО «ВЕХИ»",
+    "bin": "000540006264"
+   },
+   "bank": "АО \"First Heartland Jusan Bank\"",
+   "program": null,
+   "houses": "1",
+   "floors": "5",
+   "apartments_total": 60,
+   "apartments_sold": 3,
+   "commissioning_date_passed": false,
+   "detail_url": "https://api.homeportal.kz/api/v1/objects-detail/1331",
+   "page_url": "https://homeportal.kz/ru/shared-construction-objects",
+   "matched_krisha_object": [
+    "23169746"
+   ],
+   "krisha_note": null
+  },
+  {
+   "registry_id": 1330,
+   "name": "ЖК \"ASYLTAS\"",
+   "basis": "Участие БВУ",
+   "permit_or_guarantee_number": "KZ26VWE00002681",
+   "issue_date": "17.02.2026",
+   "construction_start_date": "23.12.2025",
+   "commissioning_date": "31.12.2026",
+   "address": "г. Усть-Каменогорск, ул. Кокжал Барака, уч. 2",
+   "cadastral_number": "05-085-102-2618",
+   "lat": 49.888656,
+   "lon": 82.610568,
+   "developer": {
+    "name": "ТОО \"EKM COMPANY\"",
+    "bin": "201040022748"
+   },
+   "authorized_company": {
+    "name": "ТОО \"EKM Garant\"",
+    "bin": "250940009541"
+   },
+   "supervising_company": {
+    "name": "ТОО \"QAZSAURAN\"",
+    "bin": "990540001085"
+   },
+   "technical_supervising_company": {
+    "name": "ТОО «ВЕХИ»",
+    "bin": "000540006264"
+   },
+   "bank": "АО \"First Heartland Jusan Bank\"",
+   "program": null,
+   "houses": "1",
+   "floors": "5",
+   "apartments_total": 80,
+   "apartments_sold": 8,
+   "commissioning_date_passed": false,
+   "detail_url": "https://api.homeportal.kz/api/v1/objects-detail/1330",
+   "page_url": "https://homeportal.kz/ru/shared-construction-objects",
+   "matched_krisha_object": [
+    "23169746"
+   ],
+   "krisha_note": null
+  },
+  {
+   "registry_id": 1329,
+   "name": "ЖК \"Orda\"",
+   "basis": "Разрешение МИО",
+   "permit_or_guarantee_number": "1383/МҚЗТ-С-331",
+   "issue_date": "13.10.2025",
+   "construction_start_date": "17.10.2024",
+   "commissioning_date": "28.02.2027",
+   "address": "г. Усть-Каменогорск, ул. Кокжал Барака, д. 19а",
+   "cadastral_number": "05-085-096-1553",
+   "lat": 49.890363,
+   "lon": 82.618099,
+   "developer": {
+    "name": "ТОО «СЕО GROUP»",
+    "bin": "040140006326"
+   },
+   "authorized_company": {
+    "name": "ТОО \"ВОСТОК СТРОЙАЛЬЯНС\"",
+    "bin": "050440000210"
+   },
+   "supervising_company": {
+    "name": "ТОО ПИ СИБАКАДЕМПРОЕКТ",
+    "bin": "070540004419"
+   },
+   "technical_supervising_company": {
+    "name": "ТОО \"ВостокБурСтрой\"",
+    "bin": "110140018503"
+   },
+   "bank": null,
+   "program": null,
+   "houses": "1",
+   "floors": "9",
+   "apartments_total": 54,
+   "apartments_sold": 0,
+   "commissioning_date_passed": false,
+   "detail_url": "https://api.homeportal.kz/api/v1/objects-detail/1329",
+   "page_url": "https://homeportal.kz/ru/shared-construction-objects",
+   "matched_krisha_object": [
+    "22902316"
+   ],
+   "krisha_note": null
+  },
+  {
+   "registry_id": 1241,
+   "name": "ЖК \"AINALAIYN\"",
+   "basis": "Разрешение МИО",
+   "permit_or_guarantee_number": "KZ40VWE00002526",
+   "issue_date": "15.07.2025",
+   "construction_start_date": "24.10.2024",
+   "commissioning_date": "31.12.2025",
+   "address": "г. Усть-Каменогорск, пр. И. Есенберлина, уч. 2",
+   "cadastral_number": "05-085-102-2457",
+   "lat": 49.893724,
+   "lon": 82.589908,
+   "developer": {
+    "name": "ТОО \"АА2А\"",
+    "bin": "231140022638"
+   },
+   "authorized_company": {
+    "name": "ТОО \"АА2А Invest\"",
+    "bin": "250740002567"
+   },
+   "supervising_company": {
+    "name": "ТОО \"QAZSAURAN\"",
+    "bin": "990540001085"
+   },
+   "technical_supervising_company": {
+    "name": "ТОО «ВЕХИ»",
+    "bin": "000540006264"
+   },
+   "bank": null,
+   "program": null,
+   "houses": "1",
+   "floors": "5",
+   "apartments_total": 79,
+   "apartments_sold": 0,
+   "commissioning_date_passed": true,
+   "detail_url": "https://api.homeportal.kz/api/v1/objects-detail/1241",
+   "page_url": "https://homeportal.kz/ru/shared-construction-objects",
+   "matched_krisha_object": [
+    "20763656"
+   ],
+   "krisha_note": null
+  },
+  {
+   "registry_id": 1218,
+   "name": "ЖК \"ASYLYM\"",
+   "basis": "Гарантия АО \"КЖК\"",
+   "permit_or_guarantee_number": "ДПГ-25-16-082/200",
+   "issue_date": "31.10.2025",
+   "construction_start_date": "15.08.2025",
+   "commissioning_date": "15.10.2026",
+   "address": "г. Усть-Каменогорск, ул. Кокжал Барака, д. 18б",
+   "cadastral_number": "05-085-102-2564",
+   "lat": 49.890356,
+   "lon": 82.608519,
+   "developer": {
+    "name": "ТОО \"EKM COMPANY\"",
+    "bin": "201040022748"
+   },
+   "authorized_company": {
+    "name": "ТОО «EKM Invest»",
+    "bin": "250740033666"
+   },
+   "supervising_company": {
+    "name": "ТОО \"QAZSAURAN\"",
+    "bin": "990540001085"
+   },
+   "technical_supervising_company": {
+    "name": "ТОО «ВЕХИ»",
+    "bin": "000540006264"
+   },
+   "bank": null,
+   "program": "Орда Аймақ",
+   "houses": "3",
+   "floors": "5",
+   "apartments_total": 190,
+   "apartments_sold": 100,
+   "commissioning_date_passed": false,
+   "detail_url": "https://api.homeportal.kz/api/v1/objects-detail/1218",
+   "page_url": "https://homeportal.kz/ru/shared-construction-objects",
+   "matched_krisha_object": [
+    "22460531"
+   ],
+   "krisha_note": null
+  },
+  {
+   "registry_id": 1141,
+   "name": "ЖК \"Золотой квадрат\"",
+   "basis": "Гарантия АО \"КЖК\"",
+   "permit_or_guarantee_number": "ДПГ-25-16-078/194",
+   "issue_date": "18.08.2025",
+   "construction_start_date": "01.06.2025",
+   "commissioning_date": "01.11.2026",
+   "address": "г. Усть-Каменогорск, ул. Кайсенова, уч. 55/1",
+   "cadastral_number": "05-085-070-424",
+   "lat": 49.945497,
+   "lon": 82.622997,
+   "developer": {
+    "name": "ТОО \"НАУАН Корп\"",
+    "bin": "970640000190"
+   },
+   "authorized_company": {
+    "name": "ТОО «SA-Инжиниринг»",
+    "bin": "211140032196"
+   },
+   "supervising_company": {
+    "name": "ТОО QURYLYSKZ",
+    "bin": "171240027649"
+   },
+   "technical_supervising_company": {
+    "name": "ТОО \"Engineering Services\"",
+    "bin": "130440013597"
+   },
+   "bank": null,
+   "program": "Орда Аймақ",
+   "houses": "3",
+   "floors": "19",
+   "apartments_total": 252,
+   "apartments_sold": 49,
+   "commissioning_date_passed": false,
+   "detail_url": "https://api.homeportal.kz/api/v1/objects-detail/1141",
+   "page_url": "https://homeportal.kz/ru/shared-construction-objects",
+   "matched_krisha_object": [
+    "20531221"
+   ],
+   "krisha_note": null
+  },
+  {
+   "registry_id": 1077,
+   "name": "ЖК \"Tumar Towers Oskemen\"",
+   "basis": "Разрешение МИО",
+   "permit_or_guarantee_number": "KZ26VWE00002487",
+   "issue_date": "17.04.2025",
+   "construction_start_date": "04.02.2025",
+   "commissioning_date": "04.10.2026",
+   "address": "г. Усть-Каменогорск, пр. Победы, д. 2",
+   "cadastral_number": "05-085-070-842",
+   "lat": 49.943912,
+   "lon": 82.62274,
+   "developer": {
+    "name": "ТОО «TUMAR Group»",
+    "bin": "040540018865"
+   },
+   "authorized_company": {
+    "name": "ТОО \"Baiterek Invest\"",
+    "bin": "221140028328"
+   },
+   "supervising_company": {
+    "name": "ТОО \"AQMOL-project\"",
+    "bin": "011140003319"
+   },
+   "technical_supervising_company": {
+    "name": "ТОО \"Adal Engineering KZ\"",
+    "bin": "220240038623"
+   },
+   "bank": null,
+   "program": null,
+   "houses": "1",
+   "floors": "16,18",
+   "apartments_total": 120,
+   "apartments_sold": 71,
+   "commissioning_date_passed": true,
+   "detail_url": "https://api.homeportal.kz/api/v1/objects-detail/1077",
+   "page_url": "https://homeportal.kz/ru/shared-construction-objects",
+   "matched_krisha_object": null,
+   "krisha_note": "oskemen/tumartowers (на krisha статус «Сдан в эксплуатацию»)"
+  },
+  {
+   "registry_id": 1027,
+   "name": "ЖК \"Жаным\"",
+   "basis": "Гарантия АО \"КЖК\"",
+   "permit_or_guarantee_number": "ДПГ-23-16-068/155",
+   "issue_date": "11.10.2023",
+   "construction_start_date": "06.06.2024",
+   "commissioning_date": "06.02.2026",
+   "address": "г. Усть-Каменогорск, пр. И. Есенберлина, д. 92",
+   "cadastral_number": "05-085-091-1400",
+   "lat": 49.921112,
+   "lon": 82.617788,
+   "developer": {
+    "name": "ТОО \"Biryuza Development\"",
+    "bin": "171240023488"
+   },
+   "authorized_company": {
+    "name": "ТОО \"УК Шанырак Строй\"",
+    "bin": "230340036850"
+   },
+   "supervising_company": {
+    "name": "ТОО \"Корсар Инжиниринг\"",
+    "bin": "130740019150"
+   },
+   "technical_supervising_company": {
+    "name": "ТОО \"Алатау Сапа Курылыс\"",
+    "bin": "050140003046"
+   },
+   "bank": null,
+   "program": null,
+   "houses": "1",
+   "floors": "9",
+   "apartments_total": 39,
+   "apartments_sold": 23,
+   "commissioning_date_passed": true,
+   "detail_url": "https://api.homeportal.kz/api/v1/objects-detail/1027",
+   "page_url": "https://homeportal.kz/ru/shared-construction-objects",
+   "matched_krisha_object": [
+    "14235871"
+   ],
+   "krisha_note": null
+  },
+  {
+   "registry_id": 953,
+   "name": "ЖК \"Жаным\" (блок А)",
+   "basis": "Гарантия АО \"КЖК\"",
+   "permit_or_guarantee_number": "ДС № 2 к ДПГ-23-16-068/155",
+   "issue_date": "12.08.2024",
+   "construction_start_date": "19.06.2024",
+   "commissioning_date": "19.12.2025",
+   "address": "г. Усть-Каменогорск, пр. Илияса Есенберлина, 92",
+   "cadastral_number": null,
+   "lat": 49.921246,
+   "lon": 82.61748,
+   "developer": {
+    "name": "ТОО \"Biryuza Development\"",
+    "bin": "171240023488"
+   },
+   "authorized_company": {
+    "name": "ТОО \"УК Шанырак Строй\"",
+    "bin": "230340036850"
+   },
+   "supervising_company": {
+    "name": "ТОО \"Корсар Инжиниринг\"",
+    "bin": "130740019150"
+   },
+   "technical_supervising_company": {
+    "name": "ТОО \"Алатау Сапа Курылыс\"",
+    "bin": "050140003046"
+   },
+   "bank": null,
+   "program": null,
+   "houses": "1",
+   "floors": "9",
+   "apartments_total": 24,
+   "apartments_sold": 16,
+   "commissioning_date_passed": true,
+   "detail_url": "https://api.homeportal.kz/api/v1/objects-detail/953",
+   "page_url": "https://homeportal.kz/ru/shared-construction-objects",
+   "matched_krisha_object": [
+    "14235871"
+   ],
+   "krisha_note": null
+  },
+  {
+   "registry_id": 807,
+   "name": "ЖК \"Жаным\"",
+   "basis": "Гарантия АО \"КЖК\"",
+   "permit_or_guarantee_number": "ДС№4 к ДПГ-23-16-068/155",
+   "issue_date": "11.10.2023",
+   "construction_start_date": "21.08.2023",
+   "commissioning_date": "21.03.2025",
+   "address": "г. Усть-Каменогорск, пр. И. Есенберлина, д.92",
+   "cadastral_number": "05:085:091:1400",
+   "lat": 49.921432,
+   "lon": 82.617903,
+   "developer": {
+    "name": "ТОО \"Biryuza Development\"",
+    "bin": "171240023488"
+   },
+   "authorized_company": {
+    "name": "ТОО \"УК Шанырак Строй\"",
+    "bin": "230340036850"
+   },
+   "supervising_company": null,
+   "technical_supervising_company": null,
+   "bank": null,
+   "program": null,
+   "houses": "2",
+   "floors": "9",
+   "apartments_total": 66,
+   "apartments_sold": 0,
+   "commissioning_date_passed": true,
+   "detail_url": "https://api.homeportal.kz/api/v1/objects-detail/807",
+   "page_url": "https://homeportal.kz/ru/shared-construction-objects",
+   "matched_krisha_object": [
+    "14235871"
+   ],
+   "krisha_note": null
+  }
+ ]
+}

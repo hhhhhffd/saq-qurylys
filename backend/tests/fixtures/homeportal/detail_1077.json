@@ -1,0 +1,88 @@
+{
+  "success": true,
+  "message": "Object Details retrieved successfully",
+  "data": {
+    "basicData": {
+      "name": "ЖК \"Tumar Towers Oskemen\"",
+      "authority": {
+        "id": 1,
+        "name": "Разрешение МИО"
+      },
+      "warranty_number": "KZ26VWE00002487",
+      "issue_date": "17.04.2025",
+      "start_date": "04.02.2025",
+      "commissioning_date": "04.10.2026",
+      "construction_progress": "0",
+      "address": "г. Усть-Каменогорск, пр. Победы, д. 2",
+      "region": {
+        "id": 16,
+        "name_kz": "Шығыс Қазақстан",
+        "name_ru": "Восточно-Казахстанская",
+        "name_en": "East Kazakhstan"
+      },
+      "city": {
+        "id": 73,
+        "name_kz": "Өскемен қ.",
+        "name_ru": "г. Усть-Каменогорск",
+        "name_en": "Ust-Kamenogorsk c."
+      },
+      "website_of_residential_complex": null,
+      "name_of_stb": null,
+      "developerData": {
+        "bin": "040540018865",
+        "name": "ТОО «TUMAR Group»",
+        "email": null,
+        "phone": null,
+        "develpoer_website": null
+      },
+      "link_to_report": null,
+      "program": "",
+      "program_link": "",
+      "act_number": "",
+      "act_date": "",
+      "act_registration_number": "",
+      "act_registration_date": "",
+      "act_created_at": ""
+    },
+    "apartmentData": [],
+    "objectData": {},
+    "locationData": {
+      "cadastral_number": "05-085-070-842",
+      "link_to_land_cadastral_number": "https://www.aisgzk.kz/aisgzk/ru/content/maps?type=cosmos",
+      "latitude": "49.943912",
+      "longitude": "82.622740"
+    },
+    "companyData": {
+      "developerData": {
+        "bin": "040540018865",
+        "name": "ТОО «TUMAR Group»",
+        "email": null,
+        "phone": null,
+        "develpoer_website": null
+      },
+      "authorizedData": {
+        "bin": "221140028328",
+        "name": "ТОО \"Baiterek Invest\"",
+        "email": null,
+        "phone": null,
+        "develpoer_website": null
+      },
+      "supervisingData": {
+        "bin": "011140003319",
+        "name": "ТОО \"AQMOL-project\"",
+        "email": null,
+        "phone": null,
+        "develpoer_website": null
+      },
+      "technicalSupervisingData": {
+        "bin": "220240038623",
+        "name": "ТОО \"Adal Engineering KZ\"",
+        "email": null,
+        "phone": null,
+        "develpoer_website": null
+      }
+    },
+    "images": []
+  },
+  "markerLocations": []
+}

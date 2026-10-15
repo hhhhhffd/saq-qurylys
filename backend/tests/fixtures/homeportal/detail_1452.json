@@ -1,0 +1,88 @@
+{
+  "success": true,
+  "message": "Object Details retrieved successfully",
+  "data": {
+    "basicData": {
+      "name": "ЖК \"Satti City\"",
+      "authority": {
+        "id": 1,
+        "name": "Разрешение МИО"
+      },
+      "warranty_number": "KZ05PDD00004080",
+      "issue_date": "17.08.2026",
+      "start_date": "03.12.2025",
+      "commissioning_date": "30.01.2027",
+      "construction_progress": "0",
+      "address": "г. Усть-Каменогорск, ул. Есенберлина, д. 84",
+      "region": {
+        "id": 16,
+        "name_kz": "Шығыс Қазақстан",
+        "name_ru": "Восточно-Казахстанская",
+        "name_en": "East Kazakhstan"
+      },
+      "city": {
+        "id": 73,
+        "name_kz": "Өскемен қ.",
+        "name_ru": "г. Усть-Каменогорск",
+        "name_en": "Ust-Kamenogorsk c."
+      },
+      "website_of_residential_complex": null,
+      "name_of_stb": null,
+      "developerData": {
+        "bin": "211040009188",
+        "name": "ТОО \"СТ-77\"",
+        "email": null,
+        "phone": null,
+        "develpoer_website": null
+      },
+      "link_to_report": null,
+      "program": "",
+      "program_link": "",
+      "act_number": "",
+      "act_date": "",
+      "act_registration_number": "",
+      "act_registration_date": "",
+      "act_created_at": ""
+    },
+    "apartmentData": [],
+    "objectData": {},
+    "locationData": {
+      "cadastral_number": "05-085-091-1159",
+      "link_to_land_cadastral_number": "https://www.aisgzk.kz/aisgzk/ru/content/maps?type=cosmos",
+      "latitude": "49.919223",
+      "longitude": "82.616442"
+    },
+    "companyData": {
+      "developerData": {
+        "bin": "211040009188",
+        "name": "ТОО \"СТ-77\"",
+        "email": null,
+        "phone": null,
+        "develpoer_website": null
+      },
+      "authorizedData": {
+        "bin": "060540000988",
+        "name": "ТОО \"GB (Good Build)\"",
+        "email": null,
+        "phone": null,
+        "develpoer_website": null
+      },
+      "supervisingData": {
+        "bin": "101040015239",
+        "name": "ТОО \"Тaxion\"",
+        "email": null,
+        "phone": null,
+        "develpoer_website": null
+      },
+      "technicalSupervisingData": {
+        "bin": "190540030244",
+        "name": "ТОО \"Жол-Dau эксперт\"",
+        "email": null,
+        "phone": null,
+        "develpoer_website": null
+      }
+    },
+    "images": []
+  },
+  "markerLocations": []
+}

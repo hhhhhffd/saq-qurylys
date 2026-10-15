@@ -1,0 +1,92 @@
+{
+  "success": true,
+  "message": "Object Details retrieved successfully",
+  "data": {
+    "basicData": {
+      "name": "ЖК \"Asyl Tau\"",
+      "authority": {
+        "id": 3,
+        "name": "Участие БВУ"
+      },
+      "warranty_number": "KZ62VWE00002712",
+      "issue_date": "10.04.2026",
+      "start_date": "31.03.2026",
+      "commissioning_date": "31.07.2027",
+      "construction_progress": "0",
+      "address": "г. Усть-Каменогорск, ул. Сатпаева, д. 32",
+      "region": {
+        "id": 16,
+        "name_kz": "Шығыс Қазақстан",
+        "name_ru": "Восточно-Казахстанская",
+        "name_en": "East Kazakhstan"
+      },
+      "city": {
+        "id": 73,
+        "name_kz": "Өскемен қ.",
+        "name_ru": "г. Усть-Каменогорск",
+        "name_en": "Ust-Kamenogorsk c."
+      },
+      "website_of_residential_complex": null,
+      "name_of_stb": {
+        "id": 1,
+        "name_kz": "«Береке Банк» АҚ",
+        "name_ru": "АО \"Bereke Bank\""
+      },
+      "developerData": {
+        "bin": "190940009528",
+        "name": "ТОО \"Comfort-Uly Dala\"",
+        "email": null,
+        "phone": null,
+        "develpoer_website": null
+      },
+      "link_to_report": null,
+      "program": "",
+      "program_link": "",
+      "act_number": "",
+      "act_date": "",
+      "act_registration_number": "",
+      "act_registration_date": "",
+      "act_created_at": ""
+    },
+    "apartmentData": [],
+    "objectData": {},
+    "locationData": {
+      "cadastral_number": "05-085-102-1117",
+      "link_to_land_cadastral_number": "https://www.aisgzk.kz/aisgzk/ru/content/maps?type=cosmos",
+      "latitude": "49.904538",
+      "longitude": "82.620846"
+    },
+    "companyData": {
+      "developerData": {
+        "bin": "190940009528",
+        "name": "ТОО \"Comfort-Uly Dala\"",
+        "email": null,
+        "phone": null,
+        "develpoer_website": null
+      },
+      "authorizedData": {
+        "bin": "200140023192",
+        "name": "ТОО \"Орда Трейдинг\"",
+        "email": null,
+        "phone": null,
+        "develpoer_website": null
+      },
+      "supervisingData": {
+        "bin": "120840013788",
+        "name": "ТОО «Astana Megapolis Project»",
+        "email": null,
+        "phone": null,
+        "develpoer_website": null
+      },
+      "technicalSupervisingData": {
+        "bin": "220240038623",
+        "name": "ТОО \"Adal Engineering KZ\"",
+        "email": null,
+        "phone": null,
+        "develpoer_website": null
+      }
+    },
+    "images": []
+  },
+  "markerLocations": []
+}

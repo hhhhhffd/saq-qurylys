@@ -38,6 +38,7 @@ celery_app.conf.update(
         "nlp.llm_extract": {"queue": "nlp"},
         "ads.recheck_due": {"queue": "collect"},
         "collect.run_all": {"queue": "collect"},
+        "registry.sync_homeportal": {"queue": "collect"},
         "risk.recalc_object": {"queue": "score"},
         "risk.sweep_due": {"queue": "score"},
         "signals.check_deadlines": {"queue": "notify"},
@@ -46,6 +47,12 @@ celery_app.conf.update(
     beat_schedule={
         "collect-run-all": {"task": "collect.run_all", "schedule": crontab(hour=1, minute=0)},
         "risk-sweep-due": {"task": "risk.sweep_due", "schedule": crontab(hour=2, minute=0)},
+        # Does nothing unless HOMEPORTAL_SYNC_ENABLED=true (needs the agreement of АО «КЖК», OPEN_QUESTIONS 11).
+        "registry-sync-homeportal": {
+            "task": "registry.sync_homeportal",
+            "schedule": crontab(hour=3, minute=0),
+            "kwargs": {"scheduled": True},
+        },
         "ads-recheck-due": {"task": "ads.recheck_due", "schedule": crontab(hour="*/6", minute=15)},
         "signals-check-deadlines": {"task": "signals.check_deadlines", "schedule": crontab(hour=6, minute=0)},
     },

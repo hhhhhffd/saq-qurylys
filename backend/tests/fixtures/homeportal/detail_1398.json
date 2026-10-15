@@ -1,0 +1,92 @@
+{
+  "success": true,
+  "message": "Object Details retrieved successfully",
+  "data": {
+    "basicData": {
+      "name": "ЖК \"Viva Life\"",
+      "authority": {
+        "id": 3,
+        "name": "Участие БВУ"
+      },
+      "warranty_number": "597/МҚЗТ-К-83у",
+      "issue_date": "08.05.2026",
+      "start_date": "28.04.2026",
+      "commissioning_date": "28.08.2027",
+      "construction_progress": "0",
+      "address": "г. Усть-Каменогорск, пр. И. Есенберлина, д. 88/1",
+      "region": {
+        "id": 16,
+        "name_kz": "Шығыс Қазақстан",
+        "name_ru": "Восточно-Казахстанская",
+        "name_en": "East Kazakhstan"
+      },
+      "city": {
+        "id": 73,
+        "name_kz": "Өскемен қ.",
+        "name_ru": "г. Усть-Каменогорск",
+        "name_en": "Ust-Kamenogorsk c."
+      },
+      "website_of_residential_complex": null,
+      "name_of_stb": {
+        "id": 10,
+        "name_kz": "«Еуразиялық банк» АҚ",
+        "name_ru": "АО \"Евразийский банк\""
+      },
+      "developerData": {
+        "bin": "021040009554",
+        "name": "ТОО \"K-Story LTD\"",
+        "email": null,
+        "phone": null,
+        "develpoer_website": null
+      },
+      "link_to_report": null,
+      "program": "",
+      "program_link": "",
+      "act_number": "",
+      "act_date": "",
+      "act_registration_number": "",
+      "act_registration_date": "",
+      "act_created_at": ""
+    },
+    "apartmentData": [],
+    "objectData": {},
+    "locationData": {
+      "cadastral_number": "05-085-091-1658",
+      "link_to_land_cadastral_number": "https://www.aisgzk.kz/aisgzk/ru/content/maps?type=cosmos",
+      "latitude": "49.920359",
+      "longitude": "82.618754"
+    },
+    "companyData": {
+      "developerData": {
+        "bin": "021040009554",
+        "name": "ТОО \"K-Story LTD\"",
+        "email": null,
+        "phone": null,
+        "develpoer_website": null
+      },
+      "authorizedData": {
+        "bin": "210540016344",
+        "name": "ТОО «CRONUS STROY»",
+        "email": null,
+        "phone": null,
+        "develpoer_website": null
+      },
+      "supervisingData": {
+        "bin": "141140017305",
+        "name": "ТОО \"Forward ДТ\"",
+        "email": null,
+        "phone": null,
+        "develpoer_website": null
+      },
+      "technicalSupervisingData": {
+        "bin": "181040024738",
+        "name": "ТОО \"УК ПроектТехНадзор\"",
+        "email": null,
+        "phone": null,
+        "develpoer_website": null
+      }
+    },
+    "images": []
+  },
+  "markerLocations": []
+}

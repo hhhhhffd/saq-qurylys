@@ -46,6 +46,10 @@ class Settings(BaseSettings):
 
     max_upload_mb: int = Field(default=25, ge=1)
 
+    # The scheduled sync of the housing portal registry stays off until АО «КЖК» agrees to it (OPEN_QUESTIONS 11).
+    # An administrator can still start a run by hand.
+    homeportal_sync_enabled: bool = False
+
     # Turn off in tests: object_changed() then does not touch the Celery broker.
     events_enabled: bool = True
 
