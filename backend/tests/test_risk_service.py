@@ -222,6 +222,17 @@ def test_confirmed_payments_complaint_without_permit_is_red(db: Session, world: 
     assert result.risk_score.zone_reasons == ["no_permit", "confirmed_payments"]
 
 
+def test_closing_the_only_collective_complaint_lets_the_object_turn_green(db: Session, world: World) -> None:
+    obj = make_object(db, world.ust)
+    add_document(db, obj, DocType.dsu_permit)
+    complaint = add_complaint(db, obj, collective=True)
+    assert recalc(db, obj).risk_score.zone is Zone.yellow
+    complaint.status = ComplaintStatus.closed
+    db.flush()
+    result = recalc(db, obj)
+    assert (result.risk_score.zone, result.risk_score.score) == (Zone.green, 0)
+
+
 def test_on_schedule_uses_the_latest_inspection(db: Session, world: World) -> None:
     obj = make_object(
         db,

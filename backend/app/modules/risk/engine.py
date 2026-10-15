@@ -210,12 +210,12 @@ def _active_ads(data: ScoringInput, settings: AppSettings) -> FactorOutcome:
 
 
 def _complaints(data: ScoringInput, settings: AppSettings) -> FactorOutcome:
+    """Only complaints that are not closed count, collective ones and the open-count threshold alike."""
     open_ones = [item for item in data.complaints if item.status is not ComplaintStatus.closed]
-    collective = [item for item in data.complaints if item.is_collective]
-    relevant = sorted({item.id for item in (*open_ones, *collective)}, reverse=True)
+    collective = [item for item in open_ones if item.is_collective]
     return FactorOutcome(
         triggered=bool(collective) or len(open_ones) >= settings.complaints_threshold,
-        evidence=_refs("complaint", relevant),
+        evidence=_refs("complaint", sorted((item.id for item in open_ones), reverse=True)),
         detail={
             "count": len(data.complaints),
             "open_count": len(open_ones),

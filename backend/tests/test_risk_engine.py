@@ -181,7 +181,9 @@ def _complaint(id_: int, *, collective: bool = False, status: ComplaintStatus = 
     [
         ([], False),
         ([_complaint(1, collective=True)], True),
-        ([_complaint(1, collective=True, status=ComplaintStatus.closed)], True),  # the rule does not look at status
+        ([_complaint(1, collective=True, status=ComplaintStatus.in_review)], True),
+        ([_complaint(1, collective=True, status=ComplaintStatus.closed)], False),  # closed ones do not count at all
+        ([_complaint(1, collective=True, status=ComplaintStatus.closed), _complaint(2)], False),
         ([_complaint(1), _complaint(2)], False),
         ([_complaint(1), _complaint(2), _complaint(3)], True),
         ([_complaint(1), _complaint(2, status=ComplaintStatus.in_review), _complaint(3)], True),
@@ -190,6 +192,25 @@ def _complaint(id_: int, *, collective: bool = False, status: ComplaintStatus = 
 )
 def test_complaints_factor(complaints: list[ComplaintFact], triggered: bool) -> None:
     assert factor(evaluate(make_input(complaints=complaints)), "complaints")["triggered"] is triggered
+
+
+def test_closed_collective_complaint_does_not_hold_an_object_out_of_green() -> None:
+    data = make_input(
+        documents=[CONFIRMED_PERMIT], complaints=[_complaint(1, collective=True, status=ComplaintStatus.closed)]
+    )
+    result = evaluate(data)
+    assert result.zone is Zone.green
+    assert result.key_status is KeyStatus.ok
+    item = factor(result, "complaints")
+    assert item["evidence"] == []
+    assert item["detail"] == {"count": 1, "open_count": 0, "collective_count": 0, "threshold": 3}
+
+
+def test_complaints_evidence_lists_open_complaints_only() -> None:
+    complaints = [_complaint(1, status=ComplaintStatus.closed), _complaint(2, collective=True), _complaint(3)]
+    item = factor(evaluate(make_input(complaints=complaints)), "complaints")
+    assert item["evidence"] == [{"type": "complaint", "id": 3}, {"type": "complaint", "id": 2}]
+    assert item["detail"]["collective_count"] == 1
 
 
 def test_complaints_threshold_comes_from_settings() -> None:
