@@ -11,6 +11,7 @@ from app import storage
 from app.config import get_settings
 from app.deps import SessionDep
 from app.errors import api_error, register_error_handlers
+from app.modules.activity.router import router as activity_router
 from app.modules.ads.router import router as ads_router
 from app.modules.audit.router import router as audit_router
 from app.modules.auth.router import router as auth_router
@@ -98,6 +99,7 @@ for module_router in (
     registry_sync_router,
     notifications_router,
     audit_router,
+    activity_router,
     # Implemented by other modules; routers are empty stubs until then.
     dashboard_router,
     ads_router,

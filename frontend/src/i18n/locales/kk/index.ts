@@ -1,3 +1,4 @@
+import activity from './activity';
 import admin from './admin';
 import ads from './ads';
 import common from './common';
@@ -7,4 +8,4 @@ import objectForms from './objectForms';
 import objects from './objects';
 import signals from './signals';
 
-export default { common, enums, map, objects, objectForms, ads, signals, admin };
+export default { common, enums, map, objects, objectForms, ads, signals, admin, activity };

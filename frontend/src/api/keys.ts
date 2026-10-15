@@ -27,5 +27,6 @@ export const qk = {
   signalList: (params: SignalListParams) => ['signals', 'list', params] as const,
   signal: (id: number) => ['signals', 'detail', id] as const,
   notifications: ['notifications'] as const,
+  activity: ['activity'] as const,
   audit: (entityType: string, entityId: number) => ['audit', entityType, entityId] as const,
 };
