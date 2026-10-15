@@ -2,7 +2,6 @@
 
 import logging
 import re
-from collections import defaultdict
 from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -20,7 +19,6 @@ from app.models.enums import (
     LinkedEntityKind,
     LinkMethod,
     LlmStatus,
-    PaymentScheme,
     PhraseCategory,
 )
 from app.modules.nlp import llm
@@ -41,14 +39,6 @@ MIN_NAME_LENGTH = 3
 # After a dictionary change the posts of this period are analyzed again; older ones keep their hits.
 REANALYZE_WINDOW_DAYS = 90
 REANALYZE_BATCH_SIZE = 200
-
-_SCHEME_CATEGORY = {
-    PaymentScheme.booking: PhraseCategory.booking,
-    PaymentScheme.down_payment: PhraseCategory.down_payment,
-    PaymentScheme.deposit: PhraseCategory.deposit,
-    PaymentScheme.installment: PhraseCategory.installment,
-    PaymentScheme.nonstandard_contract: PhraseCategory.covert_contract,
-}
 
 
 def recompute_weights(session: Session, ad: AdPost) -> None:
@@ -283,34 +273,26 @@ def _locate(text: str, quote: str) -> tuple[int, int] | None:
     return (match.start(), match.end()) if match else None
 
 
-def _quote_category(
-    quote: str, categories: list[PhraseCategory], phrases: dict[PhraseCategory, list[Phrase]]
-) -> PhraseCategory:
-    if len(categories) == 1:
-        return categories[0]
-    normalized = _normalize(quote)
-
-    def similarity(category: PhraseCategory) -> float:
-        forms = (form for phrase in phrases[category] for form in (phrase.text, *phrase.variants))
-        return max((fuzz.partial_ratio(_normalize(form), normalized) for form in forms), default=0.0)
-
-    return max(categories, key=similarity)
+def finding_for_hit(hit: PhraseHit, extraction: llm.Extraction | None) -> llm.Finding | None:
+    """The finding of the model that an LLM hit was made from: same category and same fragment."""
+    if hit.detected_by is not DetectedBy.llm or extraction is None:
+        return None
+    fragment = llm.normalize_quote(hit.matched_text)
+    return next(
+        (f for f in extraction.findings if f.category is hit.category and llm.normalize_quote(f.quote) == fragment),
+        None,
+    )
 
 
 def _add_llm_hits(session: Session, ad: AdPost, extraction: llm.Extraction) -> None:
     text = ad.text or ""
-    categories = list(
-        dict.fromkeys(
-            [_SCHEME_CATEGORY[scheme] for scheme in extraction.payment_schemes]
-            + ([PhraseCategory.price_before_completion] if extraction.price_before_completion else [])
+    weights = dict(
+        session.execute(
+            select(Phrase.category, func.max(Phrase.weight)).where(Phrase.is_active).group_by(Phrase.category)
         )
+        .tuples()
+        .all()
     )
-    phrases: dict[PhraseCategory, list[Phrase]] = defaultdict(list)
-    for phrase in session.scalars(select(Phrase).where(Phrase.is_active, Phrase.category.in_(categories))):
-        phrases[phrase.category].append(phrase)
-    categories = [category for category in categories if phrases[category]]
-    if not categories:
-        return
 
     # Keep the decisions already taken by a person; the rest of the previous LLM hits is replaced.
     taken: list[tuple[int, int]] = []
@@ -321,20 +303,20 @@ def _add_llm_hits(session: Session, ad: AdPost, extraction: llm.Extraction) -> N
             taken.append((hit.start, hit.end))
     session.flush()
 
-    for quote in extraction.quotes:
-        span = _locate(text, quote)
-        if span is None or any(span[0] < end and start < span[1] for start, end in taken):
+    for finding in extraction.findings:
+        span = _locate(text, finding.quote)
+        # The weight of a category is that of its heaviest active phrase; without one there is nothing to weigh.
+        if span is None or finding.category not in weights or any(span[0] < e and s < span[1] for s, e in taken):
             continue
-        category = _quote_category(quote, categories, phrases)
         session.add(
             PhraseHit(
                 ad_post_id=ad.id,
                 phrase_id=None,
-                category=category,
+                category=finding.category,
                 matched_text=text[span[0] : span[1]],
                 start=span[0],
                 end=span[1],
-                weight=max(phrase.weight for phrase in phrases[category]),
+                weight=weights[finding.category],
                 detected_by=DetectedBy.llm,
             )
         )
@@ -362,7 +344,7 @@ def llm_extract_ad(session: Session, ad: AdPost, client: httpx.Client | None = N
         logger.warning("LLM extraction failed for ad_post %s", ad.id, exc_info=True)
         ad.llm_status = LlmStatus.failed
         return
-    ad.llm_extraction = extraction.model_dump(mode="json")
+    ad.llm_extraction = extraction.to_stored()
     ad.llm_status = LlmStatus.done
     _add_llm_hits(session, ad, extraction)
     session.flush()

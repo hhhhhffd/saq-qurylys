@@ -15,7 +15,7 @@ from app.models.enums import (
     Platform,
 )
 from app.modules.evidence.schemas import EvidenceOut
-from app.modules.nlp.llm import Extraction
+from app.modules.nlp.llm import UNCERTAIN_BELOW, Extraction, Finding
 from app.modules.nlp.text import to_utf16_offsets
 from app.schemas import ORMModel
 
@@ -48,6 +48,7 @@ class AdRow(ORMModel):
     max_phrase_weight: int
     total_phrase_weight: int
     is_outdoor: bool
+    is_demo: bool
     lat: float | None
     lon: float | None
     last_checked_at: datetime | None
@@ -72,11 +73,17 @@ class PhraseHitOut(ORMModel):
     detected_by: DetectedBy
     confirmed: bool | None
     confirmed_by: int | None
+    # Of an LLM hit: the confidence the model gave its finding. Dictionary hits have none.
+    confidence: float | None = None
+    uncertain: bool = False
 
     @classmethod
-    def from_hit(cls, hit: PhraseHit, text: str) -> Self:
+    def from_hit(cls, hit: PhraseHit, text: str, finding: Finding | None = None) -> Self:
         start, end = to_utf16_offsets(text, [hit.start, hit.end])
-        return cls.model_validate(hit).model_copy(update={"start": start, "end": end})
+        update: dict[str, object] = {"start": start, "end": end}
+        if finding is not None:
+            update |= {"confidence": finding.confidence, "uncertain": finding.confidence < UNCERTAIN_BELOW}
+        return cls.model_validate(hit).model_copy(update=update)
 
 
 class LinkedObject(ORMModel):

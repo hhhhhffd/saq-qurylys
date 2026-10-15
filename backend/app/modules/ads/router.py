@@ -40,8 +40,8 @@ from app.modules.ads.urls import (
     is_http_url,
 )
 from app.modules.developers.service import get_visible_developer
-from app.modules.nlp.llm import Extraction
-from app.modules.nlp.service import recompute_weights
+from app.modules.nlp.llm import UNCERTAIN_BELOW, Extraction
+from app.modules.nlp.service import finding_for_hit, recompute_weights
 from app.modules.objects.service import get_object_in_scope
 from app.schemas import Page
 from app.storage import EvidenceLink
@@ -91,6 +91,7 @@ def list_ads(
     platform: Annotated[Platform | None, Query()] = None,
     object_id: Annotated[int | None, Query()] = None,
     status: Annotated[AdStatus | None, Query()] = None,
+    is_demo: Annotated[bool | None, Query()] = None,
     q: Annotated[str | None, Query(max_length=200)] = None,
 ) -> Page[AdRow]:
     stmt = select(AdPost, ConstructionObject.name).outerjoin(
@@ -103,6 +104,8 @@ def list_ads(
         stmt = stmt.where(AdPost.object_id == object_id)
     if status is not None:
         stmt = stmt.where(AdPost.status == status)
+    if is_demo is not None:
+        stmt = stmt.where(AdPost.is_demo == is_demo)
     if q and q.strip():
         pattern = f"%{_escape_like(q.strip())}%"
         stmt = stmt.where(
@@ -319,7 +322,8 @@ def confirm_hit(
     session.flush()
     recompute_weights(session, ad)
     audit.record(session, user, "ad.confirm_hit", "phrase_hit", hit.id, before, audit.snapshot(hit), request)
-    result = PhraseHitOut.from_hit(hit, ad.text or "")
+    extraction = Extraction.model_validate(ad.llm_extraction) if ad.llm_extraction is not None else None
+    result = PhraseHitOut.from_hit(hit, ad.text or "", finding_for_hit(hit, extraction))
     session.commit()
     if ad.object_id is not None:
         objects_changed([ad.object_id])
@@ -346,8 +350,11 @@ def accept_llm(ad_id: int, session: SessionDep, user: StaffUser, scope: ScopeDep
             PhraseHit.ad_post_id == ad.id, PhraseHit.detected_by == DetectedBy.llm, PhraseHit.confirmed.is_(None)
         )
     ):
-        hit.confirmed = True
-        hit.confirmed_by = user.id
+        # A finding the model itself doubts stays a hypothesis until a person confirms that very hit.
+        finding = finding_for_hit(hit, extraction)
+        if finding is None or finding.confidence >= UNCERTAIN_BELOW:
+            hit.confirmed = True
+            hit.confirmed_by = user.id
     session.flush()
     recompute_weights(session, ad)
     if ad.object_id is not None:

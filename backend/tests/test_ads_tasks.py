@@ -267,7 +267,7 @@ def test_claimed_readiness_of_all_objects_follows_the_ad_window(db: Session, wor
     unchanged = make_object(db, world.ust, "Без изменений", readiness_claimed_pct=30)
     add_ad(db, world.ust, object_id=fresh.id, claimed_readiness_pct=50, published_at=now - timedelta(days=1))
     add_ad(db, world.ust, object_id=fresh.id, claimed_readiness_pct=35, published_at=now - timedelta(days=2))
-    add_ad(db, world.ust, object_id=stale.id, claimed_readiness_pct=80, published_at=now - timedelta(days=20))
+    add_ad(db, world.ust, object_id=stale.id, claimed_readiness_pct=80, published_at=now - timedelta(days=60))
     add_ad(db, world.ust, object_id=unchanged.id, claimed_readiness_pct=30, published_at=now - timedelta(days=1))
 
     changed = service.refresh_all_claimed_readiness(db)

@@ -91,7 +91,9 @@ def test_list_is_sorted_filtered_and_scoped(client: TestClient, db: Session, wor
     obj = make_object(db, world.ust, "ЖК Алатау")
     now = datetime.now(UTC)
     heavy_old = add_ad(db, world.ust, "тяжёлая старая", max_phrase_weight=20, published_at=now - timedelta(days=5))
-    light_new = add_ad(db, world.ust, "лёгкая новая", max_phrase_weight=5, published_at=now - timedelta(days=1))
+    light_new = add_ad(
+        db, world.ust, "лёгкая новая", max_phrase_weight=5, published_at=now - timedelta(days=1), is_demo=True
+    )
     heavy_new = add_ad(
         db,
         world.ust,
@@ -118,6 +120,9 @@ def test_list_is_sorted_filtered_and_scoped(client: TestClient, db: Session, wor
         assert response.status_code == 200
         return [item["id"] for item in response.json()["items"]]
 
+    assert [item["is_demo"] for item in body["items"]] == [False, False, False, True]
+    assert ids(is_demo="true") == [light_new.id]
+    assert ids(is_demo="false") == [undated.id, heavy_new.id, heavy_old.id]
     assert ids(platform="telegram") == [heavy_new.id]
     assert ids(object_id=obj.id) == [heavy_new.id]
     assert ids(status="verification") == [heavy_new.id]
@@ -140,17 +145,24 @@ def test_detail_has_hits_evidence_llm_and_linked_object(
     ad = add_ad(
         db,
         world.ust,
-        "Бронь квартир",
+        "Бронь квартир, возможна рассрочка",
         object_id=obj.id,
         llm_status=LlmStatus.done,
         llm_extraction={
+            "findings": [
+                {"category": "deposit", "quote": "Бронь квартир", "confidence": 0.9},
+                {"category": "installment", "quote": "возможна рассрочка", "confidence": 0.3},
+            ],
             "payment_schemes": ["booking"],
             "claimed_readiness_pct": 40,
             "price_before_completion": False,
-            "quotes": ["Бронь"],
+            "confidence": 0.45,
         },
     )
     hit(db, ad, PhraseCategory.booking, 0, 5)
+    llm_sure = hit(db, ad, PhraseCategory.deposit, 0, 13, detected_by=DetectedBy.llm)
+    llm_unsure = hit(db, ad, PhraseCategory.installment, 15, 33, detected_by=DetectedBy.llm)
+    unmatched = hit(db, ad, PhraseCategory.covert_contract, 15, 33, detected_by=DetectedBy.llm)
     evidence = storage.put_evidence(
         db,
         PNG_BYTES,
@@ -163,10 +175,22 @@ def test_detail_has_hits_evidence_llm_and_linked_object(
     body = client.get(f"{ADS}/{ad.id}", headers=auth(world.users["mio_ust"])).json()
 
     assert body["linked_object"] == {"id": obj.id, "code": obj.code, "name": "ЖК Алатау"}
-    assert body["llm_extraction"]["claimed_readiness_pct"] == 40
-    [phrase_hit] = body["phrase_hits"]
-    assert (phrase_hit["start"], phrase_hit["end"], phrase_hit["matched_text"]) == (0, 5, "Бронь")
-    assert phrase_hit["confirmed"] is None and phrase_hit["detected_by"] == "dictionary"
+    extraction = body["llm_extraction"]
+    assert extraction["claimed_readiness_pct"] == 40 and extraction["payment_schemes"] == ["booking"]
+    assert extraction["confidence"] == 0.45 and extraction["uncertain"] is True
+    assert [(f["category"], f["confidence"], f["uncertain"]) for f in extraction["findings"]] == [
+        ("deposit", 0.9, False),
+        ("installment", 0.3, True),
+    ]
+    hits = {item["id"]: item for item in body["phrase_hits"]}
+    dictionary_hit = next(item for item in hits.values() if item["detected_by"] == "dictionary")
+    assert (dictionary_hit["start"], dictionary_hit["end"], dictionary_hit["matched_text"]) == (0, 5, "Бронь")
+    assert dictionary_hit["confirmed"] is None
+    assert (dictionary_hit["confidence"], dictionary_hit["uncertain"]) == (None, False)
+    assert (hits[llm_sure.id]["confidence"], hits[llm_sure.id]["uncertain"]) == (0.9, False)
+    assert (hits[llm_unsure.id]["confidence"], hits[llm_unsure.id]["uncertain"]) == (0.3, True)
+    # A hit that no finding of the extraction describes shows no confidence.
+    assert (hits[unmatched.id]["confidence"], hits[unmatched.id]["uncertain"]) == (None, False)
     [item] = body["evidence"]
     assert item["id"] == evidence.id and item["sha256"] == hashlib.sha256(PNG_BYTES).hexdigest()
     assert (
@@ -213,7 +237,7 @@ def test_capture_registers_a_pending_publication_and_queues_the_pipeline(
 
     assert response.status_code == 201, response.text
     body = response.json()
-    assert body["platform"] == "instagram" and body["capture_status"] == "pending"
+    assert body["platform"] == "instagram" and body["capture_status"] == "pending" and body["is_demo"] is False
     assert body["object_id"] == obj.id and body["link_method"] == "manual" and body["link_confidence"] == 1.0
     assert body["territory_id"] == world.ust.id and body["author"] == "alatau_zhk"
     assert body["status"] == "captured" and body["phrase_hits"] == [] and body["evidence"] == []
@@ -378,7 +402,7 @@ def test_manual_ad_with_photos_stores_evidence(
     assert response.status_code == 201, response.text
     body = response.json()
     assert body["text"] == "Билборд: бронь квартир, звоните 8 777 123 45 67"
-    assert body["is_outdoor"] is True and (body["lat"], body["lon"]) == (49.95, 82.61)
+    assert body["is_outdoor"] is True and (body["lat"], body["lon"]) == (49.95, 82.61) and body["is_demo"] is False
     assert body["object_id"] == obj.id and body["link_method"] == "manual" and body["capture_status"] is None
     assert body["published_at"].startswith("2026-10-01T04:30:00") and body["captured_at"]
     assert [item["kind"] for item in body["evidence"]] == ["photo", "photo"]
@@ -503,7 +527,7 @@ def test_confirmed_fields_feed_the_claimed_readiness_of_the_object(
         "старая",
         object_id=obj.id,
         claimed_readiness_pct=90,
-        published_at=datetime.now(UTC) - timedelta(days=30),
+        published_at=datetime.now(UTC) - timedelta(days=60),
     )
     headers = auth(world.users["mio_ust"])
 
@@ -607,14 +631,20 @@ def test_accept_llm_moves_the_extraction_into_confirmed_fields(
         payment_schemes=["installment"],
         llm_status=LlmStatus.done,
         llm_extraction={
+            "findings": [
+                {"category": "deposit", "quote": "Залог", "confidence": 0.9},
+                {"category": "booking", "quote": "бронь", "confidence": 0.8},
+                {"category": "installment", "quote": "готовность", "confidence": 0.4},
+            ],
             "payment_schemes": ["deposit", "installment"],
             "claimed_readiness_pct": 60,
             "price_before_completion": True,
-            "quotes": ["Залог"],
+            "confidence": 0.7,
         },
     )
     pending = hit(db, ad, PhraseCategory.deposit, 0, 5, weight=12, detected_by=DetectedBy.llm)
-    rejected = hit(db, ad, PhraseCategory.booking, 8, 12, weight=10, detected_by=DetectedBy.llm, confirmed=False)
+    rejected = hit(db, ad, PhraseCategory.booking, 8, 13, weight=10, detected_by=DetectedBy.llm, confirmed=False)
+    uncertain = hit(db, ad, PhraseCategory.installment, 15, 25, weight=20, detected_by=DetectedBy.llm)
     user = world.users["mio_ust"]
 
     response = client.post(f"{ADS}/{ad.id}/accept-llm", headers=auth(user))
@@ -627,7 +657,9 @@ def test_accept_llm_moves_the_extraction_into_confirmed_fields(
     assert obj.readiness_claimed_pct == 60
     db.refresh(pending)
     db.refresh(rejected)
+    db.refresh(uncertain)
     assert pending.confirmed is True and pending.confirmed_by == user.id and rejected.confirmed is False
+    assert uncertain.confirmed is None  # the model doubted it: a person confirms that hit on its own
     assert body["max_phrase_weight"] == 12
     assert recalculated(sent_tasks) == [obj.id]
     assert db.scalars(select(AuditLog).where(AuditLog.action == "ad.accept_llm", AuditLog.entity_id == ad.id)).one()

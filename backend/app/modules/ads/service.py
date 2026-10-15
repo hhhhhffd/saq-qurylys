@@ -13,6 +13,8 @@ from app.models.enums import CaptureStatus, Platform
 from app.modules.ads.schemas import AdDetail, AdRow, LinkedObject, PhraseHitOut
 from app.modules.ads.urls import handle_from_url
 from app.modules.evidence.schemas import EvidenceOut
+from app.modules.nlp.llm import Extraction
+from app.modules.nlp.service import finding_for_hit
 from app.modules.settings.service import load_settings
 from app.scope import TerritoryScope
 from app.worker.celery_app import celery_app
@@ -39,11 +41,12 @@ def build_detail(session: Session, ad: AdPost) -> AdDetail:
     )
     evidence = session.scalars(select(Evidence).where(Evidence.ad_post_id == ad.id).order_by(Evidence.id))
     text = ad.text or ""
+    extraction = Extraction.model_validate(ad.llm_extraction) if ad.llm_extraction is not None else None
     return AdDetail(
         **build_row(ad, obj.name if obj else None).model_dump(),
-        phrase_hits=[PhraseHitOut.from_hit(hit, text) for hit in hits],
+        phrase_hits=[PhraseHitOut.from_hit(hit, text, finding_for_hit(hit, extraction)) for hit in hits],
         evidence=[EvidenceOut.model_validate(item) for item in evidence],
-        llm_extraction=ad.llm_extraction,
+        llm_extraction=extraction,
         linked_object=LinkedObject.model_validate(obj) if obj else None,
     )
 

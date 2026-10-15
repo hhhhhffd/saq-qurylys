@@ -251,8 +251,20 @@ def test_llm_disabled_marks_the_post_and_makes_no_request(db: Session, world: Wo
     assert ad.llm_status is LlmStatus.disabled and ad.llm_extraction is None
 
 
+def extraction_reply(findings: list[tuple[str, str, float]] | None = None, **fields: Any) -> dict[str, Any]:
+    """An answer of the model in the schema of SPEC 5."""
+    return {
+        "findings": [{"category": c, "quote": q, "confidence": confidence} for c, q, confidence in findings or []],
+        "payment_schemes": [],
+        "claimed_readiness_pct": None,
+        "price_before_completion": False,
+        "confidence": 0.8,
+        **fields,
+    }
+
+
 @pytest.mark.usefixtures("llm_on")
-def test_llm_extraction_is_stored_as_an_assumption_with_located_quotes(db: Session, world: World) -> None:
+def test_llm_extraction_is_stored_as_an_assumption_with_located_findings(db: Session, world: World) -> None:
     text = "ЖК Алатау готов на 70%.  Оставьте  залог 500 000 тг, квартира  по   фиксированной цене!"
     ad = add_ad(db, world.ust, text)
     requests: list[dict[str, Any]] = []
@@ -261,12 +273,17 @@ def test_llm_extraction_is_stored_as_an_assumption_with_located_quotes(db: Sessi
         requests.append(json.loads(request.content))
         assert str(request.url) == "http://ollama.test:11434/api/chat"
         return ollama_reply(
-            {
-                "payment_schemes": ["deposit", "deposit"],
-                "claimed_readiness_pct": 70,
-                "price_before_completion": False,
-                "quotes": ["залог 500 000 тг", "по фиксированной цене", "этого нет в тексте", ""],
-            }
+            extraction_reply(
+                [
+                    ("deposit", "залог 500 000 тг", 0.9),
+                    ("price_before_completion", "по фиксированной цене", 0.3),
+                    ("booking", "этого нет в тексте", 0.9),
+                    ("deposit", "залог  500 000   тг", 0.9),  # the same finding again
+                    ("covert_contract", "", 0.9),
+                ],
+                payment_schemes=["deposit", "deposit"],
+                claimed_readiness_pct=70,
+            )
         )
 
     service.llm_extract_ad(db, ad, mock_client(handler))
@@ -274,87 +291,96 @@ def test_llm_extraction_is_stored_as_an_assumption_with_located_quotes(db: Sessi
     [body] = requests
     assert body["model"] == "test-model" and body["stream"] is False and body["think"] is False
     assert body["options"] == {"temperature": 0}
-    assert body["format"]["required"] == [
+    assert set(body["format"]["required"]) == {
+        "findings",
         "payment_schemes",
         "claimed_readiness_pct",
         "price_before_completion",
-        "quotes",
-    ]
+        "confidence",
+    }
+    category_enum = body["format"]["properties"]["findings"]["items"]["properties"]["category"]["enum"]
+    assert set(category_enum) == {category.value for category in PhraseCategory}
     assert body["messages"][0]["role"] == "system" and text in body["messages"][1]["content"]
 
     assert ad.llm_status is LlmStatus.done
+    # Stored as the model said it (de-duplicated), without the flags the API derives.
     assert ad.llm_extraction == {
+        "findings": [
+            {"category": "deposit", "quote": "залог 500 000 тг", "confidence": 0.9},
+            {"category": "price_before_completion", "quote": "по фиксированной цене", "confidence": 0.3},
+            {"category": "booking", "quote": "этого нет в тексте", "confidence": 0.9},
+        ],
         "payment_schemes": ["deposit"],
         "claimed_readiness_pct": 70,
         "price_before_completion": False,
-        "quotes": ["залог 500 000 тг", "по фиксированной цене", "этого нет в тексте"],
+        "confidence": 0.8,
     }
     # The confirmed fields stay as they were until a person accepts the extraction.
     assert ad.payment_schemes == [] and ad.claimed_readiness_pct is None and ad.price_before_completion is False
 
     hits = hits_of(db, ad)
-    assert [hit.matched_text for hit in hits] == ["залог 500 000 тг", "по   фиксированной цене"]
+    assert [(hit.matched_text, hit.category) for hit in hits] == [
+        ("залог 500 000 тг", PhraseCategory.deposit),
+        ("по   фиксированной цене", PhraseCategory.price_before_completion),
+    ]
     assert all(text[hit.start : hit.end] == hit.matched_text for hit in hits)
-    assert all(
-        (hit.category, hit.detected_by, hit.confirmed, hit.phrase_id, hit.weight)
-        == (PhraseCategory.deposit, DetectedBy.llm, None, None, 10)
-        for hit in hits
-    )
+    assert all((hit.detected_by, hit.confirmed, hit.phrase_id) == (DetectedBy.llm, None, None) for hit in hits)
+    assert [hit.weight for hit in hits] == [10, 6]  # the heaviest active phrase of the category
     # An LLM hit weighs nothing before a person confirms it.
     assert ad.max_phrase_weight == 0 and ad.total_phrase_weight == 0
 
+    extraction = llm.Extraction.model_validate(ad.llm_extraction)
+    assert [service.finding_for_hit(hit, extraction) for hit in hits] == extraction.findings[:2]
+    assert [finding.uncertain for finding in extraction.findings] == [False, True, False]
+    assert extraction.uncertain is False
+
 
 @pytest.mark.usefixtures("llm_on")
-def test_llm_quote_gets_the_category_of_the_closest_phrase_and_skips_dictionary_hits(db: Session, world: World) -> None:
-    text = "Оформим рассрочку на год, а задаток вернём"
+def test_llm_findings_overlapping_dictionary_hits_are_not_duplicated(db: Session, world: World) -> None:
+    text = "Оформим рассрочку на год, а залог вернём"
     ad = add_ad(db, world.ust, text)
-    service.analyze_ad(db, ad)  # the dictionary finds рассрочку and задаток itself
-    reply = {
-        "payment_schemes": ["installment", "deposit"],
-        "claimed_readiness_pct": None,
-        "price_before_completion": False,
-        "quotes": ["Оформим рассрочку на год", "задаток вернём"],
-    }
+    service.analyze_ad(db, ad)  # the dictionary finds рассрочку itself
+    reply = extraction_reply([("installment", "Оформим рассрочку на год", 0.9), ("deposit", "залог вернём", 0.7)])
 
     service.llm_extract_ad(db, ad, mock_client(lambda request: ollama_reply(reply)))
 
-    assert [hit for hit in hits_of(db, ad) if hit.detected_by is DetectedBy.llm] == []
+    llm_hits = [hit for hit in hits_of(db, ad) if hit.detected_by is DetectedBy.llm]
+    assert [(hit.matched_text, hit.category) for hit in llm_hits] == [("залог вернём", PhraseCategory.deposit)]
+    assert service.finding_for_hit(hits_of(db, ad)[0], llm.Extraction.model_validate(ad.llm_extraction)) is None
 
-    # Without the dictionary hits the quotes are kept, each in the category it resembles most.
-    for hit in hits_of(db, ad):
-        db.delete(hit)
+
+@pytest.mark.usefixtures("llm_on")
+def test_llm_category_without_active_phrases_gets_no_hit(db: Session, world: World) -> None:
+    for row in db.scalars(select(Phrase).where(Phrase.category == PhraseCategory.deposit)):
+        row.is_active = False
     db.flush()
-    service.llm_extract_ad(db, ad, mock_client(lambda request: ollama_reply(reply)))
-    assert [(hit.matched_text, hit.category) for hit in hits_of(db, ad)] == [
-        ("Оформим рассрочку на год", PhraseCategory.installment),
-        ("задаток вернём", PhraseCategory.deposit),
-    ]
+    ad = add_ad(db, world.ust, "Оставьте залог сегодня")
+
+    service.llm_extract_ad(
+        db, ad, mock_client(lambda request: ollama_reply(extraction_reply([("deposit", "залог", 0.9)])))
+    )
+
+    assert ad.llm_status is LlmStatus.done and hits_of(db, ad) == []
+    assert llm.Extraction.model_validate(ad.llm_extraction).findings[0].quote == "залог"
 
 
 @pytest.mark.usefixtures("llm_on")
 def test_llm_rerun_replaces_unreviewed_hits_but_keeps_decided_ones(db: Session, world: World) -> None:
-    text = "Внесите задаток сегодня, гарантийный взнос возвращается"
+    text = "Внесите залог сегодня, обеспечение возвращается"
     ad = add_ad(db, world.ust, text)
 
-    def reply(quotes: list[str]) -> Any:
-        return lambda request: ollama_reply(
-            {
-                "payment_schemes": ["deposit"],
-                "claimed_readiness_pct": None,
-                "price_before_completion": False,
-                "quotes": quotes,
-            }
-        )
+    def reply(*quotes: str) -> Any:
+        return lambda request: ollama_reply(extraction_reply([("deposit", quote, 0.9) for quote in quotes]))
 
-    service.llm_extract_ad(db, ad, mock_client(reply(["Внесите задаток", "возвращается"])))
+    service.llm_extract_ad(db, ad, mock_client(reply("Внесите залог", "возвращается")))
     decided, unreviewed = hits_of(db, ad)
     decided.confirmed = True
     db.flush()
 
-    service.llm_extract_ad(db, ad, mock_client(reply(["Внесите задаток", "гарантийный взнос"])))
+    service.llm_extract_ad(db, ad, mock_client(reply("Внесите залог", "обеспечение возвращается")))
 
     remaining = hits_of(db, ad)
-    assert [hit.matched_text for hit in remaining] == ["Внесите задаток", "гарантийный взнос"]
+    assert [hit.matched_text for hit in remaining] == ["Внесите залог", "обеспечение возвращается"]
     assert remaining[0].id == decided.id and remaining[0].confirmed is True
     assert db.get(PhraseHit, unreviewed.id) is None
     assert ad.max_phrase_weight == 10  # the confirmed LLM hit counts
@@ -369,6 +395,9 @@ def test_llm_rerun_replaces_unreviewed_hits_but_keeps_decided_ones(db: Session, 
         httpx.Response(200, json={"message": {"content": ""}}),
         httpx.Response(200, json={"message": {"content": json.dumps({"claimed_readiness_pct": 150})}}),
         httpx.Response(200, json={"message": {"content": json.dumps({"payment_schemes": ["barter"]})}}),
+        httpx.Response(200, json={"message": {"content": json.dumps(extraction_reply([("weird", "x", 0.5)]))}}),
+        httpx.Response(200, json={"message": {"content": json.dumps(extraction_reply([("booking", "x", -1)]))}}),
+        httpx.Response(200, json={"message": {"content": json.dumps(extraction_reply(confidence=1000))}}),
         httpx.Response(200, json={"unexpected": True}),
     ],
 )
@@ -379,6 +408,22 @@ def test_llm_failures_are_recorded_without_changing_the_post(
     service.llm_extract_ad(db, ad, mock_client(lambda request: response))
     assert ad.llm_status is LlmStatus.failed and ad.llm_extraction is None
     assert ad.payment_schemes == [] and hits_of(db, ad) == []
+
+
+def test_llm_confidence_given_in_percent_is_normalized() -> None:
+    extraction = llm.Extraction.model_validate(
+        extraction_reply([("booking", "Бронь", 85), ("deposit", "залог", 1)], confidence=40)
+    )
+    assert [finding.confidence for finding in extraction.findings] == [0.85, 1.0]
+    assert extraction.confidence == 0.4 and extraction.uncertain is True
+    assert [finding.uncertain for finding in extraction.findings] == [False, False]
+
+
+def test_llm_findings_are_limited_and_unique() -> None:
+    many = [("booking", f"фрагмент {number}", 0.9) for number in range(25)]
+    assert len(llm.Extraction.model_validate(extraction_reply(many)).findings) == llm.MAX_FINDINGS
+    repeated = [("booking", "Бронь", 0.9), ("booking", "  бронь ", 0.2), ("deposit", "бронь", 0.9)]
+    assert len(llm.Extraction.model_validate(extraction_reply(repeated)).findings) == 2
 
 
 @pytest.mark.usefixtures("llm_on")
@@ -400,9 +445,7 @@ def test_llm_retries_without_think_when_the_server_does_not_know_it(db: Session,
         bodies.append(body)
         if "think" in body:
             return httpx.Response(400, json={"error": '"test-model" does not support thinking: think value invalid'})
-        return ollama_reply(
-            {"payment_schemes": [], "claimed_readiness_pct": None, "price_before_completion": False, "quotes": []}
-        )
+        return ollama_reply(extraction_reply())
 
     ad = add_ad(db, world.ust, "Просто текст")
     service.llm_extract_ad(db, ad, mock_client(handler))
@@ -413,7 +456,7 @@ def test_llm_retries_without_think_when_the_server_does_not_know_it(db: Session,
 
 @pytest.mark.usefixtures("llm_on")
 def test_llm_thinking_block_in_the_answer_is_ignored() -> None:
-    answer = '<think>рассуждаю</think>{"payment_schemes": ["installment"], "claimed_readiness_pct": null, "price_before_completion": false, "quotes": []}'
+    answer = "<think>рассуждаю</think>" + json.dumps(extraction_reply(payment_schemes=["installment"]))
     client = mock_client(lambda request: httpx.Response(200, json={"message": {"content": answer, "thinking": "..."}}))
     extraction = llm.extract("Рассрочка", get_settings(), client)
     assert [scheme.value for scheme in extraction.payment_schemes] == ["installment"]
