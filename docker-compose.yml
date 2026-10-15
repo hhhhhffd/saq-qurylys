@@ -136,6 +136,23 @@ services:
       api:
         condition: service_healthy
 
+  # Telegram bot for citizens (SPEC 10.4); started on demand: `docker compose --profile bot up -d bot`.
+  # It needs TELEGRAM_BOT_TOKEN in .env and exits with an error message when the token is empty.
+  bot:
+    <<: *backend
+    profiles: ["bot"]
+    build:
+      context: ./backend
+      target: api
+    command: ["python", "-m", "app.bot"]
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
   frontend:
     build:
       context: ./frontend

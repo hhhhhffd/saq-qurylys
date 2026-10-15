@@ -109,6 +109,22 @@ Optional files in `backend/app/seed_data/` (districts, holidays, demo objects) a
 Their formats are in [backend/app/seed_data/README.md](backend/app/seed_data/README.md).
 
 
+## Telegram-бот
+
+Бот для граждан (SPEC 10.4) — отдельный сервис `bot` в профиле compose `bot`, по умолчанию он не запускается.
+
+1. В Telegram откройте [@BotFather](https://t.me/BotFather), отправьте `/newbot`, задайте имя и username бота и
+   скопируйте выданный токен.
+2. Впишите токен в `.env` (в git он не попадает): `TELEGRAM_BOT_TOKEN=<токен>`. Лимит сообщений и жалоб одного
+   гражданина в час — `BOT_REPORTS_PER_HOUR` (по умолчанию 10).
+3. Запустите сервис: `docker compose --profile bot up -d bot`. Журнал: `docker compose logs -f bot`.
+
+С пустым `TELEGRAM_BOT_TOKEN` `python -m app.bot` завершается с сообщением об ошибке, и `restart: unless-stopped`
+будет перезапускать контейнер, пока токен не задан. Бот работает через long polling, входящих портов не нужно.
+Язык ответов — казахский для клиентов Telegram с `language_code` на `kk`, иначе русский; тексты — в
+`backend/app/bot/texts.py`. Имя, username и телефон гражданина не сохраняются, выбранный город хранится только в
+памяти бота (после перезапуска нужно снова отправить `/start`). Демонстрировать бота можно только на вымышленных ЖК.
+
 ## Access rules worth knowing
 
 - Everything is filtered by the user's territory (own territory plus descendants; no territory = whole country).
