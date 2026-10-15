@@ -503,6 +503,14 @@ def test_history_file_is_fictional_dated_in_the_past_and_outside_the_analysis_wi
         match = re.fullmatch(r"-(\d+)d", ad["published_at"])
         assert match is not None and 32 <= int(match[1]) <= 175, "1-6 months back, outside the 30-day window"
     assert len({ad["external_id"] for ad in ads}) == len(ads)
+    # An older ad names its own object's phone: a phone of another card would tie two developers in the link graph.
+    own_phones = {
+        obj["name"]: {entity["value"] for entity in obj["linked_entities"] if entity["kind"] == "phone"}
+        for obj in DEMO["objects"]
+    }
+    for item in HISTORY["objects"]:
+        for ad in item.get("ads", []):
+            assert {phone.replace(" ", "") for phone in ad["phones"]} <= own_phones[item["name"]], ad["external_id"]
     for item in HISTORY["objects"]:
         dates = [fact["checked_at"] for fact in item.get("document_checks", [])]
         dates += [fact["verified_at"] for fact in item.get("complaint_verifications", [])]

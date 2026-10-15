@@ -60,8 +60,8 @@
     {
       "name": "ЖК «Звёздный путь»",
       "ads": [
-        {"platform": "telegram", "url": "https://example.invalid/telegram/zvezdny_put_demo/h1", "external_id": "demo-hist-zvezdny_put_demo-h1", "author": "zvezdny_put_demo", "published_at": "-97d", "text": "ЖК «Звёздный путь»: фото со стройплощадки, монтаж перекрытий идёт по графику. +7 700 000 08 01", "phones": ["+7 700 000 08 01"]},
-        {"platform": "instagram", "url": "https://example.invalid/instagram/zvezdny_put_demo/h2", "external_id": "demo-hist-zvezdny_put_demo-h2", "author": "zvezdny_put_demo", "published_at": "-71d", "text": "Звёздный путь: новости строительства и ответы на вопросы дольщиков. +7 700 000 08 01", "phones": ["+7 700 000 08 01"]}
+        {"platform": "telegram", "url": "https://example.invalid/telegram/zvezdny_put_demo/h1", "external_id": "demo-hist-zvezdny_put_demo-h1", "author": "zvezdny_put_demo", "published_at": "-97d", "text": "ЖК «Звёздный путь»: фото со стройплощадки, монтаж перекрытий идёт по графику. +7 700 000 06 01", "phones": ["+7 700 000 06 01"]},
+        {"platform": "instagram", "url": "https://example.invalid/instagram/zvezdny_put_demo/h2", "external_id": "demo-hist-zvezdny_put_demo-h2", "author": "zvezdny_put_demo", "published_at": "-71d", "text": "Звёздный путь: новости строительства и ответы на вопросы дольщиков. +7 700 000 06 01", "phones": ["+7 700 000 06 01"]}
       ]
     },
     {
