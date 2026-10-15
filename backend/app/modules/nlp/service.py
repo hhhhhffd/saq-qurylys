@@ -22,7 +22,7 @@ from app.models.enums import (
     PhraseCategory,
 )
 from app.modules.nlp import llm
-from app.modules.nlp.text import extract_links, extract_phones, find_matches
+from app.modules.nlp.text import extract_links, extract_phones, find_matches, mentions_readiness
 from app.modules.settings.service import load_settings
 from app.scope import TerritoryScope
 from app.worker.celery_app import celery_app
@@ -294,6 +294,28 @@ def _locate(text: str, quote: str) -> tuple[int, int] | None:
     return (match.start(), match.end()) if match else None
 
 
+def supported_facts(extraction: llm.Extraction, text: str) -> llm.Extraction:
+    """The part of the model's answer that the text of the ad backs up.
+
+    A payment scheme or the price flag stands only behind a finding of its category that is found in the text
+    and that the model is sure of; a claimed readiness only when a sentence of the text speaks of readiness and
+    names that percentage. Whatever else the answer says (for instance because the ad told the model to say it)
+    never reaches the confirmed fields.
+    """
+    categories = {
+        f.category for f in extraction.findings if f.confidence >= llm.UNCERTAIN_BELOW and _locate(text, f.quote)
+    }
+    percent = extraction.claimed_readiness_pct
+    return extraction.model_copy(
+        update={
+            "payment_schemes": [s for s in extraction.payment_schemes if llm.SCHEME_CATEGORIES[s] & categories],
+            "price_before_completion": extraction.price_before_completion
+            and PhraseCategory.price_before_completion in categories,
+            "claimed_readiness_pct": percent if percent is not None and mentions_readiness(text, percent) else None,
+        }
+    )
+
+
 def finding_for_hit(hit: PhraseHit, extraction: llm.Extraction | None) -> llm.Finding | None:
     """The finding of the model that an LLM hit was made from: same category and same fragment."""
     if hit.detected_by is not DetectedBy.llm or extraction is None:
@@ -365,7 +387,7 @@ def llm_extract_ad(session: Session, ad: AdPost, client: httpx.Client | None = N
         logger.warning("LLM extraction failed for ad_post %s", ad.id, exc_info=True)
         ad.llm_status = LlmStatus.failed
         return
-    ad.llm_extraction = extraction.to_stored()
+    ad.llm_extraction = supported_facts(extraction, text).to_stored()
     ad.llm_status = LlmStatus.done
     _add_llm_hits(session, ad, extraction)
     session.flush()

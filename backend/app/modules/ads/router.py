@@ -41,7 +41,7 @@ from app.modules.ads.urls import (
 )
 from app.modules.developers.service import get_visible_developer
 from app.modules.nlp.llm import UNCERTAIN_BELOW, Extraction
-from app.modules.nlp.service import finding_for_hit, recompute_weights
+from app.modules.nlp.service import finding_for_hit, recompute_weights, supported_facts
 from app.modules.objects.service import get_object_in_scope
 from app.schemas import Page
 from app.storage import EvidenceLink
@@ -337,13 +337,12 @@ def accept_llm(ad_id: int, session: SessionDep, user: StaffUser, scope: ScopeDep
     if ad.llm_status is not LlmStatus.done or ad.llm_extraction is None:
         raise api_error(409, "llm_not_ready", "Нет результата ИИ для подтверждения")
     extraction = Extraction.model_validate(ad.llm_extraction)
+    facts = supported_facts(extraction, ad.text or "")
     before = audit.snapshot(ad)
-    ad.payment_schemes = list(
-        dict.fromkeys([*ad.payment_schemes, *(scheme.value for scheme in extraction.payment_schemes)])
-    )
-    if extraction.claimed_readiness_pct is not None:
-        ad.claimed_readiness_pct = extraction.claimed_readiness_pct
-    if extraction.price_before_completion:
+    ad.payment_schemes = list(dict.fromkeys([*ad.payment_schemes, *(scheme.value for scheme in facts.payment_schemes)]))
+    if facts.claimed_readiness_pct is not None:
+        ad.claimed_readiness_pct = facts.claimed_readiness_pct
+    if facts.price_before_completion:
         ad.price_before_completion = True
     for hit in session.scalars(
         select(PhraseHit).where(

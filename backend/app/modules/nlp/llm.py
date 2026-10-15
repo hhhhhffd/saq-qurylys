@@ -4,10 +4,10 @@ it reaches the confirmed fields of the ad only after a person accepts it."""
 import json
 import logging
 import re
-from typing import Annotated, Any
+from typing import Annotated, Any, Self
 
 import httpx
-from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, computed_field, field_validator
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, computed_field, field_validator, model_validator
 
 from app.config import Settings
 from app.models.enums import PaymentScheme, PhraseCategory
@@ -48,6 +48,17 @@ SYSTEM_PROMPT = (
     '"payment_schemes": ["deposit"], "claimed_readiness_pct": null, "price_before_completion": true, '
     '"confidence": 0.9}'
 )
+
+# The finding categories that make a payment scheme a fact of the post.
+SCHEME_CATEGORIES: dict[PaymentScheme, frozenset[PhraseCategory]] = {
+    PaymentScheme.booking: frozenset({PhraseCategory.booking}),
+    PaymentScheme.down_payment: frozenset({PhraseCategory.down_payment}),
+    PaymentScheme.deposit: frozenset({PhraseCategory.deposit}),
+    PaymentScheme.installment: frozenset({PhraseCategory.installment}),
+    PaymentScheme.nonstandard_contract: frozenset(
+        {PhraseCategory.covert_contract, PhraseCategory.preliminary_contract}
+    ),
+}
 
 _CATEGORIES = [category.value for category in PhraseCategory]
 _CONFIDENCE = {"type": "number"}
@@ -127,6 +138,16 @@ class Extraction(BaseModel):
     @property
     def uncertain(self) -> bool:
         return self.confidence < UNCERTAIN_BELOW
+
+    @model_validator(mode="after")
+    def _drop_unsupported_claims(self) -> Self:
+        """A scheme or the price flag that no finding stands behind (a claim without a quote, or text of the ad
+        that talks the model into it) is not kept."""
+        categories = {finding.category for finding in self.findings}
+        self.payment_schemes = [s for s in self.payment_schemes if SCHEME_CATEGORIES[s] & categories]
+        if PhraseCategory.price_before_completion not in categories:
+            self.price_before_completion = False
+        return self
 
     def to_stored(self) -> dict[str, Any]:
         """JSON for `ad_post.llm_extraction`: without the flags the API derives from the confidence."""

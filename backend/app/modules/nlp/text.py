@@ -105,6 +105,14 @@ def extract_links(text: str) -> list[str]:
     return links
 
 
+def mentions_readiness(text: str, percent: int) -> bool:
+    """Whether a sentence of the text speaks of readiness ("готов...") and names this percentage."""
+    number = re.compile(rf"(?<![\d.,]){percent}(?:[.,]\d+)?\s*(?:%|процент)", re.IGNORECASE)
+    return any(
+        "готов" in sentence.lower() and number.search(sentence) for sentence in re.split(r"(?<=[.!?])\s+|\n", text)
+    )
+
+
 def to_utf16_offsets(text: str, offsets: Sequence[int]) -> list[int]:
     """Convert code point offsets into UTF-16 code unit offsets (JavaScript string indices)."""
     return [len(text[:offset].encode("utf-16-le")) // 2 for offset in offsets]
