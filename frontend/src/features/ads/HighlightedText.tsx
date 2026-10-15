@@ -2,9 +2,9 @@ import { Fragment, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { PhraseHit } from '@/api/types';
 import { useEnum } from '@/i18n/useEnum';
+import { cn } from '@/lib/utils';
 import { hitSource } from '@/lib/hitSource';
 import { buildSegments, splitOcr } from './segments';
-import classes from './HighlightedText.module.css';
 
 const CLAMP_CHARS = 420;
 const CLAMP_LINES = 6;
@@ -12,14 +12,14 @@ const CLAMP_LINES = 6;
 function markClass(hit: PhraseHit): string {
   switch (hitSource(hit)) {
     case 'rejected':
-      return classes.rejected;
+      return 'bg-transparent text-text-3 line-through';
     // An AI hypothesis nobody has accepted does not count yet: dashed outline instead of the solid marker.
     case 'ai_hypothesis':
-      return classes.assumption;
+      return 'bg-transparent outline-[1.5px] outline-offset-1 outline-text-3 outline-dashed';
     case 'confirmed':
-      return classes.confirmed;
+      return 'bg-zone-green-bg shadow-[inset_0_-2px_0_var(--zone-green)]';
     case 'dictionary':
-      return classes.solid;
+      return 'bg-zone-yellow-bg shadow-[inset_0_-2px_0_var(--zone-yellow)]';
   }
 }
 
@@ -42,13 +42,23 @@ function TextBlock({ text, hits, focusHitId = null }: Props) {
 
   return (
     <div>
-      <p id={textId} className={`${classes.text} ${long && !expanded ? classes.clamped : ''}`}>
+      <p
+        id={textId}
+        className={cn(
+          'm-0 font-sans text-sm leading-relaxed [overflow-wrap:anywhere] whitespace-pre-wrap',
+          long && !expanded && 'line-clamp-6',
+        )}
+      >
         {buildSegments(text, hits).map((segment, index) =>
           segment.hit ? (
             <mark
               key={index}
               data-testid="phrase-mark"
-              className={`${classes.mark} ${markClass(segment.hit)} ${segment.hit.id === focusHitId ? classes.focus : ''}`}
+              className={cn(
+                'rounded-[3px] px-px text-inherit',
+                markClass(segment.hit),
+                segment.hit.id === focusHitId && 'outline-2 outline-offset-1 outline-zone-red',
+              )}
               title={`${e('phrase_category', segment.hit.category)} · ${e('hit_source', hitSource(segment.hit))}`}
             >
               {segment.text}
@@ -61,7 +71,7 @@ function TextBlock({ text, hits, focusHitId = null }: Props) {
       {long && (
         <button
           type="button"
-          className={classes.toggle}
+          className="mt-1 cursor-pointer text-sm text-link underline decoration-link/35 underline-offset-2 hover:decoration-current"
           aria-expanded={expanded}
           aria-controls={textId}
           onClick={() => setToggled(!expanded)}
@@ -80,11 +90,11 @@ export function HighlightedText({ text, hits, focusHitId = null }: Props) {
   const showOcr = ocr !== null && ocr.text.trim() !== '';
 
   return (
-    <div className={classes.parts}>
+    <div className="flex flex-col gap-2.5">
       {(!showOcr || own.text.trim() !== '') && <TextBlock text={own.text} hits={own.hits} focusHitId={focusHitId} />}
       {showOcr && (
-        <section className={classes.ocr}>
-          <span className={classes.ocrCaption}>{t('text.ocr')}</span>
+        <section className="flex flex-col gap-1.5 rounded border border-border bg-surface-sunken px-3 py-2.5">
+          <span className="text-2xs font-bold tracking-wider text-text-3 uppercase">{t('text.ocr')}</span>
           <TextBlock text={ocr.text} hits={ocr.hits} focusHitId={focusHitId} />
         </section>
       )}

@@ -1,11 +1,11 @@
-import { Button, Loader } from '@mantine/core';
 import { IconAlertTriangle, IconSparkles } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useAcceptLlm } from '@/api/hooks/ads';
 import type { AdRow, LlmExtraction } from '@/api/types';
 import { Chip } from '@/components/Chip';
+import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import { useEnum } from '@/i18n/useEnum';
-import classes from './AdCard.module.css';
 
 interface Props {
   ad: AdRow;
@@ -17,13 +17,13 @@ interface Props {
 function StatusLine({ status }: { status: AdRow['llm_status'] }) {
   const e = useEnum();
   return (
-    <p className={classes.llmStatus}>
+    <p className="m-0 flex items-center gap-1.5 text-sm text-text-3 [&>svg]:size-3.5">
       {status === 'pending' ? (
-        <Loader size="xs" />
+        <Spinner className="size-3.5" />
       ) : status === 'failed' ? (
-        <IconAlertTriangle size={14} stroke={1.8} aria-hidden />
+        <IconAlertTriangle aria-hidden />
       ) : (
-        <IconSparkles size={14} stroke={1.8} aria-hidden />
+        <IconSparkles aria-hidden />
       )}
       {e('llm_status', status)}
     </p>
@@ -32,7 +32,12 @@ function StatusLine({ status }: { status: AdRow['llm_status'] }) {
 
 const percent = (value: number) => Math.round(value * 100);
 
-/** Result of the LLM pass: a hypothesis that affects the score only after a human accepts it. */
+const termClass = 'text-xs font-medium text-text-3';
+
+/**
+ * Result of the LLM pass: a hypothesis that affects the score only after a human accepts it. The violet border sets
+ * it apart from the confirmed facts around it.
+ */
 export function LlmPanel({ ad, extraction, editable }: Props) {
   const { t } = useTranslation('ads');
   const e = useEnum();
@@ -45,21 +50,24 @@ export function LlmPanel({ ad, extraction, editable }: Props) {
   const readiness = extraction.claimed_readiness_pct;
 
   return (
-    <section className={classes.llm} aria-label={t('llm.badge')}>
-      <div className={classes.llmHead}>
+    <section
+      className="flex flex-col gap-2.5 rounded border border-graph-developer/50 bg-graph-developer/6 px-3.5 py-3 text-sm"
+      aria-label={t('llm.badge')}
+    >
+      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
         <Chip tone="yellow" outline>
           {t('llm.badge')}
-          {extraction.confidence != null && <span className="tnum">{`· ${percent(extraction.confidence)}%`}</span>}
+          {extraction.confidence != null && <span className="tabular-nums">{`· ${percent(extraction.confidence)}%`}</span>}
         </Chip>
         {extraction.uncertain && <Chip tone="red">{t('hits.uncertain')}</Chip>}
-        <span className="faint">{t('llm.note')}</span>
+        <span className="text-text-3">{t('llm.note')}</span>
       </div>
-      <dl className={classes.llmList}>
+      <dl className="m-0 grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-x-4 gap-y-2">
         <div>
-          <dt>{t('schemes.label')}</dt>
-          <dd>
+          <dt className={termClass}>{t('schemes.label')}</dt>
+          <dd className="m-0 mt-0.5">
             {schemes.length > 0 ? (
-              <span className={classes.chips}>
+              <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5">
                 {schemes.map((scheme) => (
                   <Chip key={scheme} outline>
                     {e('payment_scheme', scheme)}
@@ -72,24 +80,28 @@ export function LlmPanel({ ad, extraction, editable }: Props) {
           </dd>
         </div>
         <div>
-          <dt>{t('card.readiness')}</dt>
-          <dd className="tnum">{readiness != null ? `${readiness}${t('units.pct', { ns: 'common' })}` : '—'}</dd>
+          <dt className={termClass}>{t('card.readiness')}</dt>
+          <dd className="m-0 mt-0.5 tabular-nums">
+            {readiness != null ? `${readiness}${t('units.pct', { ns: 'common' })}` : '—'}
+          </dd>
         </div>
         <div>
-          <dt>{t('card.priceBeforeCompletion')}</dt>
-          <dd>{extraction.price_before_completion ? t('yes', { ns: 'common' }) : t('no', { ns: 'common' })}</dd>
+          <dt className={termClass}>{t('card.priceBeforeCompletion')}</dt>
+          <dd className="m-0 mt-0.5">
+            {extraction.price_before_completion ? t('yes', { ns: 'common' }) : t('no', { ns: 'common' })}
+          </dd>
         </div>
       </dl>
       {findings.length > 0 && (
         <div>
-          <span className={classes.label}>{t('llm.findings')}</span>
-          <ul className={classes.quotes}>
+          <span className={termClass}>{t('llm.findings')}</span>
+          <ul className="m-0 mt-1 flex list-none flex-col gap-1.5 border-l-2 border-graph-developer/50 py-0 pr-0 pl-3.5 [overflow-wrap:anywhere]">
             {findings.map((finding, index) => (
               <li key={index}>
                 <span>«{finding.quote}»</span>
-                <span className={classes.findingMeta}>
+                <span className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs text-text-2">
                   <span>{e('phrase_category', finding.category)}</span>
-                  <span className="tnum">{t('llm.confidence', { value: percent(finding.confidence) })}</span>
+                  <span className="tabular-nums">{t('llm.confidence', { value: percent(finding.confidence) })}</span>
                   {finding.uncertain && <Chip tone="red">{t('hits.uncertain')}</Chip>}
                 </span>
               </li>
@@ -98,11 +110,11 @@ export function LlmPanel({ ad, extraction, editable }: Props) {
         </div>
       )}
       {editable && (
-        <div className={classes.llmActions}>
-          <Button size="xs" variant="default" loading={acceptLlm.isPending} onClick={() => acceptLlm.mutate(ad.id)}>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <Button size="sm" variant="secondary" loading={acceptLlm.isPending} onClick={() => acceptLlm.mutate(ad.id)}>
             {t('llm.accept')}
           </Button>
-          <span className="faint">{t('llm.acceptHint')}</span>
+          <span className="text-text-3">{t('llm.acceptHint')}</span>
         </div>
       )}
     </section>

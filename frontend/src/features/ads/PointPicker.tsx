@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState, type ReactNode } from 'react';
-import { Group, Loader, NumberInput, Stack, Text } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
-import classes from './PointPicker.module.css';
+import { NumberInput } from '@/components/form/NumberInput';
+import { Spinner } from '@/components/ui/spinner';
 
 // maplibre-gl is heavy: the map chunk loads only when an outdoor ad is being added.
 const PointMap = lazy(() => import('./PointMap'));
@@ -26,27 +26,23 @@ export function PointPicker({ lat, lon, onChange, error }: Props) {
   const mapAvailable = webgl && !mapFailed;
 
   return (
-    <Stack gap="xs">
+    <div className="flex flex-col gap-2">
       <div>
-        <Text size="sm" fw={500}>
-          {t('point.title')}
-        </Text>
-        <Text size="xs" c="dimmed">
-          {mapAvailable ? t('point.hint') : t('point.mapUnavailable')}
-        </Text>
+        <p className="m-0 text-xs font-medium text-text-2">{t('point.title')}</p>
+        <p className="m-0 text-xs text-text-3">{mapAvailable ? t('point.hint') : t('point.mapUnavailable')}</p>
       </div>
       {mapAvailable && (
         <Suspense
           fallback={
-            <div className={classes.placeholder}>
-              <Loader size="sm" />
+            <div className="grid h-60 place-items-center rounded border border-border-strong bg-surface-sunken">
+              <Spinner />
             </div>
           }
         >
           <PointMap lat={lat} lon={lon} onPick={onChange} onUnavailable={() => setMapFailed(true)} />
         </Suspense>
       )}
-      <Group grow align="flex-start">
+      <div className="grid grid-cols-2 items-start gap-3">
         <NumberInput
           label={t('point.lat')}
           value={lat}
@@ -67,12 +63,12 @@ export function PointPicker({ lat, lon, onChange, error }: Props) {
           hideControls
           error={error ? true : undefined}
         />
-      </Group>
+      </div>
       {error && (
-        <p className={classes.error} role="alert">
+        <p className="m-0 text-xs text-zone-red-ink" role="alert">
           {error}
         </p>
       )}
-    </Stack>
+    </div>
   );
 }

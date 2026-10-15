@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { ActionIcon, Button, Group, MultiSelect, Popover } from '@mantine/core';
 import { IconPencil } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useUpdateAd } from '@/api/hooks/ads';
 import type { AdRow, PaymentScheme } from '@/api/types';
 import { Chip } from '@/components/Chip';
+import { MultiSelect } from '@/components/form/MultiSelect';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useEnum, useEnumOptions } from '@/i18n/useEnum';
 import { PAYMENT_SCHEMES, parsePaymentSchemes } from './constants';
-import classes from './AdCard.module.css';
 
 interface Props {
   ad: AdRow;
@@ -25,46 +26,45 @@ export function PaymentSchemes({ ad, editable }: Props) {
 
   if (!editable && ad.payment_schemes.length === 0) return null;
 
-  const toggle = () => {
-    if (!opened) setDraft(ad.payment_schemes);
-    setOpened(!opened);
+  const toggle = (next: boolean) => {
+    if (next) setDraft(ad.payment_schemes);
+    setOpened(next);
   };
   const save = () =>
     updateAd.mutate({ id: ad.id, data: { payment_schemes: draft } }, { onSuccess: () => setOpened(false) });
 
   return (
-    <div className={classes.fact}>
-      <span className={classes.label}>{t('schemes.label')}</span>
-      <div className={classes.chips}>
+    <div className="flex min-w-0 flex-col gap-1 text-sm">
+      <span className="text-xs font-medium text-text-3">{t('schemes.label')}</span>
+      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5">
         {ad.payment_schemes.map((scheme) => (
           <Chip key={scheme}>{e('payment_scheme', scheme)}</Chip>
         ))}
-        {ad.payment_schemes.length === 0 && <span className="faint">{t('schemes.none')}</span>}
+        {ad.payment_schemes.length === 0 && <span className="text-text-3">{t('schemes.none')}</span>}
         {editable && (
-          <Popover opened={opened} onChange={setOpened} position="bottom-start" width={300} trapFocus>
-            <Popover.Target>
-              <ActionIcon size="sm" aria-label={t('schemes.edit')} onClick={toggle}>
-                <IconPencil size={14} stroke={1.8} />
-              </ActionIcon>
-            </Popover.Target>
-            <Popover.Dropdown>
+          <Popover open={opened} onOpenChange={toggle}>
+            <PopoverTrigger asChild>
+              <Button size="icon-xs" variant="ghost" aria-label={t('schemes.edit')}>
+                <IconPencil />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 gap-3 p-3">
               <MultiSelect
                 label={t('schemes.label')}
                 description={t('schemes.hint')}
                 data={schemeOptions('payment_scheme', PAYMENT_SCHEMES)}
                 value={draft}
                 onChange={(values) => setDraft(parsePaymentSchemes(values))}
-                comboboxProps={{ withinPortal: false, shadow: 'md' }}
               />
-              <Group justify="flex-end" mt="sm" gap="xs">
-                <Button variant="default" size="xs" onClick={() => setOpened(false)}>
+              <div className="flex justify-end gap-2">
+                <Button variant="secondary" size="sm" onClick={() => setOpened(false)}>
                   {t('cancel', { ns: 'common' })}
                 </Button>
-                <Button size="xs" loading={updateAd.isPending} onClick={save}>
+                <Button size="sm" loading={updateAd.isPending} onClick={save}>
                   {t('save', { ns: 'common' })}
                 </Button>
-              </Group>
-            </Popover.Dropdown>
+              </div>
+            </PopoverContent>
           </Popover>
         )}
       </div>

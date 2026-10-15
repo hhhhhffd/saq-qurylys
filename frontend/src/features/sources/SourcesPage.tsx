@@ -1,16 +1,15 @@
 import { useState } from 'react';
-import { Button } from '@mantine/core';
 import { IconArrowLeft, IconPlus } from '@tabler/icons-react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useCollectors, useSourceAccounts } from '@/api/hooks/ads';
+import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/PageHeader';
 import { Panel } from '@/components/Panel';
 import { QueryBoundary } from '@/components/QueryState';
 import { CollectorBadges } from './CollectorBadges';
 import { SourceFormModal } from './SourceFormModal';
 import { SourcesTable } from './SourcesTable';
-import classes from './SourcesPage.module.css';
 
 export function SourcesPage() {
   const { t } = useTranslation('sources');
@@ -25,16 +24,20 @@ export function SourcesPage() {
         subtitle={t('subtitle')}
         actions={
           <>
-            <Button variant="default" component={Link} to="/ads" leftSection={<IconArrowLeft size={16} stroke={1.8} />}>
-              {t('backToAds')}
+            <Button variant="secondary" asChild>
+              <Link to="/ads">
+                <IconArrowLeft />
+                {t('backToAds')}
+              </Link>
             </Button>
-            <Button leftSection={<IconPlus size={16} stroke={1.8} />} onClick={() => setAdding(true)}>
+            <Button onClick={() => setAdding(true)}>
+              <IconPlus />
               {t('add')}
             </Button>
           </>
         }
       />
-      <div className={classes.stack}>
+      <div className="flex flex-col gap-5">
         <Panel title={t('collectors.title')}>
           <QueryBoundary query={collectors}>{(items) => <CollectorBadges collectors={items} />}</QueryBoundary>
         </Panel>

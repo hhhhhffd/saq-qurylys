@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { Button, Select, TextInput } from '@mantine/core';
 import { useDebouncedCallback } from '@/lib/hooks';
-import { IconSearch } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import type { AdStatus, Platform } from '@/api/types';
+import { SelectInput } from '@/components/form/SelectInput';
+import { TextInput } from '@/components/form/TextInput';
 import { ObjectSelect } from '@/components/ObjectSelect';
+import { Button } from '@/components/ui/button';
 import { useEnumOptions } from '@/i18n/useEnum';
 import { AD_STATUSES, PLATFORMS, parseAdStatus, parseDemo, parsePlatform } from './constants';
-import classes from './AdFilters.module.css';
 
 const SEARCH_DEBOUNCE_MS = 300;
 
@@ -40,8 +40,11 @@ export function AdFilters({ values, onChange, onReset, canReset }: Props) {
   const commitSearch = useDebouncedCallback((value: string) => onChange({ q: value }), SEARCH_DEBOUNCE_MS);
 
   return (
-    <div className={`panel ${classes.filters}`} role="search">
-      <Select
+    <div
+      className="mb-4 grid grid-cols-1 items-end gap-3 rounded border border-border bg-surface px-4 py-3 sm:grid-cols-2 xl:grid-cols-[repeat(5,minmax(0,1fr))_auto]"
+      role="search"
+    >
+      <SelectInput
         label={t('filters.platform')}
         placeholder={t('filters.platformAll')}
         data={options('platform', PLATFORMS)}
@@ -55,7 +58,7 @@ export function AdFilters({ values, onChange, onReset, canReset }: Props) {
         value={values.objectId}
         onChange={(objectId) => onChange({ objectId })}
       />
-      <Select
+      <SelectInput
         label={t('filters.status')}
         placeholder={t('filters.statusAll')}
         data={options('ad_status', AD_STATUSES)}
@@ -63,7 +66,7 @@ export function AdFilters({ values, onChange, onReset, canReset }: Props) {
         onChange={(value) => onChange({ status: parseAdStatus(value) })}
         clearable
       />
-      <Select
+      <SelectInput
         label={t('filters.demo')}
         placeholder={t('filters.demoAll')}
         data={[
@@ -77,14 +80,13 @@ export function AdFilters({ values, onChange, onReset, canReset }: Props) {
       <TextInput
         label={t('filters.search')}
         placeholder={t('filters.searchPlaceholder')}
-        leftSection={<IconSearch size={16} stroke={1.8} />}
         value={text}
         onChange={(event) => {
           setText(event.currentTarget.value);
           commitSearch(event.currentTarget.value);
         }}
       />
-      <Button variant="default" className={classes.reset} disabled={!canReset} onClick={onReset}>
+      <Button variant="secondary" className="justify-self-start" disabled={!canReset} onClick={onReset}>
         {t('reset', { ns: 'common' })}
       </Button>
     </div>

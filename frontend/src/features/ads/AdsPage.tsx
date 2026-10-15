@@ -1,5 +1,4 @@
 import { useRef, useState } from 'react';
-import { Button, Skeleton } from '@mantine/core';
 import { IconCamera, IconPlus, IconRss } from '@tabler/icons-react';
 import { Link, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
@@ -7,25 +6,27 @@ import { useAd, useAds } from '@/api/hooks/ads';
 import { useAuth } from '@/auth/useAuth';
 import { PageHeader } from '@/components/PageHeader';
 import { EmptyState, ErrorBlock } from '@/components/QueryState';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 import { AdCard } from './AdCard';
 import { AdFilters, type AdFilterValues } from './AdFilters';
 import { AdsPager } from './AdsPager';
 import { CaptureModal } from './CaptureModal';
 import { ManualAdModal } from './ManualAdModal';
 import { PAGE_SIZE, parseAdStatus, parseDemo, parseId, parsePlatform } from './constants';
-import classes from './AdsPage.module.css';
 
 function FeedSkeleton({ count = 3 }: { count?: number }) {
   const { t } = useTranslation();
   return (
-    <div className={classes.feed} role="status" aria-label={t('loading')}>
+    <div className="flex flex-col gap-3" role="status" aria-label={t('loading')}>
       {Array.from({ length: count }, (_, index) => (
-        <div key={index} className={`panel ${classes.skeleton}`}>
-          <Skeleton h={18} w="35%" />
-          <Skeleton h={12} w="50%" />
-          <Skeleton h={14} />
-          <Skeleton h={14} w="85%" />
-          <Skeleton h={14} w="60%" />
+        <div key={index} className="flex flex-col gap-2.5 rounded border border-border bg-surface p-4">
+          <Skeleton className="h-4 w-1/3" />
+          <Skeleton className="h-3 w-1/2" />
+          <Skeleton className="h-3.5 w-full" />
+          <Skeleton className="h-3.5 w-5/6" />
+          <Skeleton className="h-3.5 w-3/5" />
         </div>
       ))}
     </div>
@@ -105,23 +106,19 @@ export function AdsPage() {
         actions={
           canEditRegistry && (
             <>
-              <Button leftSection={<IconCamera size={16} stroke={1.8} />} onClick={() => setCaptureOpen(true)}>
+              <Button onClick={() => setCaptureOpen(true)}>
+                <IconCamera />
                 {t('actions.capture')}
               </Button>
-              <Button
-                variant="default"
-                leftSection={<IconPlus size={16} stroke={1.8} />}
-                onClick={() => setManualOpen(true)}
-              >
+              <Button variant="secondary" onClick={() => setManualOpen(true)}>
+                <IconPlus />
                 {t('actions.manual')}
               </Button>
-              <Button
-                variant="default"
-                component={Link}
-                to="/sources"
-                leftSection={<IconRss size={16} stroke={1.8} />}
-              >
-                {t('actions.sources')}
+              <Button variant="secondary" asChild>
+                <Link to="/sources">
+                  <IconRss />
+                  {t('actions.sources')}
+                </Link>
               </Button>
             </>
           )
@@ -135,10 +132,10 @@ export function AdsPage() {
       />
 
       {showPinned && (
-        <section className={classes.pinned} aria-label={t('feed.pinned')}>
-          <div className={classes.pinnedHead}>
-            <span className="muted">{t('feed.pinned')}</span>
-            <Button variant="subtle" size="compact-xs" onClick={() => updateParams({ ad: null, hit: null })}>
+        <section className="mb-5" aria-label={t('feed.pinned')}>
+          <div className="mb-2 flex items-center justify-between gap-3 text-sm">
+            <span className="text-2xs font-bold tracking-wider text-text-3 uppercase">{t('feed.pinned')}</span>
+            <Button variant="ghost" size="xs" onClick={() => updateParams({ ad: null, hit: null })}>
               {t('feed.unpin')}
             </Button>
           </div>
@@ -150,7 +147,7 @@ export function AdsPage() {
 
       <div
         ref={feedRef}
-        className={`${classes.feed} ${ads.isPlaceholderData ? classes.stale : ''}`}
+        className={cn('flex flex-col gap-3.5 transition-opacity duration-(--dur)', ads.isPlaceholderData && 'opacity-60')}
         aria-busy={ads.isFetching}
       >
         {ads.isPending && <FeedSkeleton />}
@@ -159,11 +156,11 @@ export function AdsPage() {
           <EmptyState
             action={
               total > 0 ? (
-                <Button variant="default" size="xs" onClick={() => changePage(1)}>
+                <Button variant="secondary" size="xs" onClick={() => changePage(1)}>
                   {t('feed.firstPage')}
                 </Button>
               ) : canEditRegistry ? (
-                <Button variant="default" size="xs" onClick={() => setCaptureOpen(true)}>
+                <Button variant="secondary" size="xs" onClick={() => setCaptureOpen(true)}>
                   {t('actions.capture')}
                 </Button>
               ) : undefined
@@ -189,8 +186,8 @@ export function AdsPage() {
 
       {canEditRegistry && (
         <>
-          <CaptureModal opened={captureOpen} onClose={() => setCaptureOpen(false)} onCreated={showAd} />
-          <ManualAdModal opened={manualOpen} onClose={() => setManualOpen(false)} onCreated={showAd} />
+          <CaptureModal open={captureOpen} onClose={() => setCaptureOpen(false)} onCreated={showAd} />
+          <ManualAdModal open={manualOpen} onClose={() => setManualOpen(false)} onCreated={showAd} />
         </>
       )}
     </>
