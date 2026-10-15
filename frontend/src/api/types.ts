@@ -856,3 +856,31 @@ export interface RegistrySyncStatus {
   scheduled_enabled: boolean;
   last_sync: RegistrySyncResult | null;
 }
+
+// ---------------------------------------------------------------- ad versions (SPEC 10.6)
+
+/** A later text of a publication that differs from the saved original (`AdRow.text`). */
+export interface AdVersion {
+  id: number;
+  text: string;
+  text_sha256: string;
+  observed_at: string;
+  source: AdVersionSource;
+  /** the capture of the page that showed this text; null when none was taken */
+  evidence_id: number | null;
+}
+
+/** Evidence as `GET /ads/{id}` sends it: with the flag of an RFC 3161 time stamp. */
+export interface AdEvidence extends EvidenceMeta {
+  has_tsa_token: boolean;
+}
+
+/** What `GET /ads/{id}` adds for the history of a publication (merged into `AdDetail` above). */
+export interface AdDetail {
+  /** oldest first */
+  versions: AdVersion[];
+  /** when the original was saved: the capture time, else the time the publication was entered */
+  original_captured_at: string;
+  /** the first screenshot of the publication */
+  original_evidence: AdEvidence | null;
+}
