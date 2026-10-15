@@ -97,8 +97,10 @@ def list_signals(
     )
     now = datetime.now(UTC)
     items = [
-        service.to_row(service.CardView(card=card, object_name=name, zone=zone, timezone=timezone), now)
-        for card, name, zone, timezone in rows
+        service.to_row(
+            service.CardView(card=card, object_name=name, zone=zone, timezone=timezone, is_demo=is_demo), now
+        )
+        for card, name, zone, timezone, is_demo in rows
     ]
     return Page(items=items, total=total)
 

@@ -61,6 +61,7 @@ def test_row_shape(client: TestClient, db: Session, world: World) -> None:
     obj.key_status = KeyStatus.stalled
     obj.construction_status = ConstructionStatus.stalled
     obj.stalled_since = date.today() - timedelta(days=12)
+    obj.is_demo = True
     db.flush()
 
     [row] = client.get(URL, headers=auth(world.users["admin"])).json()["objects"]
@@ -77,6 +78,7 @@ def test_row_shape(client: TestClient, db: Session, world: World) -> None:
         "district_name": "Центральный",
         "lat": None,
         "lon": None,
+        "is_demo": True,
     }
 
 

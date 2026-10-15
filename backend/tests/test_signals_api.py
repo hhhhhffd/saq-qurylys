@@ -563,6 +563,8 @@ def test_admin_reads_but_does_not_act(client: TestClient, db: Session, world: Wo
 
 def test_list_filters_and_overdue_flag(client: TestClient, db: Session, world: World) -> None:
     first, second = make_object(db, world.ust, "ЖК Первый", zone=Zone.red), make_object(db, world.ust, "ЖК Второй")
+    first.is_demo = True
+    db.flush()
     sent_card, draft = create(client, world, first), create(client, world, second)
     send(client, world, sent_card["id"])
     headers = auth(world.users["mio_ust"])
@@ -580,9 +582,12 @@ def test_list_filters_and_overdue_flag(client: TestClient, db: Session, world: W
         "recipient",
         "due_date",
         "is_overdue",
+        "is_demo",
         "created_at",
     }
     assert (row["object_name"], row["zone"], row["recipient"], row["is_overdue"]) == ("ЖК Первый", "red", "gask", False)
+    assert row["is_demo"] is True
+    assert next(item for item in everything["items"] if item["id"] == draft["id"])["is_demo"] is False
 
     assert [item["id"] for item in client.get(f"{API}?status=sent", headers=headers).json()["items"]] == [
         sent_card["id"]

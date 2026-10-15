@@ -80,6 +80,7 @@ class CardView:
     object_name: str
     zone: Zone | None
     timezone: str
+    is_demo: bool
 
 
 def invalid_status() -> Exception:
@@ -374,11 +375,13 @@ def update_card(
 # ---------------------------------------------------------------- visibility
 
 
-def card_stmt(user: AppUser, scope: TerritoryScope) -> Select[SignalCard, str, Zone | None, str]:
+def card_stmt(user: AppUser, scope: TerritoryScope) -> Select[SignalCard, str, Zone | None, str, bool]:
     """Cards the user may see with the object data a row needs. Staff see their territory; a receiving
     body sees only cards addressed to it that were actually sent."""
     stmt = (
-        select(SignalCard, ConstructionObject.name, ConstructionObject.zone, Territory.timezone)
+        select(
+            SignalCard, ConstructionObject.name, ConstructionObject.zone, Territory.timezone, ConstructionObject.is_demo
+        )
         .join(ConstructionObject, ConstructionObject.id == SignalCard.object_id)
         .join(Territory, Territory.id == ConstructionObject.territory_id)
     )
@@ -397,8 +400,8 @@ def get_card_view(
     row = session.execute(stmt).first()
     if row is None:
         raise api_error(404, "signal_not_found", "Сигнальная карточка не найдена")
-    card, object_name, zone, timezone = row
-    return CardView(card=card, object_name=object_name, zone=zone, timezone=timezone)
+    card, object_name, zone, timezone, is_demo = row
+    return CardView(card=card, object_name=object_name, zone=zone, timezone=timezone, is_demo=is_demo)
 
 
 def to_row(view: CardView, now: datetime | None = None) -> SignalRow:
@@ -418,6 +421,7 @@ def to_row(view: CardView, now: datetime | None = None) -> SignalRow:
         recipient=card.recipient,
         due_date=card.due_date,
         is_overdue=overdue,
+        is_demo=view.is_demo,
         created_at=card.created_at,
     )
 

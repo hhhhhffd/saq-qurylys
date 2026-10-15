@@ -28,6 +28,7 @@ class ObjectRow(BaseModel):
     district_name: str | None
     lat: float | None
     lon: float | None
+    is_demo: bool
 
 
 class LatestScore(ORMModel):

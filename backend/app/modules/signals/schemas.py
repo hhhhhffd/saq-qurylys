@@ -71,6 +71,7 @@ class SignalRow(BaseModel):
     recipient: Recipient | None
     due_date: date | None
     is_overdue: bool
+    is_demo: bool
     created_at: datetime
 
 

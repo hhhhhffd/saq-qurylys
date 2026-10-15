@@ -52,6 +52,7 @@ def to_row(obj: ConstructionObject, developer_name: str | None, district_name: s
         district_name=district_name,
         lat=obj.lat,
         lon=obj.lon,
+        is_demo=obj.is_demo,
     )
 
 
