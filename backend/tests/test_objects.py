@@ -126,7 +126,7 @@ def test_list_filters_sorting_and_pagination(client: TestClient, db: Session, wo
         "ЖК Красный",
         score=90,
         zone=Zone.red,
-        key_status=KeyStatus.no_permit_with_offer,
+        key_status=KeyStatus.no_legal_basis_with_offer,
         district_id=world.district.id,
     )
     make_object(
@@ -135,7 +135,7 @@ def test_list_filters_sorting_and_pagination(client: TestClient, db: Session, wo
         "ЖК Жёлтый",
         score=40,
         zone=Zone.yellow,
-        key_status=KeyStatus.permit_checking,
+        key_status=KeyStatus.legal_basis_unknown,
         aliases=["Золотой квартал"],
     )
     make_object(db, world.ust, "ЖК Новый")  # never scored
@@ -156,7 +156,7 @@ def test_list_filters_sorting_and_pagination(client: TestClient, db: Session, wo
     red = client.get("/api/v1/objects?zone=red", headers=headers).json()
     assert [row["name"] for row in red["items"]] == ["ЖК Красный"]
     assert red["items"][0]["district_name"] == "Центральный"
-    assert red["items"][0]["key_status"] == "no_permit_with_offer"
+    assert red["items"][0]["key_status"] == "no_legal_basis_with_offer"
 
     by_district = client.get(f"/api/v1/objects?district_id={world.district.id}", headers=headers).json()
     assert by_district["total"] == 1

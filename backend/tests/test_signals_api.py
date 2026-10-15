@@ -65,7 +65,7 @@ def _local_today(db: Session, obj: ConstructionObject) -> date:
 
 def test_officer_creates_a_manual_card(client: TestClient, db: Session, world: World) -> None:
     obj = make_object(db, world.ust)
-    add_complaint(db, obj, collective=True)
+    add_complaint(db, obj, collective=True, verified=True)
     client.post(f"/api/v1/objects/{obj.id}/recalculate", headers=auth(world.users["mio_ust"]))
 
     card = create(client, world, obj)
@@ -80,13 +80,15 @@ def test_officer_creates_a_manual_card(client: TestClient, db: Session, world: W
     assert (card["object_id"], card["object_name"], card["zone"], card["is_overdue"]) == (
         obj.id,
         obj.name,
-        "yellow",
+        "green",
         False,
     )
     assert card["review_days"] == 5
     assert card["created_by"] == world.users["mio_ust"].id
     assert card["sections"]["object_developer"]["object_code"] == obj.code
-    assert [item["code"] for item in card["sections"]["risk_factors"]] == ["no_permit", "complaints"]
+    assert [item["code"] for item in card["sections"]["risk_factors"]] == ["r4_collective_complaint"]
+    assert card["sections"]["legal_basis_status"] == "unknown"
+    assert [flag["code"] for flag in card["sections"]["needs_check"]] == ["legal_basis_unknown"]
     assert [(entry["action"], entry["username"]) for entry in card["audit"]] == [("signal_card.create", "t_mio_ust")]
 
 

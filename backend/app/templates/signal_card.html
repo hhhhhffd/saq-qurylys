@@ -6,7 +6,7 @@
 <style>
   @page {
     size: A4;
-    margin: 30mm 15mm 26mm 15mm;
+    margin: {{ '36mm' if demo else '30mm' }} 15mm 26mm 15mm;
     @top-center { content: element(page-header); width: 100%; }
     @bottom-left { content: element(page-footer); width: 150mm; }
     @bottom-right { content: "{{ t.page }} " counter(page) " {{ t.page_of }} " counter(pages); font-size: 8pt; color: #555; }
@@ -37,10 +37,19 @@
   figure img { max-width: 100%; max-height: 190mm; object-fit: contain; border: 0.5pt solid #ccc; }
   figcaption { font-size: 8pt; color: #555; margin-top: 1mm; overflow-wrap: anywhere; }
   .note { white-space: pre-wrap; }
+  .demo-banner { margin: 0 0 1mm; font-weight: bold; font-size: 9pt; letter-spacing: 0.5pt; color: #b3261e; }
+  .demo-watermark { position: fixed; top: 105mm; left: 5mm; width: 190mm; text-align: center; white-space: nowrap; transform: rotate(-30deg); font-size: 30pt; font-weight: bold; color: rgba(179, 38, 30, 0.14); }
+  .demo-tag { display: inline-block; padding: 0 1.5mm; border: 0.5pt solid #b3261e; border-radius: 1mm; color: #b3261e; font-size: 7pt; font-weight: bold; }
+  .kind { display: inline-block; padding: 0 1.5mm; border-radius: 1mm; font-size: 7.5pt; font-weight: bold; }
+  .kind-fact { background: #e3efe5; color: #1f5a2c; }
+  .kind-ai_hypothesis { background: #fff1c9; color: #7a5a00; }
+  .quote { margin: 0; font-style: italic; }
 </style>
 </head>
 <body>
+{% if demo %}<div class="demo-watermark">{{ t.demo }}</div>{% endif %}
 <div id="page-header">
+  {% if demo %}<p class="demo-banner">{{ t.demo }}. {{ t.demo_note }}</p>{% endif %}
   <span class="brand">{{ t.product }}</span> &middot; {{ t.title }} {{ number }}
   <p class="disclaimer">{{ t.disclaimer }}</p>
 </div>
@@ -57,6 +66,9 @@
     <th>{{ t.meta.zone }}</th>
     <td>{% if zone %}<span class="zone zone-{{ zone.code }}">{{ zone.label }}</span>{% else %}{{ t.empty }}{% endif %}</td>
   </tr>
+  {% if legal_basis %}
+  <tr><th>{{ t.legal_basis.label }}</th><td>{{ legal_basis }}</td></tr>
+  {% endif %}
   {% if zone and zone.score is not none %}
   <tr><th>{{ t.meta.score }}</th><td>{{ zone.score }} / 100 &middot; {{ t.meta.scored_at }}: {{ zone.scored_at }}</td></tr>
   {% endif %}
@@ -81,12 +93,30 @@
       <ul class="detail">
         {% for key, value in factor.detail %}<li>{{ key }}: {{ value }}</li>{% endfor %}
       </ul>
+      {% for fragment in factor.fragments %}
+      <p class="quote">{{ t.risk_factors.fragment }} (#{{ fragment.ad_id }}): «{{ fragment.text }}»</p>
+      {% endfor %}
     </td>
   </tr>
   {% endfor %}
 </table>
 {% else %}
 <p class="muted">{{ t.risk_factors.none }}</p>
+{% endif %}
+
+<h2>{{ t.sections.needs_check }}</h2>
+{% if needs_check %}
+<p class="muted">{{ t.needs_check.intro }}</p>
+<table>
+  {% for flag in needs_check %}
+  <tr>
+    <td><strong>{{ flag.name }}</strong></td>
+    <td><ul class="detail">{% for key, value in flag.detail %}<li>{{ key }}: {{ value }}</li>{% endfor %}</ul></td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p class="muted">{{ t.needs_check.none }}</p>
 {% endif %}
 
 <h2>{{ t.sections.permit_checks }}</h2>
@@ -122,14 +152,17 @@
   </tr>
   {% for ad in publications %}
   <tr>
-    <td>{{ ad.platform }}</td><td>{{ ad.url }}</td><td>{{ ad.published_at }}</td><td>{{ ad.captured_at }}</td><td>{{ ad.status }}</td>
+    <td>{{ ad.platform }}{% if ad.demo %} <span class="demo-tag">{{ t.publications.demo }}</span>{% endif %}</td><td>{{ ad.url }}</td><td>{{ ad.published_at }}</td><td>{{ ad.captured_at }}</td><td>{{ ad.status }}</td>
   </tr>
   {% endfor %}
 </table>
-{% for ad in publications if ad.evidence %}
+{% for ad in publications if ad.evidence or ad.hits %}
 <div class="evidence">
   <strong>{{ ad.platform }} #{{ ad.id }}</strong>
-  {% with files = ad.evidence %}{% include "_evidence.html" %}{% endwith %}
+  {% for hit in ad.hits %}
+  <p class="quote"><span class="kind kind-{{ hit.kind }}">{{ hit.kind_label }}</span> {{ hit.category }}: «{{ hit.fragment }}»</p>
+  {% endfor %}
+  {% if ad.evidence %}{% with files = ad.evidence %}{% include "_evidence.html" %}{% endwith %}{% endif %}
 </div>
 {% endfor %}
 {% else %}

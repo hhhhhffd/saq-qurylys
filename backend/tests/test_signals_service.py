@@ -8,10 +8,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app import storage
-from app.models import AppUser, Developer, Holiday, Notification, SignalCard, SignalCounter
+from app.models import AppUser, Developer, Holiday, Notification, RiskScore, SignalCard, SignalCounter
 from app.models.enums import (
     CheckSource,
     CheckStatus,
+    ConstructionStatus,
     DetectedBy,
     DocType,
     EvidenceKind,
@@ -22,6 +23,7 @@ from app.models.enums import (
     ScoreTrigger,
     SignalOrigin,
     SignalStatus,
+    Zone,
 )
 from app.modules.risk import service as risk
 from app.modules.risk import tasks as risk_tasks
@@ -152,18 +154,31 @@ def test_sections_are_assembled_from_the_object_data(db: Session, world: World, 
         address="ул. Абая, 1",
         cadastral_number="05-123-456",
         land_purpose="Жилая застройка",
+        is_demo=True,
     )
-    permit = add_document(db, obj, DocType.dsu_permit, CheckStatus.checking)
+    permit = add_document(db, obj, DocType.dsu_permit, CheckStatus.not_found)
     permit.number, permit.check_source = "ДСУ-1", CheckSource.housing_portal
+    guarantee = add_document(db, obj, DocType.guarantee, CheckStatus.not_found)
     scan = storage.put_evidence(
         db, b"%PDF-1.4 scan", EvidenceKind.document_scan, "application/pdf", link=EvidenceLink(document_id=permit.id)
     )
-    recent = add_ad(db, obj, NOW - timedelta(days=1), hits=BOOKING, payment_schemes=("booking", "installment"))
-    old = add_ad(db, obj, NOW - timedelta(days=9), hits=BOOKING)
+    recent = add_ad(
+        db,
+        obj,
+        NOW - timedelta(days=1),
+        hits=(
+            (PhraseCategory.deposit, DetectedBy.dictionary, None),  # a fact
+            (PhraseCategory.booking, DetectedBy.llm, None),  # a hypothesis of the AI
+            (PhraseCategory.installment, DetectedBy.dictionary, False),  # rejected by an analyst
+        ),
+        payment_schemes=("booking", "installment"),
+        is_demo=True,
+    )
+    old = add_ad(db, obj, NOW - timedelta(days=31), hits=BOOKING)
     shot = storage.put_evidence(
         db, b"\x89PNG\r\n\x1a\nxx", EvidenceKind.screenshot_png, "image/png", link=EvidenceLink(ad_post_id=recent.id)
     )
-    add_complaint(db, obj, collective=True, confirmed_payments=True, external_id="EO-77")
+    add_complaint(db, obj, collective=True, verified=True, confirmed_payments=True, external_id="EO-77")
     risk.recalculate(db, obj.id, ScoreTrigger.event, NOW)
 
     card = service.create_card(db, obj, SignalOrigin.manual, world.users["mio_ust"], now=NOW)
@@ -180,27 +195,54 @@ def test_sections_are_assembled_from_the_object_data(db: Session, world: World, 
         "director": "Иванов И.И.",
         "founders": ["Петров", "Сидоров"],
     }
+    assert sections["is_demo"] is True
+    assert sections["legal_basis_status"] == "absent_established"
+    assert [flag["code"] for flag in sections["needs_check"]] == ["ai_hypotheses_pending"]
     assert sections["permit_checks"] == [
         {
             "doc_type": "dsu_permit",
             "source": "housing_portal",
-            "check_status": "checking",
+            "check_status": "not_found",
             "checked_at": None,
             "number": "ДСУ-1",
             "evidence_ids": [scan.id],
-        }
+        },
+        {
+            "doc_type": "guarantee",
+            "source": None,
+            "check_status": "not_found",
+            "checked_at": None,
+            "number": None,
+            "evidence_ids": [],
+        },
     ]
-    assert [item["ad_post_id"] for item in sections["publications"]] == [recent.id]  # the 9-day-old ad is outside
-    assert sections["publications"][0]["evidence_ids"] == [shot.id]
-    assert sections["publications"][0]["platform"] == "instagram"
-    assert old.id not in {item["ad_post_id"] for item in sections["publications"]}
+    assert guarantee.id  # both documents were checked
+    [publication] = sections["publications"]  # the 31-day-old ad is outside the 30-day window
+    assert publication["ad_post_id"] == recent.id and old.id != recent.id
+    assert (publication["evidence_ids"], publication["platform"], publication["is_demo"]) == (
+        [shot.id],
+        "instagram",
+        True,
+    )
+    assert [(hit["category"], hit["detected_by"], hit["kind"]) for hit in publication["hits"]] == [
+        ("deposit", "dictionary", "fact"),
+        ("booking", "llm", "ai_hypothesis"),
+    ]  # the rejected hit is not shown
     assert {item["code"] for item in sections["risk_factors"]} == {
-        "no_permit",
-        "money_offer",
-        "active_ads",
-        "complaints",
+        "r1_no_legal_basis",
+        "r2_money_offer",
+        "r3_active_ads",
+        "r4_collective_complaint",
     }
-    assert all(set(item) == {"code", "weight", "detail"} for item in sections["risk_factors"])
+    assert all(set(item) == {"code", "label", "weight", "detail", "evidence"} for item in sections["risk_factors"])
+    r2 = next(item for item in sections["risk_factors"] if item["code"] == "r2_money_offer")
+    assert (r2["label"], r2["weight"]) == ("R2", 25)
+    assert r2["evidence"][0] == {
+        "type": "ad_post",
+        "id": recent.id,
+        "phrase_hit_id": r2["evidence"][0]["phrase_hit_id"],
+        "fragment": "бронь",
+    }
     assert sections["scheme_payments"]["payment_schemes"] == ["booking", "installment"]
     assert sections["scheme_payments"]["contract_types"] == []
     assert "EO-77" in sections["scheme_payments"]["confirmed_payments_note"]
@@ -213,6 +255,9 @@ def test_sections_of_a_bare_object_are_empty_but_complete(db: Session, world: Wo
     sections = new_card(db, world).sections
     assert set(sections) == {
         "object_developer",
+        "is_demo",
+        "legal_basis_status",
+        "needs_check",
         "risk_factors",
         "permit_checks",
         "publications",
@@ -222,8 +267,26 @@ def test_sections_of_a_bare_object_are_empty_but_complete(db: Session, world: Wo
         "note",
     }
     assert sections["risk_factors"] == [] and sections["permit_checks"] == [] and sections["publications"] == []
+    assert (sections["legal_basis_status"], sections["needs_check"], sections["is_demo"]) == (None, [], False)
     assert sections["object_developer"]["developer_name"] is None
     assert sections["scheme_payments"] == {"payment_schemes": [], "contract_types": [], "confirmed_payments_note": ""}
+
+
+def test_a_score_from_before_the_case_model_is_read_as_empty(db: Session, world: World) -> None:
+    obj = make_object(db, world.ust)
+    old_breakdown = [{"code": "no_permit", "weight": 40, "triggered": True, "evidence": [], "detail": {}}]
+    db.add(RiskScore(object_id=obj.id, score=40, zone=Zone.yellow, breakdown=old_breakdown, trigger=ScoreTrigger.event))
+    db.flush()
+    card = service.create_card(db, obj, SignalOrigin.manual, world.users["mio_ust"], now=NOW)
+    assert card.sections["risk_factors"] == [] and card.sections["legal_basis_status"] is None
+
+
+def test_measures_follow_the_unknown_basis_and_the_stalled_object(db: Session, world: World) -> None:
+    obj = make_object(db, world.ust, construction_status=ConstructionStatus.stalled)
+    risk.recalculate(db, obj.id, ScoreTrigger.event, NOW)  # nothing is known about the basis
+    card = service.create_card(db, obj, SignalOrigin.manual, world.users["mio_ust"], now=NOW)
+    assert card.sections["legal_basis_status"] == "unknown"
+    assert card.sections["proposed_measures"] == ["request_documents", "site_inspection"]
 
 
 def test_covert_contract_categories_become_contract_types(db: Session, world: World) -> None:

@@ -32,15 +32,24 @@ class Zone(StrEnum):
 
 
 class KeyStatus(StrEnum):
-    no_permit_with_offer = "no_permit_with_offer"
-    no_permit = "no_permit"
-    permit_checking = "permit_checking"
+    no_legal_basis_with_offer = "no_legal_basis_with_offer"
+    no_legal_basis = "no_legal_basis"
     money_offer = "money_offer"
+    legal_basis_unknown = "legal_basis_unknown"
     stalled = "stalled"
-    overdue = "overdue"
-    complaints = "complaints"
-    readiness_overstated = "readiness_overstated"
+    delayed = "delayed"
+    collective_complaint = "collective_complaint"
+    readiness_mismatch = "readiness_mismatch"
+    active_ads = "active_ads"
     ok = "ok"
+
+
+class LegalBasisStatus(StrEnum):
+    """SPEC 6.0: only `absent_established` counts as a missing legal basis; unknown data is not an absence."""
+
+    confirmed = "confirmed"
+    absent_established = "absent_established"
+    unknown = "unknown"
 
 
 class DocType(StrEnum):

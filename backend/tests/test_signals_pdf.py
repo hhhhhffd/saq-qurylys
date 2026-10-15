@@ -31,6 +31,7 @@ from tests.conftest import World, auth, make_object
 from tests.support_risk import NOW, add_ad, add_document, png_bytes
 
 DISCLAIMER = "Красная зона означает высокий риск и необходимость проверки, а не установленную виновность."
+DEMO = "ДЕМОНСТРАЦИОННЫЕ ДАННЫЕ"
 BOOKING = ((PhraseCategory.booking, DetectedBy.dictionary, None),)
 
 
@@ -43,11 +44,15 @@ def page_texts(document: Any) -> list[str]:
     return pages
 
 
-def build_card(db: Session, world: World, ads: int = 2) -> tuple[service.CardView, dict[str, list[int]]]:
+def build_card(
+    db: Session, world: World, ads: int = 2, *, demo: bool = False
+) -> tuple[service.CardView, dict[str, list[int]]]:
+    """A card of scenario B (absence of the legal basis established, a deposit in the advertising)."""
     developer = Developer(bin="123456789012", name="ТОО Застройщик", director="Иванов И.И.", founders=["Петров"])
     db.add(developer)
     db.flush()
-    obj = make_object(db, world.ust, "ЖК Алтын", developer_id=developer.id, address="ул. Абая, 1")
+    obj = make_object(db, world.ust, "ЖК Алтын", developer_id=developer.id, address="ул. Абая, 1", is_demo=demo)
+    add_document(db, obj, DocType.guarantee, CheckStatus.not_found)
     permit = add_document(db, obj, DocType.dsu_permit, CheckStatus.not_found)
     permit.number, permit.check_source = "ДСУ-1", CheckSource.housing_portal
     scan = storage.put_evidence(
@@ -59,7 +64,8 @@ def build_card(db: Session, world: World, ads: int = 2) -> tuple[service.CardVie
     )
     screenshots = []
     for index in range(ads):
-        ad = add_ad(db, obj, NOW - timedelta(hours=index), hits=BOOKING, payment_schemes=("booking",))
+        hits = BOOKING + (((PhraseCategory.installment, DetectedBy.llm, None),) if index == 0 else ())
+        ad = add_ad(db, obj, NOW - timedelta(hours=index), hits=hits, payment_schemes=("booking",), is_demo=demo)
         shot = storage.put_evidence(
             db,
             png_bytes(640, 900, "#2255aa"),
@@ -111,7 +117,16 @@ def test_the_card_content_reaches_the_pdf(db: Session, world: World, bucket: str
         "Иванов И.И.",
         "ул. Абая, 1",
         "Красная",  # zone label
-        "Нет подтверждённого разрешения или гарантии",
+        "R1 — Установлено отсутствие правового основания",
+        "R2 — Предложение внести деньги в рекламе",
+        "R3 — Активная реклама объекта",
+        "Отсутствие установлено: гарантия КЖК и разрешение МИО проверены и не найдены",
+        "Нужна проверка",
+        "Есть неподтверждённые находки ИИ",
+        "Формулировка в публикации",
+        "«бронь»",
+        "Факт",
+        "Гипотеза ИИ (не подтверждена человеком)",
         "Разрешение на привлечение денег дольщиков (ДСУ)",
         "Не найден",
         "Жилищный портал",
@@ -153,7 +168,8 @@ def test_missing_stored_file_does_not_break_the_pdf(
 
 def test_files_that_are_not_images_are_listed_not_embedded(db: Session, world: World, bucket: str) -> None:
     view, _ = build_card(db, world, ads=0)
-    document = view.card.sections["permit_checks"][0]
+    checks = view.card.sections["permit_checks"]
+    document = next(item for item in checks if item["evidence_ids"])  # the permit with a scan
     extra = storage.put_evidence(
         db,
         b"%PDF-1.4 scan",
@@ -163,7 +179,9 @@ def test_files_that_are_not_images_are_listed_not_embedded(db: Session, world: W
     )
     view.card.sections = {
         **view.card.sections,
-        "permit_checks": [{**document, "evidence_ids": [*document["evidence_ids"], extra.id]}],
+        "permit_checks": [
+            {**item, "evidence_ids": [*item["evidence_ids"], extra.id]} if item is document else item for item in checks
+        ],
     }
     html = pdf.render_html(pdf.build_context(db, view))
     assert html.count("data:image/png") == 1
@@ -213,3 +231,59 @@ def test_pdf_access_follows_the_card_rules(client: TestClient, db: Session, worl
     )
     assert client.get(url, headers=auth(world.users["gask"])).status_code == 200
     assert client.get(url, headers=auth(world.users["law"])).status_code == 404
+
+
+# ---------------------------------------------------------------- demo marker
+
+
+def test_demo_object_is_marked_on_every_page_and_keeps_the_disclaimer(db: Session, world: World, bucket: str) -> None:
+    view, _ = build_card(db, world, ads=6, demo=True)
+    html = pdf.render_html(pdf.build_context(db, view))
+
+    texts = page_texts(pdf.render_document(html))
+
+    assert len(texts) > 1
+    for index, text in enumerate(texts, start=1):
+        assert text.count(DEMO) >= 1, f"page {index}: the banner of the running header"
+        assert text.count(DISCLAIMER) == 2
+    assert "Вымышленные данные для демонстрации системы" in " ".join(texts)
+    # The diagonal watermark is a fixed box: it repeats on every page of the PDF.
+    assert html.count('class="demo-watermark"') == 1 and "position: fixed" in html
+    assert html.count('class="demo-tag"') == 6  # every publication of a demo object is marked too
+
+
+def test_real_object_has_no_demo_marker(db: Session, world: World, bucket: str) -> None:
+    view, _ = build_card(db, world, ads=1)
+    html = pdf.render_html(pdf.build_context(db, view))
+    assert DEMO not in " ".join(page_texts(pdf.render_document(html)))
+    assert "demo-watermark" not in html.split("</style>")[1]
+
+
+def test_card_without_flags_says_that_no_check_is_needed(db: Session, world: World, bucket: str) -> None:
+    obj = make_object(db, world.ust, "ЖК Чистый")
+    add_document(db, obj, DocType.guarantee, CheckStatus.confirmed)
+    risk.recalculate(db, obj.id, ScoreTrigger.event, NOW)
+    mio = world.users["mio_ust"]
+    card = service.create_card(db, obj, SignalOrigin.manual, mio, now=NOW)
+    view = service.get_card_view(db, mio, build_scope(db, mio), card.id)
+    text = " ".join(page_texts(pdf.render_document(pdf.render_html(pdf.build_context(db, view)))))
+    assert "Дополнительных проверок не требуется" in text
+    assert "Подтверждено (гарантия КЖК или разрешение МИО)" in text
+    assert "Сработавших факторов нет" in text
+
+
+def test_a_card_made_before_the_case_model_still_renders(db: Session, world: World, bucket: str) -> None:
+    view, _ = build_card(db, world, ads=1)
+    legacy = {
+        key: value
+        for key, value in view.card.sections.items()
+        if key not in ("needs_check", "legal_basis_status", "is_demo")
+    }
+    legacy["risk_factors"] = [{"code": "no_permit", "weight": 40, "detail": {"count": 0}}]
+    legacy["publications"] = [
+        {k: v for k, v in item.items() if k not in ("hits", "is_demo")} for item in legacy["publications"]
+    ]
+    view.card.sections = legacy
+    text = " ".join(page_texts(pdf.render_document(pdf.render_html(pdf.build_context(db, view)))))
+    assert "no_permit" in text  # an unknown code is printed as it is
+    assert view.card.number in text

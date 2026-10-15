@@ -16,6 +16,7 @@ from weasyprint.document import Document
 
 from app import storage
 from app.models import ConstructionObject, Evidence
+from app.modules.risk.engine import FACTOR_LABELS
 from app.modules.signals.labels import get_labels
 from app.modules.signals.service import CardView
 
@@ -64,6 +65,10 @@ def _format_value(value: Any, labels: dict[str, Any]) -> str:
         return str(labels["yes" if value else "no"])
     if isinstance(value, list):
         return ", ".join(_format_value(item, labels) for item in value) or str(labels["empty"])
+    if isinstance(value, dict):
+        return "; ".join(
+            f"{labels['codes'].get(key, key)}: {_format_value(item, labels)}" for key, item in value.items()
+        )
     if isinstance(value, str):
         return str(labels["codes"].get(value, value))
     return str(value)
@@ -153,15 +158,36 @@ def build_context(session: Session, view: CardView, locale: str = "ru") -> dict[
         "object_developer": object_developer,
         "risk_factors": [
             {
-                "name": labels["risk_factor"].get(item["code"], item["code"]),
+                "name": f"{item.get('label') or FACTOR_LABELS.get(item['code'], '')} — "
+                f"{labels['risk_factor'].get(item['code'], item['code'])}".lstrip(" —"),
                 "weight": f"{item['weight']:+d}",
                 "detail": [
                     (labels["detail_keys"].get(key, key.replace("_", " ")), _format_value(value, labels))
                     for key, value in (item["detail"] or {}).items()
                 ],
+                # What the factor rests on: the phrase found in a publication.
+                "fragments": [
+                    {"ad_id": ref["id"], "text": ref["fragment"]}
+                    for ref in item.get("evidence", [])
+                    if ref.get("fragment")
+                ],
             }
             for item in sections["risk_factors"]
         ],
+        "legal_basis": (
+            labels["legal_basis"][sections["legal_basis_status"]] if sections.get("legal_basis_status") else None
+        ),
+        "needs_check": [
+            {
+                "name": labels["needs_check_flag"].get(flag["code"], flag["code"]),
+                "detail": [
+                    (labels["detail_keys"].get(key, key.replace("_", " ")), _format_value(value, labels))
+                    for key, value in (flag.get("detail") or {}).items()
+                ],
+            }
+            for flag in sections.get("needs_check", [])
+        ],
+        "demo": bool(obj.is_demo) if obj is not None else bool(sections.get("is_demo")),
         "permit_checks": [
             {
                 "doc_type": labels["doc_type"].get(item["doc_type"], item["doc_type"]),
@@ -181,6 +207,16 @@ def build_context(session: Session, view: CardView, locale: str = "ru") -> dict[
                 "published_at": _local(item["published_at"], tz),
                 "captured_at": _local(item["captured_at"], tz),
                 "status": labels["ad_status"].get(item["status"], item["status"]),
+                "demo": bool(item.get("is_demo")),
+                "hits": [
+                    {
+                        "kind": hit["kind"],
+                        "kind_label": labels["hit_kind"].get(hit["kind"], hit["kind"]),
+                        "category": labels["codes"].get(hit["category"], hit["category"]),
+                        "fragment": hit["fragment"],
+                    }
+                    for hit in item.get("hits", [])
+                ],
                 "evidence": evidence_items(item["evidence_ids"]),
             }
             for item in sections["publications"]

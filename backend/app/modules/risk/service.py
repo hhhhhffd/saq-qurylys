@@ -49,13 +49,13 @@ def load_scoring_input(
         engine.DocumentFact(id=row.id, doc_type=row.doc_type, check_status=row.check_status)
         for row in session.scalars(
             select(Document)
-            .where(Document.object_id == obj.id, Document.doc_type.in_(engine.PERMIT_DOC_TYPES))
+            .where(Document.object_id == obj.id, Document.doc_type.in_(engine.LEGAL_BASIS_DOC_TYPES))
             .order_by(Document.id)
         )
     ]
     window_start = now - timedelta(days=settings.ad_window_days)
     ad_rows = session.execute(
-        select(AdPost.id, AdPost.payment_schemes, AdPost.price_before_completion)
+        select(AdPost.id, AdPost.payment_schemes, AdPost.status, AdPost.claimed_readiness_pct)
         .where(AdPost.object_id == obj.id, window_start <= AD_TIMESTAMP)
         .order_by(AD_TIMESTAMP.desc(), AdPost.id.desc())
     ).all()
@@ -63,11 +63,21 @@ def load_scoring_input(
     if ad_rows:
         for hit in session.scalars(select(PhraseHit).where(PhraseHit.ad_post_id.in_([row.id for row in ad_rows]))):
             hits_by_ad[hit.ad_post_id].append(
-                engine.HitFact(category=hit.category, detected_by=hit.detected_by, confirmed=hit.confirmed)
+                engine.HitFact(
+                    id=hit.id,
+                    category=hit.category,
+                    detected_by=hit.detected_by,
+                    confirmed=hit.confirmed,
+                    fragment=hit.matched_text,
+                )
             )
     complaints = [
         engine.ComplaintFact(
-            id=row.id, is_collective=row.is_collective, status=row.status, confirmed_payments=row.confirmed_payments
+            id=row.id,
+            is_collective=row.is_collective,
+            status=row.status,
+            confirmed_payments=row.confirmed_payments,
+            is_verified=row.is_verified,
         )
         for row in session.scalars(select(Complaint).where(Complaint.object_id == obj.id).order_by(Complaint.id))
     ]
@@ -91,8 +101,9 @@ def load_scoring_input(
             engine.AdFact(
                 id=row.id,
                 payment_schemes=tuple(row.payment_schemes),
-                price_before_completion=row.price_before_completion,
                 hits=tuple(hits_by_ad[row.id]),
+                status=row.status,
+                claimed_readiness_pct=row.claimed_readiness_pct,
             )
             for row in ad_rows
         ],

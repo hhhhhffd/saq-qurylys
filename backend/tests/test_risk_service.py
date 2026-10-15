@@ -3,6 +3,7 @@
 from collections.abc import Callable
 from contextlib import nullcontext
 from datetime import UTC, date, datetime, timedelta
+from typing import Any
 
 import pytest
 from sqlalchemy import event, select
@@ -13,17 +14,20 @@ from app.models import (
     AuditLog,
     ConstructionObject,
     Notification,
+    PhraseHit,
     RiskFactor,
     RiskScore,
     SignalCard,
 )
 from app.models.enums import (
+    AdStatus,
     CheckStatus,
     ComplaintStatus,
     ConstructionStatus,
     DetectedBy,
     DocType,
     KeyStatus,
+    LegalBasisStatus,
     NotificationKind,
     PhraseCategory,
     Role,
@@ -32,7 +36,7 @@ from app.models.enums import (
     SignalStatus,
     Zone,
 )
-from app.modules.risk import service, tasks
+from app.modules.risk import engine, service, tasks
 from app.modules.settings.service import save_settings
 from tests.conftest import World, make_object
 from tests.support_risk import (
@@ -44,7 +48,7 @@ from tests.support_risk import (
     red_object,
 )
 
-BOOKING = ((PhraseCategory.booking, DetectedBy.dictionary, None),)
+DEPOSIT = ((PhraseCategory.deposit, DetectedBy.dictionary, None),)
 
 
 def recalc(db: Session, obj: ConstructionObject, trigger: ScoreTrigger = ScoreTrigger.event) -> service.RecalcResult:
@@ -57,12 +61,74 @@ def cards(db: Session, obj: ConstructionObject) -> list[SignalCard]:
     return list(db.scalars(select(SignalCard).where(SignalCard.object_id == obj.id).order_by(SignalCard.id)))
 
 
+def factor(result: service.RecalcResult, code: str) -> dict[str, Any]:
+    return next(item for item in result.risk_score.breakdown["factors"] if item["code"] == code)
+
+
+def flags(result: service.RecalcResult) -> list[str]:
+    return [item["code"] for item in result.risk_score.breakdown["needs_check"]]
+
+
+def confirmed_basis(db: Session, obj: ConstructionObject) -> None:
+    add_document(db, obj, DocType.guarantee, CheckStatus.confirmed)
+
+
+# ---------------------------------------------------------------- mandatory scenarios of the case (SPEC 6.6)
+
+
+def test_scenario_a_unknown_basis_with_a_paid_booking_is_yellow_without_r1(db: Session, world: World) -> None:
+    obj = make_object(db, world.ust)
+    add_ad(db, obj, hits=DEPOSIT)  # the legal basis was never checked: no documents
+
+    result = recalc(db, obj)
+
+    assert (result.risk_score.score, result.risk_score.zone) == (35, Zone.yellow)  # R2 25 + R3 10
+    assert result.risk_score.zone_reasons == ["score_25_59"]
+    assert not factor(result, engine.R1)["triggered"]
+    assert flags(result) == ["legal_basis_unknown"]
+    assert result.risk_score.breakdown["legal_basis_status"] == "unknown"
+    assert (obj.score, obj.zone, obj.key_status) == (35, Zone.yellow, KeyStatus.money_offer)
+    assert result.entered_red is False and cards(db, obj) == []
+
+
+def test_scenario_b_established_absence_with_a_deposit_is_red_with_one_auto_draft(db: Session, world: World) -> None:
+    obj = red_object(db, world.ust)
+
+    result = recalc(db, obj)
+
+    assert (result.risk_score.score, result.risk_score.zone) == (70, Zone.red)  # R1 35 + R2 25 + R3 10
+    assert result.risk_score.zone_reasons == ["r1_and_r2"]
+    assert result.risk_score.breakdown["legal_basis_status"] == "absent_established"
+    assert flags(result) == []
+    assert (obj.zone, obj.key_status) == (Zone.red, KeyStatus.no_legal_basis_with_offer)
+    assert result.entered_red is True
+    [card] = cards(db, obj)
+    assert (card.origin, card.status) == (SignalOrigin.auto, SignalStatus.requires_confirmation)
+    assert recalc(db, obj).signal_card_id is None  # no second draft
+    assert len(cards(db, obj)) == 1
+
+
+def test_scenario_c_confirmed_guarantee_without_a_permit_and_plain_ads_is_green(db: Session, world: World) -> None:
+    obj = make_object(db, world.ust)
+    add_document(db, obj, DocType.guarantee, CheckStatus.confirmed)  # no dsu_permit at all
+    add_ad(db, obj)  # an ordinary advertisement without an offer of money
+
+    result = recalc(db, obj)
+
+    assert (result.risk_score.score, result.risk_score.zone) == (10, Zone.green)  # R3 only
+    assert result.risk_score.zone_reasons == ["score_0_24"]
+    assert not factor(result, engine.R1)["triggered"]
+    assert flags(result) == []
+    assert (obj.zone, obj.key_status) == (Zone.green, KeyStatus.active_ads)
+    assert result.entered_red is False and cards(db, obj) == []
+
+
 # ---------------------------------------------------------------- persistence and schedule
 
 
-def test_recalculation_stores_score_and_updates_the_object(db: Session, world: World) -> None:
+def test_recalculation_stores_the_breakdown_object(db: Session, world: World) -> None:
     obj = make_object(db, world.ust)
-    add_document(db, obj, DocType.dsu_permit)
+    confirmed_basis(db, obj)
     result = recalc(db, obj, ScoreTrigger.manual)
 
     stored = db.scalars(select(RiskScore).where(RiskScore.object_id == obj.id)).one()
@@ -73,15 +139,16 @@ def test_recalculation_stores_score_and_updates_the_object(db: Session, world: W
         ScoreTrigger.manual,
         NOW,
     )
-    assert stored.zone_reasons == ["permit_confirmed"]
-    assert [item["code"] for item in stored.breakdown] == [
-        "no_permit",
-        "money_offer",
-        "active_ads",
-        "complaints",
-        "readiness_overstated",
-        "on_schedule",
+    assert set(stored.breakdown) == {"factors", "needs_check", "legal_basis_status"}
+    assert [(item["code"], item["label"]) for item in stored.breakdown["factors"]] == [
+        ("r1_no_legal_basis", "R1"),
+        ("r2_money_offer", "R2"),
+        ("r3_active_ads", "R3"),
+        ("r4_collective_complaint", "R4"),
+        ("r5_readiness_mismatch", "R5"),
+        ("r6_stalled_or_delayed", "R6"),
     ]
+    assert stored.breakdown["legal_basis_status"] == LegalBasisStatus.confirmed.value
     db.refresh(obj)
     assert (obj.score, obj.zone, obj.key_status, obj.last_scored_at) == (0, Zone.green, KeyStatus.ok, NOW)
 
@@ -90,8 +157,8 @@ def test_recalculation_stores_score_and_updates_the_object(db: Session, world: W
     ("build", "zone", "days"),
     [
         (lambda db, world: red_object(db, world.ust), Zone.red, 1),
-        (lambda db, world: make_object(db, world.ust), Zone.yellow, 7),
-        (lambda db, world: _green_object(db, world), Zone.green, 30),
+        (lambda db, world: _yellow_object(db, world), Zone.yellow, 7),
+        (lambda db, world: make_object(db, world.ust), Zone.green, 30),
     ],
 )
 def test_next_check_depends_on_the_zone(
@@ -103,19 +170,27 @@ def test_next_check_depends_on_the_zone(
     assert obj.next_check_at == NOW + timedelta(days=days)
 
 
-def _green_object(db: Session, world: World) -> ConstructionObject:
+def _yellow_object(db: Session, world: World) -> ConstructionObject:
     obj = make_object(db, world.ust)
-    add_document(db, obj, DocType.guarantee)
+    add_ad(db, obj, hits=DEPOSIT)
     return obj
 
 
 def test_check_intervals_are_taken_from_settings(db: Session, world: World) -> None:
     save_settings(db, {"yellow_interval_days": 3, "green_interval_days": 10})
-    yellow, green = make_object(db, world.ust), _green_object(db, world)
+    yellow, green = _yellow_object(db, world), make_object(db, world.ust)
     recalc(db, yellow)
     recalc(db, green)
     assert yellow.next_check_at == NOW + timedelta(days=3)
     assert green.next_check_at == NOW + timedelta(days=10)
+
+
+def test_zone_thresholds_are_taken_from_settings(db: Session, world: World) -> None:
+    save_settings(db, {"zone_yellow_min": 40, "zone_red_min": 80})
+    obj = _yellow_object(db, world)  # 35
+    assert recalc(db, obj).risk_score.zone is Zone.green
+    red = red_object(db, world.ust)  # 70
+    assert recalc(db, red).risk_score.zone is Zone.yellow
 
 
 def test_every_recalculation_appends_to_the_history(db: Session, world: World) -> None:
@@ -140,156 +215,267 @@ def test_the_object_row_is_locked_without_blocking_child_inserts(db: Session, wo
     assert "FOR NO KEY UPDATE" in locking[0]
 
 
+# ---------------------------------------------------------------- legal basis from documents
+
+
+@pytest.mark.parametrize(
+    ("documents", "status", "r1"),
+    [
+        ([], LegalBasisStatus.unknown, False),
+        ([(DocType.guarantee, CheckStatus.confirmed)], LegalBasisStatus.confirmed, False),
+        ([(DocType.dsu_permit, CheckStatus.confirmed)], LegalBasisStatus.confirmed, False),
+        (
+            [(DocType.guarantee, CheckStatus.not_found), (DocType.dsu_permit, CheckStatus.not_found)],
+            LegalBasisStatus.absent_established,
+            True,
+        ),
+        ([(DocType.guarantee, CheckStatus.not_found)], LegalBasisStatus.unknown, False),  # only one type checked
+        ([(DocType.dsu_permit, CheckStatus.not_found)], LegalBasisStatus.unknown, False),
+        ([(DocType.dsu_permit, CheckStatus.checking)], LegalBasisStatus.unknown, False),  # a check is running
+        (
+            [(DocType.guarantee, CheckStatus.not_found), (DocType.dsu_permit, CheckStatus.checking)],
+            LegalBasisStatus.unknown,
+            False,
+        ),
+        ([(DocType.psd, CheckStatus.confirmed)], LegalBasisStatus.unknown, False),  # not a legal basis
+    ],
+)
+def test_legal_basis_status_from_documents(
+    db: Session, world: World, documents: list[tuple[DocType, CheckStatus]], status: LegalBasisStatus, r1: bool
+) -> None:
+    obj = make_object(db, world.ust)
+    for doc_type, check_status in documents:
+        add_document(db, obj, doc_type, check_status)
+    result = recalc(db, obj)
+    assert result.risk_score.breakdown["legal_basis_status"] == status.value
+    assert factor(result, engine.R1)["triggered"] is r1
+    assert ("legal_basis_unknown" in flags(result)) is (status is LegalBasisStatus.unknown)
+
+
+def test_unknown_basis_is_never_red_even_with_every_other_signal(db: Session, world: World) -> None:
+    obj = make_object(db, world.ust)
+    add_document(db, obj, DocType.guarantee, CheckStatus.not_found)  # the permit was not checked
+    add_ad(db, obj, hits=DEPOSIT)
+    add_complaint(db, obj, collective=True, verified=True, confirmed_payments=True)
+    result = recalc(db, obj)
+    assert result.risk_score.zone is Zone.yellow
+    assert result.risk_score.score == 25 + 10 + 15
+
+
 # ---------------------------------------------------------------- facts from rows
 
 
 def test_ads_count_only_inside_the_window(db: Session, world: World) -> None:
     obj = make_object(db, world.ust)
-    add_ad(db, obj, NOW - timedelta(days=8), hits=BOOKING)
-    assert recalc(db, obj).evaluation.facts.active_ads is False
-    add_ad(db, obj, NOW - timedelta(days=6, hours=23))
+    add_ad(db, obj, NOW - timedelta(days=31), hits=DEPOSIT)
+    assert factor(recalc(db, obj), engine.R3)["triggered"] is False
+    add_ad(db, obj, NOW - timedelta(days=29, hours=23))
     result = recalc(db, obj)
-    assert result.evaluation.facts.active_ads is True
-    assert result.evaluation.facts.money_offer is False  # the booking ad is outside the window
+    assert factor(result, engine.R3)["triggered"] is True
+    assert factor(result, engine.R2)["triggered"] is False  # the deposit ad is outside the window
 
 
 def test_window_follows_the_setting(db: Session, world: World) -> None:
-    save_settings(db, {"ad_window_days": 14})
+    save_settings(db, {"ad_window_days": 7})
     obj = make_object(db, world.ust)
-    add_ad(db, obj, NOW - timedelta(days=10), hits=BOOKING)
-    assert recalc(db, obj).evaluation.facts.money_offer is True
+    add_ad(db, obj, NOW - timedelta(days=10), hits=DEPOSIT)
+    assert factor(recalc(db, obj), engine.R2)["triggered"] is False
+    save_settings(db, {"ad_window_days": 14})
+    assert factor(recalc(db, obj), engine.R2)["triggered"] is True
 
 
 def test_ads_of_other_objects_are_ignored(db: Session, world: World) -> None:
     obj, other = make_object(db, world.ust), make_object(db, world.ust, "ЖК Другой")
-    add_ad(db, other, hits=BOOKING)
-    assert recalc(db, obj).evaluation.facts.active_ads is False
+    add_ad(db, other, hits=DEPOSIT)
+    assert factor(recalc(db, obj), engine.R3)["triggered"] is False
+
+
+def test_completed_object_has_no_active_ads_factor(db: Session, world: World) -> None:
+    obj = make_object(db, world.ust, construction_status=ConstructionStatus.completed)
+    add_ad(db, obj)
+    assert factor(recalc(db, obj), engine.R3)["triggered"] is False
 
 
 @pytest.mark.parametrize(
-    ("detected_by", "confirmed", "counts"),
+    ("detected_by", "confirmed", "r2", "pending"),
     [
-        (DetectedBy.dictionary, None, True),
-        (DetectedBy.dictionary, True, True),
-        (DetectedBy.dictionary, False, False),
-        (DetectedBy.llm, None, False),
-        (DetectedBy.llm, False, False),
-        (DetectedBy.llm, True, True),
+        (DetectedBy.dictionary, None, True, False),
+        (DetectedBy.dictionary, True, True, False),
+        (DetectedBy.dictionary, False, False, False),  # rejected by an analyst
+        (DetectedBy.llm, None, False, True),  # an AI hypothesis: not a fact, but worth a look
+        (DetectedBy.llm, False, False, False),
+        (DetectedBy.llm, True, True, False),
     ],
 )
 def test_phrase_hits_count_by_origin_and_confirmation(
-    db: Session, world: World, detected_by: DetectedBy, confirmed: bool | None, counts: bool
+    db: Session, world: World, detected_by: DetectedBy, confirmed: bool | None, r2: bool, pending: bool
 ) -> None:
     obj = make_object(db, world.ust)
-    add_ad(db, obj, hits=((PhraseCategory.booking, detected_by, confirmed),))
+    add_document(db, obj, DocType.guarantee, CheckStatus.confirmed)
+    add_ad(db, obj, hits=((PhraseCategory.deposit, detected_by, confirmed),))
     result = recalc(db, obj)
-    assert result.evaluation.facts.money_offer is counts
-    assert (result.evaluation.zone is Zone.red) is counts
+    assert factor(result, engine.R2)["triggered"] is r2
+    assert ("ai_hypotheses_pending" in flags(result)) is pending
 
 
 def test_confirmed_payment_scheme_is_a_money_offer(db: Session, world: World) -> None:
     obj = make_object(db, world.ust)
     add_ad(db, obj, payment_schemes=("installment",))
     result = recalc(db, obj)
-    assert result.evaluation.zone is Zone.red
-    money = next(item for item in result.risk_score.breakdown if item["code"] == "money_offer")
-    assert money["detail"]["payment_schemes"] == ["installment"]
+    assert factor(result, engine.R2)["detail"]["payment_schemes"] == ["installment"]
+
+
+def test_unverified_link_is_counted_but_flagged(db: Session, world: World) -> None:
+    obj = make_object(db, world.ust)
+    confirmed_basis(db, obj)
+    add_ad(db, obj, status=AdStatus.verification)
+    result = recalc(db, obj)
+    assert factor(result, engine.R3)["triggered"] is True
+    assert flags(result) == ["link_unverified"]
+
+
+def test_r2_evidence_quotes_the_phrase_of_the_publication(db: Session, world: World) -> None:
+    obj = make_object(db, world.ust)
+    ad = add_ad(db, obj, hits=DEPOSIT)
+    hit = db.scalars(select(PhraseHit).where(PhraseHit.ad_post_id == ad.id)).one()
+    [ref] = factor(recalc(db, obj), engine.R2)["evidence"]
+    assert ref == {"type": "ad_post", "id": ad.id, "phrase_hit_id": hit.id, "fragment": "бронь"}
 
 
 def test_breakdown_evidence_refers_to_the_rows(db: Session, world: World) -> None:
     obj = make_object(db, world.ust)
-    document = add_document(db, obj, DocType.dsu_permit, CheckStatus.checking)
-    ad = add_ad(db, obj, hits=BOOKING)
-    complaint = add_complaint(db, obj, collective=True)
-    inspection = add_inspection(db, obj)
-    breakdown = {item["code"]: item for item in recalc(db, obj).risk_score.breakdown}
-    assert breakdown["no_permit"]["evidence"] == [{"type": "document", "id": document.id}]
-    assert breakdown["money_offer"]["evidence"] == [{"type": "ad_post", "id": ad.id}]
-    assert breakdown["active_ads"]["evidence"] == [{"type": "ad_post", "id": ad.id}]
-    assert breakdown["complaints"]["evidence"] == [{"type": "complaint", "id": complaint.id}]
+    guarantee = add_document(db, obj, DocType.guarantee, CheckStatus.not_found)
+    permit = add_document(db, obj, DocType.dsu_permit, CheckStatus.not_found)
+    ad = add_ad(db, obj, hits=DEPOSIT, claimed_readiness_pct=90)
+    complaint = add_complaint(db, obj, collective=True, verified=True)
+    inspection = add_inspection(db, obj, NOW.date() - timedelta(days=2), pct=40)
     obj.readiness_claimed_pct, obj.readiness_actual_pct = 90, 40
     db.flush()
-    again = {item["code"]: item for item in recalc(db, obj).risk_score.breakdown}
-    assert again["readiness_overstated"]["evidence"] == [{"type": "inspection", "id": inspection.id}]
-    assert again["readiness_overstated"]["detail"]["gap_pp"] == 50
 
-
-def test_confirmed_payments_complaint_without_permit_is_red(db: Session, world: World) -> None:
-    obj = make_object(db, world.ust)
-    add_complaint(db, obj, confirmed_payments=True, status=ComplaintStatus.closed)
     result = recalc(db, obj)
-    assert result.evaluation.zone is Zone.red
-    assert result.risk_score.zone_reasons == ["no_permit", "confirmed_payments"]
+
+    assert factor(result, engine.R1)["evidence"] == [
+        {"type": "document", "id": guarantee.id},
+        {"type": "document", "id": permit.id},
+    ]
+    assert [ref["id"] for ref in factor(result, engine.R2)["evidence"]] == [ad.id]
+    assert factor(result, engine.R3)["evidence"] == [{"type": "ad_post", "id": ad.id}]
+    assert factor(result, engine.R4)["evidence"] == [{"type": "complaint", "id": complaint.id}]
+    assert factor(result, engine.R5)["evidence"] == [
+        {"type": "inspection", "id": inspection.id},
+        {"type": "ad_post", "id": ad.id},
+    ]
+    assert factor(result, engine.R5)["detail"]["gap_pp"] == 50
 
 
-def test_closing_the_only_collective_complaint_lets_the_object_turn_green(db: Session, world: World) -> None:
+# ---------------------------------------------------------------- R4, R5, R6 from rows
+
+
+def test_collective_complaint_counts_once_verified_and_not_closed(db: Session, world: World) -> None:
     obj = make_object(db, world.ust)
-    add_document(db, obj, DocType.dsu_permit)
+    confirmed_basis(db, obj)
     complaint = add_complaint(db, obj, collective=True)
-    assert recalc(db, obj).risk_score.zone is Zone.yellow
+    unverified = recalc(db, obj)
+    assert factor(unverified, engine.R4)["triggered"] is False
+    assert flags(unverified) == ["complaint_unverified"]
+
+    complaint.is_verified = True
+    db.flush()
+    verified = recalc(db, obj)
+    assert factor(verified, engine.R4)["triggered"] is True
+    assert (verified.risk_score.score, verified.risk_score.zone) == (15, Zone.green)
+    assert flags(verified) == [] and obj.key_status is KeyStatus.collective_complaint
+
     complaint.status = ComplaintStatus.closed
     db.flush()
+    closed = recalc(db, obj)
+    assert factor(closed, engine.R4)["triggered"] is False
+    assert obj.key_status is KeyStatus.ok
+
+
+def test_readiness_mismatch_needs_a_confirmed_publication_and_an_inspection(db: Session, world: World) -> None:
+    obj = make_object(db, world.ust, readiness_claimed_pct=90)
+    confirmed_basis(db, obj)
+    add_ad(db, obj, claimed_readiness_pct=90)
+    # A claim without a photo inspection: a flag, no points.
+    claim_only = recalc(db, obj)
+    assert factor(claim_only, engine.R5)["triggered"] is False
+    assert flags(claim_only) == ["readiness_unverified"]
+
+    add_inspection(db, obj, NOW.date() - timedelta(days=1), pct=60)
+    obj.readiness_actual_pct = 60
+    db.flush()
+    both = recalc(db, obj)
+    assert factor(both, engine.R5)["triggered"] is True  # 30 points apart
+    assert flags(both) == []
+    assert obj.key_status is KeyStatus.readiness_mismatch
+
+
+def test_readiness_values_without_a_source_are_not_enough(db: Session, world: World) -> None:
+    obj = make_object(db, world.ust, readiness_claimed_pct=95, readiness_actual_pct=10)
+    confirmed_basis(db, obj)
+    add_inspection(db, obj, NOW.date(), pct=10)  # the photo exists, but no publication carries the claim
+    assert factor(recalc(db, obj), engine.R5)["triggered"] is False
+
+
+def test_stalled_branch_of_r6(db: Session, world: World) -> None:
+    obj = make_object(
+        db, world.ust, construction_status=ConstructionStatus.stalled, stalled_since=NOW.date() - timedelta(days=45)
+    )
+    confirmed_basis(db, obj)
     result = recalc(db, obj)
-    assert (result.risk_score.zone, result.risk_score.score) == (Zone.green, 0)
+    assert factor(result, engine.R6)["triggered"] is True
+    assert (obj.key_status, result.evaluation.key_status_detail) == (KeyStatus.stalled, {"stalled_days": 45})
+    obj.stalled_since = NOW.date() - timedelta(days=5)
+    db.flush()
+    assert factor(recalc(db, obj), engine.R6)["triggered"] is False  # a fresh stop is not yet a downtime
 
 
-def test_on_schedule_uses_the_latest_inspection(db: Session, world: World) -> None:
+def test_delayed_branch_of_r6(db: Session, world: World) -> None:
     obj = make_object(
         db,
         world.ust,
-        construction_status=ConstructionStatus.active,
-        planned_completion=NOW.date() + timedelta(days=200),
+        planned_completion=NOW.date() + timedelta(days=100),
         forecast_completion=NOW.date() + timedelta(days=200),
     )
-    add_document(db, obj, DocType.dsu_permit)
-    add_inspection(db, obj, NOW.date() - timedelta(days=90))
-    assert recalc(db, obj).evaluation.facts.on_schedule is False
-    add_inspection(db, obj, NOW.date() - timedelta(days=3))
+    confirmed_basis(db, obj)
     result = recalc(db, obj)
-    assert result.evaluation.facts.on_schedule is True
-    assert result.risk_score.score == 0
-
-
-def test_stalled_object_reports_its_downtime(db: Session, world: World) -> None:
-    obj = make_object(
-        db,
-        world.ust,
-        construction_status=ConstructionStatus.stalled,
-        stalled_since=NOW.date() - timedelta(days=45),
-    )
-    add_document(db, obj, DocType.dsu_permit)
-    result = recalc(db, obj)
-    assert obj.key_status is KeyStatus.stalled
-    assert result.evaluation.key_status_detail == {"stalled_days": 45}
+    assert factor(result, engine.R6)["triggered"] is True  # the forecast is 100 days behind the plan
+    assert obj.key_status is KeyStatus.delayed
+    obj.forecast_completion = NOW.date() + timedelta(days=150)
+    db.flush()
+    assert factor(recalc(db, obj), engine.R6)["triggered"] is False  # 50 days: not significant
 
 
 def test_object_dates_are_read_in_the_territory_time_zone(db: Session, world: World) -> None:
-    # 20:00 UTC on 12 Oct is already 13 Oct in Almaty: a plan ending on the 12th is overdue there.
+    # 20:00 UTC on 12 Oct is already 13 Oct in Almaty: a plan that passed 91 days before the 13th is delayed there only.
     late = datetime(2026, 10, 12, 20, 0, tzinfo=UTC)
-    obj = make_object(db, world.ust, planned_completion=date(2026, 10, 12))
-    add_document(db, obj, DocType.dsu_permit)
+    obj = make_object(db, world.ust, planned_completion=date(2026, 10, 13) - timedelta(days=91))
+    confirmed_basis(db, obj)
     result = service.recalculate(db, obj.id, ScoreTrigger.event, late)
     assert result is not None
-    assert result.evaluation.facts.overdue is True
+    assert factor(result, engine.R6)["triggered"] is True
 
 
-def test_inactive_factor_is_left_out_of_the_score_but_not_of_the_zone(db: Session, world: World) -> None:
+# ---------------------------------------------------------------- weights and activity
+
+
+def test_inactive_factor_is_left_out_of_the_score_and_cannot_make_the_zone_red(db: Session, world: World) -> None:
     obj = red_object(db, world.ust)
-    assert recalc(db, obj).risk_score.score == 40 + 20 + 15
-    db.get_one(RiskFactor, "money_offer").is_active = False
+    assert recalc(db, obj).risk_score.zone is Zone.red
+    db.get_one(RiskFactor, engine.R1).is_active = False
     db.flush()
     result = recalc(db, obj)
-    assert result.risk_score.score == 40 + 15
-    assert "money_offer" not in {item["code"] for item in result.risk_score.breakdown}
-    assert result.risk_score.zone is Zone.red
+    assert "r1_no_legal_basis" not in {item["code"] for item in result.risk_score.breakdown["factors"]}
+    assert (result.risk_score.score, result.risk_score.zone) == (35, Zone.yellow)  # R2 25 + R3 10
 
 
 def test_changed_weight_is_used_by_the_next_calculation(db: Session, world: World) -> None:
-    obj = make_object(db, world.ust)
-    assert recalc(db, obj).risk_score.score == 40
-    db.get_one(RiskFactor, "no_permit").weight = 55
+    obj = red_object(db, world.ust)
+    assert recalc(db, obj).risk_score.score == 70
+    db.get_one(RiskFactor, engine.R3).weight = 20
     db.flush()
-    assert recalc(db, obj).risk_score.score == 55
+    assert recalc(db, obj).risk_score.score == 80
 
 
 # ---------------------------------------------------------------- red zone
@@ -344,9 +530,9 @@ def test_finished_card_does_not_prevent_a_new_draft(db: Session, world: World, s
 def test_leaving_and_re_entering_red_counts_as_a_new_entry(db: Session, world: World) -> None:
     obj = red_object(db, world.ust)
     assert recalc(db, obj).entered_red is True
-    permit = add_document(db, obj, DocType.dsu_permit)
+    permit = add_document(db, obj, DocType.dsu_permit)  # a confirmed permit: the basis is no longer absent
     left = recalc(db, obj)
-    assert (left.risk_score.zone, left.entered_red) == (Zone.green, False)
+    assert (left.risk_score.zone, left.entered_red) == (Zone.yellow, False)  # R2 25 + R3 10
     db.delete(permit)
     db.flush()
     back = recalc(db, obj)

@@ -30,6 +30,7 @@ from app.models import (
     Document,
     Evidence,
     Notification,
+    PhraseHit,
     SignalCard,
     SignalCounter,
     Territory,
@@ -44,6 +45,7 @@ from app.models.enums import (
     SignalStatus,
     Zone,
 )
+from app.modules.risk.engine import HIT_REJECTED, R1, R2, R4, R5, R6, HitFact, hit_kind
 from app.modules.risk.queries import AD_TIMESTAMP, latest_score_stmt
 from app.modules.settings.service import load_settings
 from app.modules.signals.notifications import add_notifications, users_covering_territory
@@ -113,12 +115,42 @@ def _payments_note(complaints: list[Complaint]) -> str:
     return f"Заявители подтвердили внесение платежей застройщику. Обращения: {refs}."
 
 
+def breakdown_parts(breakdown: Any) -> tuple[list[dict[str, Any]], list[dict[str, Any]], str | None]:
+    """(factors, needs_check, legal_basis_status) of a stored breakdown. A score from before the case model
+    is a plain list of old factors: it says nothing about the current rules, so it is read as empty."""
+    if not isinstance(breakdown, dict):
+        return [], [], None
+    return breakdown["factors"], breakdown["needs_check"], breakdown["legal_basis_status"]
+
+
+def _hit_entries(session: Session, ad_ids: list[int]) -> dict[int, list[dict[str, Any]]]:
+    """Phrase hits of publications as facts or AI hypotheses; rejected ones are left out."""
+    entries: dict[int, list[dict[str, Any]]] = {ad_id: [] for ad_id in ad_ids}
+    for hit in session.scalars(select(PhraseHit).where(PhraseHit.ad_post_id.in_(ad_ids)).order_by(PhraseHit.id)):
+        kind = hit_kind(HitFact(category=hit.category, detected_by=hit.detected_by, confirmed=hit.confirmed, id=hit.id))
+        if kind != HIT_REJECTED:
+            entries[hit.ad_post_id].append(
+                {
+                    "id": hit.id,
+                    "category": hit.category.value,
+                    "fragment": hit.matched_text,
+                    "detected_by": hit.detected_by.value,
+                    "confirmed": hit.confirmed,
+                    "kind": kind,
+                }
+            )
+    return entries
+
+
 def build_sections(session: Session, obj: ConstructionObject, review_days: int, now: datetime) -> dict[str, Any]:
-    """Sections of SPEC 7.1 from the current object data, its latest score, documents and recent publications."""
+    """Sections of SPEC 7.1 from the current object data, its latest score, documents and recent publications.
+
+    Besides the contract sections the card carries the legal basis status, the "needs check" flags and the
+    demo marker, and each publication lists its phrase hits as a fact or an AI hypothesis."""
     window_days = load_settings(session).ad_window_days
     developer = session.get(Developer, obj.developer_id) if obj.developer_id else None
     latest = session.scalar(latest_score_stmt(obj.id))
-    breakdown: list[dict[str, Any]] = latest.breakdown if latest else []
+    breakdown, needs_check, basis_status = breakdown_parts(latest.breakdown if latest else None)
     factors = {item["code"]: item for item in breakdown}
     triggered = {code for code, item in factors.items() if item["triggered"]}
 
@@ -135,6 +167,7 @@ def build_sections(session: Session, obj: ConstructionObject, review_days: int, 
     ):
         if ad_id is not None:
             ad_evidence[ad_id].append(evidence_id)
+    ad_hits = _hit_entries(session, list(ad_evidence))
     paid_complaints = list(
         session.scalars(
             select(Complaint)
@@ -143,17 +176,17 @@ def build_sections(session: Session, obj: ConstructionObject, review_days: int, 
         )
     )
 
-    money = factors.get("money_offer", {}).get("detail", {})
+    money = factors.get(R2, {}).get("detail", {})
     measures = [
         measure
         for measure, needed in (
-            (ProposedMeasure.request_documents, "no_permit" in triggered),
+            (ProposedMeasure.request_documents, R1 in triggered or basis_status == "unknown"),
             (
                 ProposedMeasure.site_inspection,
-                "readiness_overstated" in triggered or obj.construction_status is ConstructionStatus.stalled,
+                R5 in triggered or R6 in triggered or obj.construction_status is ConstructionStatus.stalled,
             ),
-            (ProposedMeasure.interview_complainants, "complaints" in triggered),
-            (ProposedMeasure.request_payments_info, "money_offer" in triggered or bool(paid_complaints)),
+            (ProposedMeasure.interview_complainants, R4 in triggered),
+            (ProposedMeasure.request_payments_info, R2 in triggered or bool(paid_complaints)),
         )
         if needed
     ]
@@ -169,8 +202,17 @@ def build_sections(session: Session, obj: ConstructionObject, review_days: int, 
             "director": developer.director if developer else None,
             "founders": list(developer.founders) if developer else [],
         },
+        "is_demo": obj.is_demo,
+        "legal_basis_status": basis_status,
+        "needs_check": needs_check,
         "risk_factors": [
-            {"code": item["code"], "weight": item["weight"], "detail": item["detail"]}
+            {
+                "code": item["code"],
+                "label": item["label"],
+                "weight": item["weight"],
+                "detail": item["detail"],
+                "evidence": item["evidence"],
+            }
             for item in breakdown
             if item["triggered"]
         ],
@@ -194,6 +236,8 @@ def build_sections(session: Session, obj: ConstructionObject, review_days: int, 
                 "captured_at": _iso(ad.captured_at),
                 "evidence_ids": ad_evidence[ad.id],
                 "status": ad.status.value,
+                "is_demo": ad.is_demo,
+                "hits": ad_hits[ad.id],
             }
             for ad in ads
         ],

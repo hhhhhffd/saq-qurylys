@@ -16,6 +16,7 @@ from app.models import (
     Territory,
 )
 from app.models.enums import (
+    AdStatus,
     CheckStatus,
     ComplaintStatus,
     DetectedBy,
@@ -48,7 +49,9 @@ def add_ad(
     *,
     hits: tuple[tuple[PhraseCategory, DetectedBy, bool | None], ...] = (),
     payment_schemes: tuple[str, ...] = (),
-    price_before_completion: bool = False,
+    status: AdStatus = AdStatus.captured,
+    claimed_readiness_pct: int | None = None,
+    is_demo: bool = False,
 ) -> AdPost:
     _counter["ad"] += 1
     ad = AdPost(
@@ -60,7 +63,9 @@ def add_ad(
         published_at=published_at,
         captured_at=published_at,
         payment_schemes=list(payment_schemes),
-        price_before_completion=price_before_completion,
+        status=status,
+        claimed_readiness_pct=claimed_readiness_pct,
+        is_demo=is_demo,
     )
     db.add(ad)
     db.flush()
@@ -89,6 +94,7 @@ def add_complaint(
     status: ComplaintStatus = ComplaintStatus.new,
     confirmed_payments: bool = False,
     external_id: str | None = None,
+    verified: bool = False,
 ) -> Complaint:
     complaint = Complaint(
         object_id=obj.id,
@@ -97,6 +103,7 @@ def add_complaint(
         status=status,
         confirmed_payments=confirmed_payments,
         external_id=external_id,
+        is_verified=verified,
     )
     db.add(complaint)
     db.flush()
@@ -111,9 +118,12 @@ def add_inspection(db: Session, obj: ConstructionObject, inspected_at: date = TO
 
 
 def red_object(db: Session, territory: Territory, name: str = "ЖК Красный") -> ConstructionObject:
-    """An object that scores red: no permit and a dictionary booking phrase in a fresh ad."""
+    """Scenario B of the case: the absence of a legal basis is established (both documents checked and not found)
+    and a fresh publication asks for a deposit: R1 + R2 + R3 = 70, red."""
     obj = make_object(db, territory, name)
-    add_ad(db, obj, hits=((PhraseCategory.booking, DetectedBy.dictionary, None),))
+    add_document(db, obj, DocType.guarantee, CheckStatus.not_found)
+    add_document(db, obj, DocType.dsu_permit, CheckStatus.not_found)
+    add_ad(db, obj, hits=((PhraseCategory.deposit, DetectedBy.dictionary, None),))
     return obj
 
 
