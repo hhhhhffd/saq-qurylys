@@ -1,6 +1,6 @@
 # SAQ QURYLYS — спецификация реализации (контракт)
 
-Источник требований: ТЗ (оригинал) + решения, принятые с заказчиком 13.10.2026 (раздел 1).
+Источник требований: ТЗ (оригинал) + **кейс Codemasters 8.0 «SAQ QURYLYS» (приоритетный источник при расхождениях)** + решения, принятые с заказчиком 13.10.2026 (раздел 1).
 Этот документ — контракт между backend, frontend и воркерами. Изменения контракта вносятся сюда.
 
 ## 1. Принятые решения
@@ -11,7 +11,7 @@
 | D2 | Полный стек сразу (масштаб на всю РК): FastAPI + Celery + Redis + PostgreSQL 16/PostGIS + MinIO (Object Lock) + React. |
 | D3 | Госреестры (Жилищный портал, Казреестр, кадастр, e-Otinish) — ручная сверка со скриншотом-доказательством; обращения — ручной ввод + импорт CSV. |
 | D4 | Данные пилота: публичные, если удаётся достать; иначе мок-данные (`is_demo=true`) + инструкция `docs/DATA_SOURCES.md`, где и как их получить. |
-| D5 | Стартовые веса факторов — из оригинала ТЗ; админ меняет, история изменений ведётся. Зона — по правилам (раздел 6), балл — для сортировки и расшифровки. |
+| D5 | ~~Веса из оригинала ТЗ, зона по правилам~~ — заменено D17. Админ меняет веса, история изменений ведётся. |
 | D6 | ИИ: словарь формулировок (детерминированно, влияет на балл) + LLM через Ollama (`qwen3.5:9b-q6k`), результат LLM = «предположение ИИ», на балл влияет только после подтверждения человеком. Без Ollama система работает. |
 | D7 | Собственный JWT + RBAC (роли: `admin`, `mio_officer`, `gask`, `law_enforcement`). |
 | D8 | Уведомления in-app; SMTP опционально. Срок рассмотрения — N рабочих дней (по умолчанию 5) с учётом производственного календаря РК (таблица `holiday`). |
@@ -23,6 +23,10 @@
 | D14 | Публичной части нет — только внутренний вход. |
 | D15 | Ollama: в разработке на хосте (`ollama serve`), настройки `LLM_ENABLED`, `OLLAMA_URL`, `OLLAMA_MODEL`, `LLM_TIMEOUT_S`. |
 | D16 | UI: одна тема, нейтральная средняя палитра (не тёмная и не ослепительно-белая), минимализм в духе Apple. Цвета зон — единственные насыщенные акценты. Во всех экранах/выгрузках с зоной — дисклеймер «Красная зона означает высокий риск и необходимость проверки, а не установленную виновность». Без госсимволики. |
+| D17 | Модель риска — из кейса Codemasters 8.0 (раздел 6): факторы R1–R6, балл = min(100, Σ весов подтверждённых факторов), зона по баллу с условием R1+R2 для красной. «Нет данных» ≠ «нет основания»: неизвестные сведения дают 0 баллов и помечаются «Нужна проверка». Гипотезы ИИ не считаются подтверждёнными фактами. Обязательные тест-сценарии A/B/C (6.6) покрыты автотестами и демо-данными. |
+| D18 | Достоверность: в UI и PDF явно различаются «факт» (подтверждённые данные с источником и временем фиксации), «гипотеза ИИ» (с фрагментом и уверенностью, принять/отклонить) и «демо» (`is_demo` у объектов и публикаций; бейдж «ДЕМО» в интерфейсе, водяной знак в PDF). |
+| D19 | Демо-данные: только вымышленные ЖК/застройщики/люди, ≥ 8 полных карточек ЖК, ≥ 12 публикаций, сценарии A/B/C. Реальные публичные данные (`--pilot`) — только факты о юрлицах из реестров, без ФИО и контактов физлиц, без каких-либо оценок; в демо по умолчанию не загружаются. |
+| D20 | Сдача — публичный репозиторий GitHub (отсечка 20.10.2026 23:59): README по структуре кейса (проблема и ценность, возможности, технологии, архитектура, запуск, тестовый сценарий, ограничения, использование ИИ, сторонние библиотеки и модели). |
 
 ## 2. Структура репозитория
 
@@ -55,10 +59,10 @@ API: префикс `/api/v1`, JSON, даты ISO 8601 (UTC в БД, отобр�
 - **construction_object**: `code` (`SQ-OBJ-NNNN`, из sequence), `territory_id` (city), `district_id`, `developer_id`, `name`, `aliases` (text[]), `address`, `cadastral_number`, `land_purpose`, `location` (Point 4326), `planned_completion` (date), `forecast_completion` (date), `construction_status` (`not_started|active|stalled|completed`), `stalled_since` (date), `readiness_actual_pct` (из последней фотофиксации), `readiness_claimed_pct` (из подтверждённой рекламы), `prior_violations` (text), `score` (int), `zone` (`green|yellow|red`, nullable до первого расчёта), `key_status` (код, см. 6.4), `last_scored_at`, `next_check_at`, `is_demo`.
 - **document**: `object_id`, `doc_type` (`smr_notice|psd|expertise|dsu_permit|guarantee|ddu_registration|land_title`), `number`, `issued_at`, `issuer`, `check_status` (`confirmed|not_found|checking`), `checked_at`, `checked_by`, `check_source` (`housing_portal|kazreestr|mio_registry|cadastre|eotinish|manual|other`), `note`.
 - **inspection** (фотофиксация): `object_id`, `inspected_at` (date), `readiness_pct`, `location` (Point, nullable), `inspector_id`, `note`.
-- **complaint**: `object_id`, `received_at`, `source` (`eotinish|manual|other`), `external_id`, `is_collective`, `signatories_count`, `summary`, `status` (`new|in_review|closed`), `confirmed_payments` (bool — заявитель подтвердил платёж застройщику).
+- **complaint**: `object_id`, `received_at`, `source` (`eotinish|manual|other`), `external_id`, `is_collective`, `signatories_count`, `summary`, `status` (`new|in_review|closed`), `confirmed_payments` (bool — заявитель подтвердил платёж застройщику), `is_verified` (bool — обращение проверено аналитиком; нужно для R4), `verified_by`, `verified_at`.
 - **linked_entity**: `object_id` | `developer_id`, `kind` (`ad_account|sales_office|phone|website|bank_details`), `value`, `note`.
 - **source_account**: `platform` (`instagram|tiktok|telegram|website|aggregator|outdoor|other`), `handle`, `url`, `object_id`, `developer_id`, `territory_id`, `is_watched`, `last_collected_at`.
-- **ad_post**: `territory_id`, `source_account_id`, `platform`, `url`, `external_id` (уник. с platform), `author`, `published_at`, `captured_at`, `text`, `phones` (text[], E.164), `links` (text[]), `object_id`, `link_confidence` (0..1), `link_method` (`account|phone|name|manual`), `payment_schemes` (text[] из `booking|down_payment|deposit|installment|nonstandard_contract`; подтверждённые), `claimed_readiness_pct`, `price_before_completion` (bool), `llm_extraction` (jsonb), `llm_status` (`none|pending|done|failed|disabled`), `status` (`captured|verification|removed_saved`), `max_phrase_weight`, `total_phrase_weight`, `is_outdoor`, `location` (Point, для наружной), `last_checked_at`, `removed_detected_at`, `capture_status` (`pending|done|failed`), `capture_error`.
+- **ad_post**: `territory_id`, `source_account_id`, `platform`, `url`, `external_id` (уник. с platform), `author`, `published_at`, `captured_at`, `text`, `phones` (text[], E.164), `links` (text[]), `object_id`, `link_confidence` (0..1), `link_method` (`account|phone|name|manual`), `payment_schemes` (text[] из `booking|down_payment|deposit|installment|nonstandard_contract`; подтверждённые), `claimed_readiness_pct`, `price_before_completion` (bool), `llm_extraction` (jsonb), `llm_status` (`none|pending|done|failed|disabled`), `status` (`captured|verification|removed_saved`), `max_phrase_weight`, `total_phrase_weight`, `is_outdoor`, `location` (Point, для наружной), `last_checked_at`, `removed_detected_at`, `capture_status` (`pending|done|failed`), `capture_error`, `is_demo`.
 - **evidence** (append-only, UPDATE/DELETE запрещены триггером): `kind` (`screenshot_png|archive_mhtml|photo|document_scan|pdf`), `bucket`, `s3_key`, `sha256`, `size_bytes`, `content_type`, `captured_at` (время сервера), `source_url`, `retention_until`, `lock_mode`, `tsa_token` (bytea, nullable), `ad_post_id` | `document_id` | `inspection_id` | `signal_card_id` (ровно одно не null), `created_by`.
 - **phrase**: `text`, `variants` (text[]), `category` (`booking|down_payment|installment|sales_start|preliminary_contract|deposit|price_before_completion|covert_contract`), `weight` (int), `is_active`.
 - **phrase_hit**: `ad_post_id`, `phrase_id` (nullable для LLM), `category`, `matched_text`, `start`, `end` (символьные позиции в `ad_post.text`), `weight`, `detected_by` (`dictionary|llm`), `confirmed` (bool nullable), `confirmed_by`.
@@ -69,7 +73,7 @@ API: префикс `/api/v1`, JSON, даты ISO 8601 (UTC в БД, отобр�
 - **audit_log** (append-only): `user_id`, `at`, `action`, `entity_type`, `entity_id`, `before` (jsonb), `after` (jsonb), `ip`.
 - **notification**: `user_id`, `kind` (`red_zone|signal_returned|signal_sent|signal_due_soon|signal_overdue|signal_responded|capture_failed`), `entity_type`, `entity_id`, `payload` (jsonb), `created_at`, `read_at`.
 - **holiday**: `day` (PK date), `kind` (`holiday|workday` — `workday` = перенесённый рабочий выходной), `name`.
-- **app_setting**: `key` (PK), `value` (jsonb). Ключи и умолчания: `review_days=5`, `ad_window_days=7`, `readiness_gap_pp=10`, `complaints_threshold=3`, `stalled_days=30`, `recheck_after_days=3`, `link_confidence_threshold=0.8`, `green_interval_days=30`, `yellow_interval_days=7`.
+- **app_setting**: `key` (PK), `value` (jsonb). Ключи и умолчания: `review_days=5`, `ad_window_days=30`, `readiness_gap_pp=20`, `significant_delay_days=90`, `zone_yellow_min=25`, `zone_red_min=60`, `complaints_threshold=3`, `stalled_days=30`, `recheck_after_days=3`, `link_confidence_threshold=0.8`, `green_interval_days=30`, `yellow_interval_days=7`.
 
 ## 4. Роли и доступ
 
@@ -92,49 +96,73 @@ API: префикс `/api/v1`, JSON, даты ISO 8601 (UTC в БД, отобр�
 - **Словарь**: совпадение по последовательности лемм (pymorphy3) для `text` и каждого из `variants`. Совпадение сохраняется как `phrase_hit` с позициями исходного текста. Стартовый словарь — 9 формулировок из ТЗ с вариантами (например, «бронирование» → `бронь`, `забронировать`, `бронирование`).
 - **Телефоны**: `phonenumbers`, регион `KZ`, формат E.164.
 - **Связывание с объектом**, по приоритету: аккаунт привязан к объекту → совпал телефон из `linked_entity`/`developer.phones` → нечёткое совпадение названия или алиаса (rapidfuzz `token_set_ratio`/100). Если `link_confidence < link_confidence_threshold` или кандидатов несколько, статус `verification`.
-- **LLM**: Ollama `/api/chat` со structured output (`format` — JSON-схема `{payment_schemes: [...], claimed_readiness_pct: int|null, price_before_completion: bool, quotes: [str]}`); результат пишется в `llm_extraction` и как `phrase_hit` с `detected_by=llm, confirmed=null`. В `payment_schemes`/`claimed_readiness_pct` поста он попадает только после подтверждения пользователем.
+- **LLM**: Ollama `/api/chat` со structured output (`format` — JSON-схема `{findings: [{category, quote, confidence: 0..1}], payment_schemes: [...], claimed_readiness_pct: int|null, price_before_completion: bool, confidence: 0..1}`; находки с `confidence < 0.5` помечаются «неуверенно»); результат пишется в `llm_extraction` и как `phrase_hit` с `detected_by=llm, confirmed=null`. В `payment_schemes`/`claimed_readiness_pct` поста он попадает только после подтверждения пользователем.
 - **Перепроверка**: через `recheck_after_days` воркер проверяет URL (HTTP-статус и признаки удаления). Если публикация удалена, статус `removed_saved`; доказательства не трогаются.
 - **Наружная реклама**: ручной ввод (текст, фото, геоточка, `is_outdoor=true`).
 - **Коллекторы (фаза 2)**: `collectors/base.py`: `class Collector(Protocol): platform; def collect(account: SourceAccount, since: datetime) -> Iterable[CollectedPost]`. Реестр коллекторов по `platform`; задача `collect.run_all` (beat, ежедневно) для v1 зарегистрирована, но при отсутствии реализаций ничего не делает и пишет это в лог.
 
-## 6. Оценка риска
+## 6. Оценка риска (модель кейса Codemasters 8.0)
 
-### 6.1. Факторы (стартовые веса — из оригинала ТЗ)
+Риск — оценка необходимости проверки, а не юридическое заключение. Расчёт детерминирован: одинаковые подтверждённые данные дают одинаковый результат.
 
-| code | Условие срабатывания | Вес |
+### 6.0. Правовое основание объекта (`legal_basis_status`, вычисляется)
+
+Применимые основания (Закон РК «О долевом участии в жилищном строительстве»): гарантия Единого оператора (АО «КЖК») — `document.doc_type=guarantee`; разрешение МИО (в т.ч. при участии БВУ или после возведения каркаса) — `doc_type=dsu_permit`.
+
+- `confirmed` — есть документ `guarantee` или `dsu_permit` со статусом `confirmed`.
+- `absent_established` — подтверждённых нет, на проверке (`checking`) нет, и **оба** типа (`guarantee` и `dsu_permit`) проверены со статусом `not_found`. Только это состояние даёт R1.
+- `unknown` — всё остальное (нет записей о проверке, проверка идёт, проверен только один тип). Даёт флаг «Нужна проверка» `legal_basis_unknown`, 0 баллов.
+
+Отсутствие только разрешения МИО при подтверждённой гарантии — не R1 (сценарий C).
+
+### 6.1. Факторы (стартовые веса — из кейса)
+
+| code | Метка | Условие срабатывания | Вес |
+|---|---|---|---|
+| `r1_no_legal_basis` | R1 | `legal_basis_status = absent_established` | +35 |
+| `r2_money_offer` | R2 | за `ad_window_days` у связанной публикации есть словарная формулировка (не отклонённая аналитиком) или подтверждённая LLM-формулировка категорий `booking|down_payment|deposit|installment|preliminary_contract|covert_contract`, либо подтверждённая схема `payment_schemes` | +25 |
+| `r3_active_ads` | R3 | за `ad_window_days` есть хотя бы одна связанная публикация, объект не `completed` | +10 |
+| `r4_collective_complaint` | R4 | есть обращение `is_collective=true` и `is_verified=true` со статусом ≠ `closed` | +15 |
+| `r5_readiness_mismatch` | R5 | `readiness_claimed_pct − readiness_actual_pct ≥ readiness_gap_pp` (по умолчанию 20), оба значения имеют источник и дату (подтверждённая публикация и фотофиксация) | +10 |
+| `r6_stalled_or_delayed` | R6 | `construction_status=stalled` и `stalled_since` не позже чем `stalled_days` назад, или просрочка: `forecast_completion − planned_completion ≥ significant_delay_days` (по умолчанию 90) либо `planned_completion` прошла более `significant_delay_days` назад и объект не `completed` | +5 |
+
+Балл = min(100, сумма весов активных сработавших факторов). Отрицательных факторов нет.
+
+Флаги «Нужна проверка» (`needs_check`, 0 баллов, показываются отдельно): `legal_basis_unknown`, `complaint_unverified` (коллективное обращение без `is_verified`), `readiness_unverified` (заявленная готовность есть, фотофиксации нет), `ai_hypotheses_pending` (есть неподтверждённые LLM-находки по связанным публикациям), `link_unverified` (связанные публикации в статусе `verification`).
+
+### 6.2. Зоны
+
+| Зона | Правило | Действие |
 |---|---|---|
-| `no_permit` | нет `document` типа `dsu_permit` или `guarantee` со статусом `confirmed` | +40 |
-| `money_offer` | за `ad_window_days` есть подтверждённая (или словарная) формулировка категорий `booking|down_payment|deposit|installment|preliminary_contract|covert_contract|price_before_completion` либо подтверждённая `payment_schemes` | +20 |
-| `active_ads` | за `ad_window_days` есть хотя бы одна публикация, связанная с объектом | +15 |
-| `complaints` | есть обращение с `is_collective=true` или открытых обращений ≥ `complaints_threshold` | +15 |
-| `readiness_overstated` | `readiness_claimed_pct − readiness_actual_pct ≥ readiness_gap_pp` | +10 |
-| `on_schedule` | `construction_status=active`, `forecast_completion ≤ planned_completion` и последняя фотофиксация не старше `stalled_days` | −15 |
+| green | балл 0–24 | плановый мониторинг (раз в `green_interval_days`), история сохраняется |
+| yellow | балл 25–59, **а также 60+ без одновременных R1 и R2** | углублённая ручная проверка (раз в `yellow_interval_days`) |
+| red | балл ≥ 60 **и** сработали R1 и R2 | приоритетная сигнальная карточка (черновик), ожидает подтверждения человеком |
 
-Балл = сумма весов активных сработавших факторов, обрезанная до [0; 100].
-
-### 6.2. Правила зон (зона по правилам, а не по порогу балла)
-
-Вспомогательные признаки: `permit_confirmed` (есть подтверждённое разрешение или гарантия), `permit_checking` (разрешение/гарантия в статусе `checking`), `money_offer`, `covert_contract` (формулировка категории `covert_contract`/`preliminary_contract` или схема `nonstandard_contract`), `confirmed_payments` (обращение с `confirmed_payments=true`), `overdue` (`forecast_completion > planned_completion` или `planned_completion < сегодня` и не `completed`), `stalled` (`construction_status=stalled`), `complaints`, `readiness_overstated`, `active_ads`.
-
-- **red**: `not permit_confirmed and not permit_checking and (money_offer or covert_contract or confirmed_payments)`.
-- **green**: `permit_confirmed and not (overdue or stalled or complaints or readiness_overstated)`.
-- **yellow**: всё остальное (в том числе разрешение на проверке, реклама без предложения денег, отсутствие разрешения без рекламы).
-
-`zone_reasons` — коды сработавших условий правила.
+Пороги — настройки `zone_yellow_min=25`, `zone_red_min=60`. `zone_reasons` — коды, определившие зону (например `score_25_59`, `r1_and_r2`, `score_60_without_r1_r2`).
 
 ### 6.3. Расшифровка (`risk_score.breakdown`)
 
 ```json
-[{"code": "no_permit", "weight": 40, "triggered": true,
-  "evidence": [{"type": "document", "id": 12}, {"type": "ad_post", "id": 55}],
-  "detail": {"...": "..."}}]
+{"factors": [{"code": "r2_money_offer", "label": "R2", "weight": 25, "triggered": true,
+              "evidence": [{"type": "ad_post", "id": 55, "phrase_hit_id": 301, "fragment": "внесите депозит"}],
+              "detail": {"...": "..."}}],
+ "needs_check": [{"code": "legal_basis_unknown", "detail": {}}],
+ "legal_basis_status": "unknown"}
 ```
 
-В расшифровку попадают все активные факторы, в том числе несработавшие (`triggered=false`, вес не суммируется).
+В `factors` — все активные факторы, в том числе несработавшие (`triggered=false`). Для R2 в evidence — фрагмент-основание (текст фразы) и ссылка на публикацию/hit. *(Если в коде уже используется список вместо объекта — допустимо оставить список факторов в `breakdown`, а `needs_check` и `legal_basis_status` отдать отдельными полями `risk_score`; frontend выравнивается по факту.)*
 
 ### 6.4. `key_status` объекта (для дашборда)
 
-Первый сработавший код по приоритету: `no_permit_with_offer`, `no_permit`, `permit_checking`, `money_offer`, `stalled` (с `stalled_days` в detail, UI показывает «простой N дней»), `overdue`, `complaints`, `readiness_overstated`, `ok`.
+Первый сработавший по приоритету: `no_legal_basis_with_offer` (R1+R2), `no_legal_basis` (R1), `money_offer` (R2), `legal_basis_unknown`, `stalled` (detail `stalled_days` → «простой N дней»), `delayed`, `collective_complaint`, `readiness_mismatch`, `active_ads`, `ok`.
+
+### 6.6. Контрольные тест-сценарии кейса (обязательны в автотестах и демо-данных)
+
+| Кейс | Данные | Ожидание |
+|---|---|---|
+| A | основание не проверено (`unknown`), есть платная бронь | R2 25 + R3 10 = 35 → **yellow**; отсутствие данных не превращается в R1, флаг `legal_basis_unknown` |
+| B | установлено отсутствие основания (`absent_established`) + депозит | R1 35 + R2 25 + R3 10 = 70 → **red**; авто-черновик карточки ожидает подтверждения человеком |
+| C | действующая гарантия подтверждена, обычная реклама без предложения денег | R3 10 = 10 → **green**; отсутствие отдельного разрешения МИО не даёт R1 |
 
 ### 6.5. Расписание пересчёта
 
