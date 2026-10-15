@@ -1,4 +1,4 @@
-import { lazy } from 'react';
+import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { HomeRedirect, RequireAuth, RequireCapability } from '@/auth/guards';
 import { AppLayout } from '@/layout/AppLayout';
@@ -21,6 +21,9 @@ const SignalDetailPage = lazy(() =>
 );
 const AdminPage = lazy(() => import('@/features/admin/AdminPage').then((m) => ({ default: m.AdminPage })));
 
+// Dev-only visual reference of the theme; the dynamic import is dropped from production builds.
+const KitPage = import.meta.env.DEV ? lazy(() => import('@/features/kit/KitPage').then((m) => ({ default: m.KitPage }))) : null;
+
 function NotFound() {
   const { t } = useTranslation();
   return <EmptyState>{t('states.notFound')}</EmptyState>;
@@ -30,6 +33,16 @@ export function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      {KitPage && (
+        <Route
+          path="/_kit"
+          element={
+            <Suspense fallback={null}>
+              <KitPage />
+            </Suspense>
+          }
+        />
+      )}
       <Route
         element={
           <RequireAuth>
