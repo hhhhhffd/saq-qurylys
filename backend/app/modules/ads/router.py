@@ -279,6 +279,11 @@ def get_ad(ad_id: int, session: SessionDep, user: StaffUser, scope: ScopeDep) ->
     return service.build_detail(session, service.get_ad_in_scope(session, scope, ad_id))
 
 
+def _confirmed_status(ad: AdPost) -> AdStatus:
+    """Status of a post whose link a person has decided: a post found removed stays marked as removed."""
+    return AdStatus.removed_saved if ad.removed_detected_at is not None else AdStatus.captured
+
+
 @router.patch("/ads/{ad_id}", response_model=AdDetail)
 def update_ad(
     ad_id: int, body: AdPatch, session: SessionDep, user: StaffUser, scope: ScopeDep, request: Request
@@ -301,9 +306,11 @@ def update_ad(
             ad.link_method = LinkMethod.manual
             ad.link_confidence = 1.0
             if "status" not in changes and ad.status is AdStatus.verification:
-                ad.status = AdStatus.captured  # a person has decided the link
+                ad.status = _confirmed_status(ad)  # a person has decided the link
     if "status" in changes:
         new_status = changes.pop("status")
+        if new_status is AdStatus.captured and ad.status is AdStatus.verification:
+            new_status = _confirmed_status(ad)  # «confirm the link» of a post that has been removed since
         if new_status is AdStatus.removed_saved and ad.removed_detected_at is None:
             ad.removed_detected_at = datetime.now(UTC)
         elif new_status is not AdStatus.removed_saved:

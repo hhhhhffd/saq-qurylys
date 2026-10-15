@@ -19,6 +19,7 @@ from app.collectors.base import CollectedPost, IsKnown
 from app.config import get_settings
 from app.models import AdPost, AuditLog, Evidence, Notification, SourceAccount
 from app.models.enums import (
+    AdOrigin,
     AdStatus,
     CaptureStatus,
     EvidenceKind,
@@ -27,6 +28,9 @@ from app.models.enums import (
 )
 from app.modules.ads import capture, recheck, service, tasks
 from app.modules.ads.urls import UnsafeUrlError, ensure_public_url, telegram_embed_url
+from app.modules.nlp import service as nlp
+from app.modules.risk import engine
+from app.modules.risk import service as risk
 from app.storage import EvidenceLink
 from tests.conftest import PNG_BYTES, World, make_object
 from tests.support_ads import add_ad
@@ -147,6 +151,45 @@ def test_page_that_says_the_post_is_gone_counts_as_removed(db: Session, world: W
     ad = due_ad(db, world)
     run_recheck(db, lambda request: httpx.Response(200, text="<h1>Объявление не найдено</h1>"))
     assert ad.status is AdStatus.removed_saved
+
+
+@pytest.mark.parametrize("origin", [AdOrigin.collector, AdOrigin.citizen])
+def test_removal_does_not_confirm_a_guessed_link(db: Session, world: World, origin: AdOrigin) -> None:
+    """OPEN_QUESTIONS 27, 29: a collected or reported post linked by name counts only after a person confirms the
+    link. The post being deleted from the source does not make that guess count."""
+    obj = make_object(db, world.ust, "Жилой комплекс Нур Плаза")
+    ad = due_ad(
+        db,
+        world,
+        text="Нур Плаза: бронь квартиры за 10% предоплата, рассрочка от застройщика",
+        origin=origin,
+        published_at=datetime.now(UTC) - timedelta(days=1),
+    )
+    nlp.analyze_ad(db, ad)
+    nlp.link_ad(db, ad)
+    assert ad.object_id == obj.id and ad.status is AdStatus.verification
+
+    assert run_recheck(db, lambda request: httpx.Response(404)) == [obj.id]
+
+    assert ad.status is AdStatus.verification and ad.removed_detected_at is not None
+    result = risk.recalculate(db, obj.id)
+    assert result is not None
+    factors = {item["code"]: item for item in result.risk_score.breakdown["factors"]}
+    assert factors[engine.R2]["triggered"] is False and factors[engine.R3]["triggered"] is False
+    assert result.risk_score.score == 0
+    assert engine.LINK_UNVERIFIED in [item["code"] for item in result.risk_score.breakdown["needs_check"]]
+
+
+def test_removed_publication_is_not_checked_again_whatever_its_status(db: Session, world: World) -> None:
+    ad = due_ad(db, world, status=AdStatus.verification, removed_detected_at=datetime.now(UTC) - DAYS_AGO)
+    requested: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requested.append(request.url.path)
+        return httpx.Response(404)
+
+    assert run_recheck(db, handler) == []
+    assert requested == [] and ad.status is AdStatus.verification
 
 
 def test_live_publication_only_gets_a_new_check_time(db: Session, world: World) -> None:

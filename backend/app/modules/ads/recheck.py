@@ -98,6 +98,7 @@ def recheck_due(session: Session, client: httpx.Client) -> list[int]:
         .where(
             AdPost.url.isnot(None),
             AdPost.status != AdStatus.removed_saved,
+            AdPost.removed_detected_at.is_(None),
             # A post whose capture is pending or failed has nothing saved yet.
             or_(AdPost.capture_status.is_(None), AdPost.capture_status == CaptureStatus.done),
             last_check < threshold,
@@ -126,7 +127,10 @@ def recheck_due(session: Session, client: httpx.Client) -> list[int]:
             record_version(session, ad, text, AdVersionSource.recheck, now)
         if removed:
             before = audit.snapshot(ad)
-            ad.status = AdStatus.removed_saved
+            # The removal does not confirm a link nobody confirmed: such a post stays in `verification`, out of
+            # the score (OPEN_QUESTIONS 27, 29). `removed_detected_at` is what says it is gone.
+            if ad.status is not AdStatus.verification:
+                ad.status = AdStatus.removed_saved
             ad.removed_detected_at = now
             audit.record(
                 session,
