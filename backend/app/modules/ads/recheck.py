@@ -40,7 +40,10 @@ def fetch(client: httpx.Client, url: str) -> tuple[int, str]:
         ensure_public_url(url)
         with client.stream("GET", url) as response:
             if response.is_redirect and (location := response.headers.get("location")):
-                url = urljoin(url, location)
+                try:
+                    url = urljoin(url, location)
+                except ValueError as exc:  # "Invalid IPv6 URL" in the Location header
+                    raise UnsafeUrlError("Некорректный адрес перенаправления") from exc
                 continue
             body = b""
             for chunk in response.iter_bytes():
@@ -84,8 +87,9 @@ def recheck_due(session: Session, client: httpx.Client) -> list[int]:
         try:
             status_code, body = fetch(client, ad.url)
             removed = is_removed(status_code, body)
-        except (httpx.HTTPError, UnsafeUrlError):
-            # Inconclusive: the post is looked at again after the next interval, not on every run.
+        except Exception:
+            # Inconclusive, and one bad URL must not stop the run: the post is looked at again after the next
+            # interval, not on every run.
             logger.warning("Re-check of ad_post %s failed", ad.id, exc_info=True)
             status_code = 0
         ad.last_checked_at = now

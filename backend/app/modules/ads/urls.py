@@ -42,7 +42,11 @@ def split_url(url: str) -> tuple[str, str]:
 
 
 def is_http_url(url: str) -> bool:
-    parts = urlsplit(url)
+    try:
+        parts = urlsplit(url)
+        parts.port  # noqa: B018 - raises ValueError for a port out of range
+    except ValueError:
+        return False
     return parts.scheme in {"http", "https"} and bool(parts.hostname)
 
 
@@ -112,16 +116,19 @@ def ensure_public_url(url: str) -> None:
 
     A host that does not resolve passes: the fetch itself then fails with a clear error.
     """
-    parts = urlsplit(url)
-    host = parts.hostname
+    try:
+        parts = urlsplit(url)
+        host, port = parts.hostname, parts.port
+    except ValueError as exc:  # "Invalid IPv6 URL", "Port out of range"
+        raise UnsafeUrlError("Некорректная ссылка") from exc
     if parts.scheme not in {"http", "https"} or not host:
         raise UnsafeUrlError("Допустимы только ссылки http и https")
     try:
-        infos = socket.getaddrinfo(
-            host, parts.port or (443 if parts.scheme == "https" else 80), type=socket.SOCK_STREAM
-        )
+        infos = socket.getaddrinfo(host, port or (443 if parts.scheme == "https" else 80), type=socket.SOCK_STREAM)
     except socket.gaierror:
         return
+    except (ValueError, OverflowError) as exc:  # a host name that cannot be encoded
+        raise UnsafeUrlError("Некорректный адрес") from exc
     for info in infos:
         address = ipaddress.ip_address(str(info[4][0]).split("%")[0])
         if not address.is_global:

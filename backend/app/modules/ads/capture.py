@@ -7,8 +7,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
+from playwright.sync_api import BrowserContext, Page, Response, Route, ViewportSize, sync_playwright
 from playwright.sync_api import Error as PlaywrightError
-from playwright.sync_api import Route, ViewportSize, sync_playwright
 from sqlalchemy.orm import Session
 
 from app import storage
@@ -84,24 +84,72 @@ def _choose_text(info: dict[str, str], platform: Platform) -> str:
     return body if len(body) >= MIN_BODY_CHARS or len(body) >= len(description) else description
 
 
-def _guard_requests() -> Callable[[Route], None]:
-    """Route handler that keeps the browser away from internal addresses, also for redirects and subresources."""
-    approved: set[str] = set()
+class _RequestGuard:
+    """Keeps the browser away from non-public addresses: every request is checked, every redirect hop, in every
+    frame and worker of the page.
 
-    def handle(route: Route) -> None:
-        url = route.request.url
-        host = url.split("/")[2] if "://" in url else ""
-        if url.startswith(("http://", "https://")) and host not in approved:
+    Playwright routes only see the first URL of a redirect chain (its follow-up requests are not routed, also
+    after `route.fulfill` of a 3xx), so the page is also watched through the DevTools `Fetch` domain, which
+    pauses every hop. Nothing is cached: DNS answers can change between two requests.
+    """
+
+    def __init__(self) -> None:
+        self.refusal: str | None = None
+
+    def check(self, url: str) -> bool:
+        if url.startswith(("data:", "blob:", "about:")):
+            return True
+        try:
+            ensure_public_url(url)
+        except UnsafeUrlError as exc:
+            logger.warning("Capture: blocked a request to a non-public address: %s", url)
+            self.refusal = self.refusal or str(exc)
+            return False
+        return True
+
+    def route(self, route: Route) -> None:
+        """First hop of every request of the context (also of pop-ups, which have no DevTools guard)."""
+        if self.check(route.request.url):
+            route.continue_()
+        else:
+            route.abort("blockedbyclient")
+
+    def watch(self, context: BrowserContext, page: Page) -> None:
+        cdp = context.new_cdp_session(page)
+
+        def on_paused(params: dict[str, Any]) -> None:
             try:
-                ensure_public_url(url)
-            except UnsafeUrlError:
-                logger.warning("Capture: blocked request to a non-public address: %s", url)
-                route.abort("blockedbyclient")
-                return
-            approved.add(host)
-        route.continue_()
+                allowed = self.check(params["request"]["url"])
+            except Exception:
+                logger.exception("Capture: could not check a request, blocking it")
+                allowed = False
+            if allowed:
+                cdp.send("Fetch.continueRequest", {"requestId": params["requestId"]})
+            else:
+                cdp.send("Fetch.failRequest", {"requestId": params["requestId"], "errorReason": "BlockedByClient"})
 
-    return handle
+        cdp.on("Fetch.requestPaused", on_paused)
+        cdp.send("Fetch.enable", {"patterns": [{"urlPattern": "*"}]})
+
+
+def _verify_public_chain(response: Response | None, page_url: str) -> None:
+    """Refuse the capture when any hop of the navigation, or the page it ended on, is not public."""
+    request = response.request if response is not None else None
+    while request is not None:
+        ensure_public_url(request.url)
+        request = request.redirected_from
+    ensure_public_url(page_url)
+
+
+def _goto(page: Page, url: str, guard: _RequestGuard) -> Response | None:
+    try:
+        response = page.goto(url, wait_until="domcontentloaded")
+    except PlaywrightError as exc:
+        if guard.refusal:
+            raise UnsafeUrlError(guard.refusal) from exc
+        raise
+    _verify_public_chain(response, page.url)
+    return response
 
 
 def capture_page(url: str) -> PageCapture:
@@ -117,9 +165,15 @@ def capture_page(url: str) -> PageCapture:
                     viewport=VIEWPORT, user_agent=USER_AGENT, locale="ru-RU", service_workers="block"
                 )
                 context.set_default_timeout(timeout_ms)
-                context.route("**/*", _guard_requests())
+                guard = _RequestGuard()
+                context.route("**/*", guard.route)
+                context.route_web_socket(
+                    "**/*", lambda socket: None
+                )  # never connected to the server: a capture needs no sockets
                 page = context.new_page()
-                response = page.goto(url, wait_until="domcontentloaded")
+                page.on("popup", lambda popup: popup.close())  # nor pop-ups
+                guard.watch(context, page)
+                response = _goto(page, url, guard)
                 if response is not None and response.status >= 400:
                     raise CaptureError(f"HTTP {response.status}")
                 try:
@@ -131,6 +185,7 @@ def capture_page(url: str) -> PageCapture:
                     "Page.captureSnapshot", {"format": "mhtml"}
                 )
                 final_url = page.url
+                _verify_public_chain(response, final_url)  # a script may have navigated away since
                 info: dict[str, str] = page.evaluate(_EXTRACT_SCRIPT, False)
 
                 embed_url = telegram_embed_url(url)
@@ -138,7 +193,7 @@ def capture_page(url: str) -> PageCapture:
                     # The post page of Telegram describes the channel; the embed widget holds the post itself,
                     # and a post that no longer exists has no text rather than the channel's.
                     try:
-                        page.goto(embed_url, wait_until="domcontentloaded")
+                        _goto(page, embed_url, guard)
                         embedded: dict[str, str] = page.evaluate(_EXTRACT_SCRIPT, True)
                         info = {
                             "description": "",
