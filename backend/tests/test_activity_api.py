@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.models import ConstructionObject, RiskScore, SignalCard
 from app.models.enums import AdOrigin, Platform, ScoreTrigger, SignalOrigin, SignalStatus, Zone
-from app.modules.activity.service import Position, encode_cursor
+from app.modules.activity.service import GRACE, Position, decode_cursor, encode_cursor
 from tests.conftest import World, auth, make_object
 from tests.support_ads import add_ad
 
@@ -73,8 +73,26 @@ def ids(body: dict[str, Any]) -> list[str]:
 
 def visible(client: TestClient, user: Any) -> set[str]:
     """Every event the user can see: a cursor at the start of the look-back leaves nothing out."""
-    start = encode_cursor(Position(ago(days=6), 0, 0))
+    start = encode_cursor(Position(ago(days=6), 0, 0), datetime.now(UTC))
     return set(ids(feed(client, user, after=start, limit=100)))
+
+
+class Poller:
+    """What the web client does: passes the cursor back and takes only the events whose ids it has not seen."""
+
+    def __init__(self, client: TestClient, user: Any) -> None:
+        self.client, self.user = client, user
+        self.cursor: str | None = None
+        self.seen: set[str] = set()
+
+    def poll(self, **params: Any) -> list[str]:
+        if self.cursor is not None:
+            params["after"] = self.cursor
+        body = feed(self.client, self.user, **params)
+        self.cursor = body["cursor"]
+        fresh = [event_id for event_id in ids(body) if event_id not in self.seen]
+        self.seen.update(ids(body))
+        return fresh
 
 
 # ---------------------------------------------------------------- event kinds
@@ -233,40 +251,35 @@ def test_without_cursor_the_latest_five_come_newest_first(client: TestClient, db
 
 
 def test_empty_feed_returns_a_cursor_that_catches_later_events(client: TestClient, db: Session, world: World) -> None:
-    user = world.users["mio_ust"]
-    first = feed(client, user)
-    assert first["items"] == []
+    poller = Poller(client, world.users["mio_ust"])
+    assert poller.poll() == []
 
     ad = add_ad(db, world.ust, created_at=ago(seconds=1))
 
-    assert ids(feed(client, user, after=first["cursor"])) == [f"ad_received:{ad.id}"]
+    assert poller.poll() == [f"ad_received:{ad.id}"]
 
 
-def test_polling_returns_only_newer_events_and_keeps_the_cursor_when_nothing_is_new(
-    client: TestClient, db: Session, world: World
-) -> None:
-    user = world.users["mio_ust"]
-    add_ad(db, world.ust, created_at=ago(minutes=10))
-    first = feed(client, user)
+def test_polling_delivers_only_newer_events_once(client: TestClient, db: Session, world: World) -> None:
+    poller = Poller(client, world.users["mio_ust"])
+    first = add_ad(db, world.ust, created_at=ago(minutes=10))
+    assert poller.poll() == [f"ad_received:{first.id}"]
+    cursor = poller.cursor
 
-    nothing = feed(client, user, after=first["cursor"])
-    assert nothing == {"items": [], "cursor": first["cursor"]}
+    assert poller.poll() == []  # nothing new, though the grace window sends the last event again
 
     newer = add_ad(db, world.ust, created_at=ago(minutes=1))
-    body = feed(client, user, after=first["cursor"])
-    assert ids(body) == [f"ad_received:{newer.id}"]
-    assert body["cursor"] != first["cursor"]
-    assert feed(client, user, after=body["cursor"])["items"] == []
+    assert poller.poll() == [f"ad_received:{newer.id}"]
+    assert poller.cursor != cursor
+    assert poller.poll() == []
 
 
 def test_equal_timestamps_are_neither_repeated_nor_skipped(client: TestClient, db: Session, world: World) -> None:
-    user = world.users["mio_ust"]
+    poller = Poller(client, world.users["mio_ust"])
     obj = make_object(db, world.ust)
     moment = ago(minutes=5)
     add_score(db, obj, 10, Zone.green, ago(hours=1))
     first_ad = add_ad(db, world.ust, created_at=moment)
-    body = feed(client, user)
-    assert ids(body) == [f"ad_received:{first_ad.id}"]
+    assert poller.poll() == [f"ad_received:{first_ad.id}"]
 
     # Everything below shares the cursor's timestamp and arrives after the poll.
     second_ad = add_ad(db, world.ust, created_at=moment)
@@ -274,34 +287,126 @@ def test_equal_timestamps_are_neither_repeated_nor_skipped(client: TestClient, d
     card = add_card(db, obj, moment)
     sent_card = add_card(db, obj, ago(hours=1), sent_at=moment)
 
-    body = feed(client, user, after=body["cursor"])
-
-    assert ids(body) == [
+    assert poller.poll() == [
         f"signal_sent:{sent_card.id}",
         f"signal_created:{card.id}",
         f"score_changed:{score.id}",
         f"ad_received:{second_ad.id}",
     ]
-    assert feed(client, user, after=body["cursor"])["items"] == []
+    assert poller.poll() == []
 
 
 def test_a_burst_larger_than_the_limit_is_delivered_in_pages_without_gaps(
     client: TestClient, db: Session, world: World
 ) -> None:
-    user = world.users["mio_ust"]
-    cursor = feed(client, user)["cursor"]
+    poller = Poller(client, world.users["mio_ust"])
+    poller.poll()
     moment = ago(minutes=2)
     created = [add_ad(db, world.ust, created_at=moment) for _ in range(7)]
 
     delivered: list[str] = []
     for expected_size in (3, 3, 1):
-        body = feed(client, user, after=cursor, limit=3)
-        assert len(body["items"]) == expected_size
-        delivered.extend(reversed(ids(body)))  # pages are newest first; reading them oldest first rebuilds the order
-        cursor = body["cursor"]
+        fresh = poller.poll(limit=3)
+        assert len(fresh) == expected_size
+        delivered.extend(reversed(fresh))  # pages are newest first; reading them oldest first rebuilds the order
 
     assert delivered == [f"ad_received:{ad.id}" for ad in created]
-    assert feed(client, user, after=cursor, limit=3)["items"] == []
+    assert poller.poll(limit=3) == []
+
+
+# ---------------------------------------------------------------- late rows and the grace window
+
+
+def test_a_row_committed_after_a_newer_event_is_still_delivered(client: TestClient, db: Session, world: World) -> None:
+    """A post is dated by the start of its transaction: one that commits late carries a time before the cursor."""
+    poller = Poller(client, world.users["mio_ust"])
+    newer = add_ad(db, world.ust, created_at=ago(seconds=30))
+    assert poller.poll() == [f"ad_received:{newer.id}"]
+
+    late = add_ad(db, world.ust, created_at=ago(seconds=75))
+
+    assert poller.poll() == [f"ad_received:{late.id}"]
+    assert poller.poll() == []
+
+
+def test_a_late_row_of_every_kind_is_delivered(client: TestClient, db: Session, world: World) -> None:
+    poller = Poller(client, world.users["mio_ust"])
+    obj = make_object(db, world.ust)
+    add_score(db, obj, 10, Zone.green, ago(hours=1))
+    newest = add_ad(db, world.ust, created_at=ago(seconds=10))
+    assert poller.poll() == [f"ad_received:{newest.id}"]
+
+    score = add_score(db, obj, 50, Zone.yellow, ago(seconds=60))
+    card = add_card(db, obj, ago(seconds=50), sent_at=ago(seconds=40))
+
+    assert set(poller.poll()) == {
+        f"score_changed:{score.id}",
+        f"signal_created:{card.id}",
+        f"signal_sent:{card.id}",
+    }
+
+
+def test_the_cursor_never_moves_back_when_late_rows_are_sent(client: TestClient, db: Session, world: World) -> None:
+    poller = Poller(client, world.users["mio_ust"])
+    add_ad(db, world.ust, created_at=ago(seconds=30))
+    poller.poll()
+    assert poller.cursor is not None
+    before, _ = decode_cursor(poller.cursor)
+
+    add_ad(db, world.ust, created_at=ago(seconds=75))
+    assert len(poller.poll()) == 1
+    assert poller.cursor is not None
+    after, _ = decode_cursor(poller.cursor)
+
+    assert after == before
+
+
+def test_a_row_older_than_the_grace_window_is_not_looked_for(client: TestClient, db: Session, world: World) -> None:
+    poller = Poller(client, world.users["mio_ust"])
+    add_ad(db, world.ust, created_at=ago(seconds=30))
+    poller.poll()
+
+    add_ad(db, world.ust, created_at=ago(seconds=30) - GRACE - timedelta(seconds=10))
+
+    assert poller.poll() == []
+
+
+# ---------------------------------------------------------------- a client that was away
+
+
+def test_a_cursor_older_than_ten_minutes_gets_the_latest_events_and_a_reset(
+    client: TestClient, db: Session, world: World
+) -> None:
+    user = world.users["mio_ust"]
+    created = [add_ad(db, world.ust, created_at=ago(minutes=20 - minute)) for minute in range(8)]
+    stale = encode_cursor(Position(ago(minutes=30), 0, 0), ago(minutes=11))
+
+    body = feed(client, user, after=stale)
+
+    assert body["reset"] is True
+    assert ids(body) == [f"ad_received:{ad.id}" for ad in reversed(created[-5:])]  # not the 8 since the cursor
+    again = feed(client, user, after=body["cursor"])
+    assert again["reset"] is False and set(ids(again)) <= set(ids(body))  # no news, only the window
+
+
+def test_a_quiet_system_does_not_reset_a_client_that_keeps_polling(
+    client: TestClient, db: Session, world: World
+) -> None:
+    """The age that counts is the age of the cursor, not the age of the newest event."""
+    user = world.users["mio_ust"]
+    add_ad(db, world.ust, created_at=ago(hours=5))
+    body = feed(client, user)
+
+    for _ in range(2):
+        body = feed(client, user, after=body["cursor"])
+        assert body["reset"] is False
+
+    recent = encode_cursor(Position(ago(hours=5), 0, 0), ago(minutes=9))
+    assert feed(client, user, after=recent)["reset"] is False
+
+
+def test_a_first_poll_has_no_reset(client: TestClient, world: World) -> None:
+    assert feed(client, world.users["mio_ust"])["reset"] is False
 
 
 @pytest.mark.parametrize("cursor", ["not-a-cursor", "", "bm9wZQ==", "MjAyNi0xMC0xM1QwMDowMDowMHwwfDE="])

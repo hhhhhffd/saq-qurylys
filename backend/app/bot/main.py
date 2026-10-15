@@ -10,12 +10,18 @@ from app.bot import handlers
 from app.bot.ratelimit import RateLimiter
 from app.config import get_settings
 
+SEARCHES_PER_HOUR = 60
+
 
 def build_application(token: str) -> Application:
     settings = get_settings()
     application = Application.builder().token(token).build()
-    application.bot_data["limiter"] = RateLimiter(
-        Redis.from_url(settings.redis_url), settings.jwt_secret, settings.bot_reports_per_hour
+    redis = Redis.from_url(settings.redis_url)
+    application.bot_data["limiter"] = RateLimiter(redis, settings.jwt_secret, settings.bot_reports_per_hour)
+    # Searches and facts do not write anything, but updates are handled one after another: one citizen must not
+    # be able to keep the bot busy for the others.
+    application.bot_data["search_limiter"] = RateLimiter(
+        redis, settings.jwt_secret, SEARCHES_PER_HOUR, prefix="bot:search:"
     )
     application.bot_data["albums"] = {}
     handlers.register(application)

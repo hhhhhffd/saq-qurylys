@@ -9,7 +9,7 @@ from app.csv_import import ImportResult
 from app.deps import PageDep, ScopeDep, SessionDep, StaffUser
 from app.events import object_changed, objects_changed
 from app.geo import make_point
-from app.models import AdPost, ConstructionObject, Developer, District, RiskScore
+from app.models import AdPost, ConstructionObject, Developer, District
 from app.models.enums import Zone
 from app.modules.complaints.schemas import ComplaintOut
 from app.modules.developers.schemas import DeveloperOut
@@ -32,6 +32,7 @@ from app.modules.objects.service import (
     key_status_detail,
     object_rows_stmt,
 )
+from app.modules.risk.queries import latest_score_stmt
 from app.modules.settings.service import load_settings
 from app.schemas import Page
 from app.uploads import read_csv_upload
@@ -68,12 +69,7 @@ def build_detail(session: SessionDep, obj: ConstructionObject) -> ObjectDetail:
             func.coalesce(AdPost.published_at, AdPost.captured_at, AdPost.created_at) >= window_start,
         )
     )
-    latest = session.scalar(
-        select(RiskScore)
-        .where(RiskScore.object_id == obj.id)
-        .order_by(RiskScore.calculated_at.desc(), RiskScore.id.desc())
-        .limit(1)
-    )
+    latest = session.scalar(latest_score_stmt(obj.id))
     gap = (
         obj.readiness_claimed_pct - obj.readiness_actual_pct
         if obj.readiness_claimed_pct is not None and obj.readiness_actual_pct is not None

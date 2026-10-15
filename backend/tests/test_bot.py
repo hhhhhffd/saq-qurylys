@@ -90,6 +90,9 @@ def test_missing_token_stops_the_bot_with_a_clear_message(monkeypatch: pytest.Mo
 def test_application_is_wired_without_a_connection() -> None:
     application = bot_main.build_application("123456:TEST-TOKEN")
     assert isinstance(application.bot_data["limiter"], RateLimiter)
+    searches = application.bot_data["search_limiter"]
+    assert isinstance(searches, RateLimiter) and searches._limit == bot_main.SEARCHES_PER_HOUR
+    assert searches._prefix != application.bot_data["limiter"]._prefix  # separate counters
     assert application.bot_data["albums"] == {}
 
 
@@ -103,14 +106,34 @@ def test_forwarded_post_url_needs_a_public_channel() -> None:
 
 def test_report_url_comes_from_the_forwarded_post_entities_or_text() -> None:
     forwarded = "https://t.me/novostroyki_vko/42"
-    assert service.find_report_url("см. https://example.kz/a", ["https://example.kz/b"], forwarded) == forwarded
-    assert service.find_report_url("см. https://example.kz/a", ["https://example.kz/b"], None) == "https://example.kz/b"
-    assert service.find_report_url("Смотрите https://example.kz/a, там акция", [], None) == "https://example.kz/a"
+    assert service.find_report_url("см. https://olx.kz/a", ["https://www.instagram.com/p/b"], forwarded) == forwarded
+    assert service.find_report_url("см. https://olx.kz/a", ["https://www.instagram.com/p/b"], None) == (
+        "https://www.instagram.com/p/b"
+    )
+    assert service.find_report_url("Смотрите https://olx.kz/a, там акция", [], None) == "https://olx.kz/a"
     assert service.find_report_url("ссылка t.me/channel/7", [], None) == "https://t.me/channel/7"
-    assert service.find_report_url("ссылка www.example.kz/x", [], None) == "https://www.example.kz/x"
-    assert service.find_report_url("ftp://example.kz/a без ссылки", [], None) is None
+    assert service.find_report_url("ссылка www.krisha.kz/x", [], None) == "https://www.krisha.kz/x"
+    assert service.find_report_url("ftp://olx.kz/a без ссылки", [], None) is None
     assert service.find_report_url("только текст", [], None) is None
-    assert service.find_report_url("", ["https://example.kz/" + "a" * service.URL_MAX_CHARS], None) is None
+    assert service.find_report_url("", ["https://olx.kz/" + "a" * service.URL_MAX_CHARS], None) is None
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://example.kz/promo",  # a site of the developer: the browser is not sent there on a citizen's word
+        "http://127.0.0.1:8000/admin",
+        "https://instagram.com.evil.example/p/x",  # only the real host counts
+        "https://evil.example/?next=https://instagram.com/p/x",
+    ],
+)
+def test_a_link_to_another_site_is_not_captured_but_stays_in_the_text(url: str) -> None:
+    assert service.find_report_url(f"Реклама {url}", [url], None) is None
+
+
+def test_the_first_link_to_a_captured_platform_is_taken_past_other_links() -> None:
+    text = "Сайт https://example.kz/promo и страница https://www.tiktok.com/@dev/video/1"
+    assert service.find_report_url(text, ["https://example.kz/promo"], None) == "https://www.tiktok.com/@dev/video/1"
 
 
 # ---------------------------------------------------------------- report of advertising

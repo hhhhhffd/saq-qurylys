@@ -158,14 +158,20 @@ def forwarded_post_url(channel_username: str | None, message_id: int) -> str | N
     return f"https://t.me/{channel_username}/{message_id}" if channel_username else None
 
 
+# The link of a citizen is opened by the browser of the capture worker, so only the public platforms the project
+# watches are opened. A link to any other site stays in the text of the report.
+CAPTURED_PLATFORMS = frozenset({Platform.instagram, Platform.tiktok, Platform.telegram, Platform.aggregator})
+
+
 def find_report_url(text: str, entity_urls: Iterable[str], forwarded_url: str | None) -> str | None:
-    """The publication to capture: the forwarded post, else the first http(s) link of the entities or the text."""
+    """The publication to capture: the forwarded post, else the first link of the entities or the text that points
+    to a captured platform."""
     if forwarded_url is not None:
         return forwarded_url
     for candidate in (*entity_urls, *extract_links(text)):
         # Telegram marks `t.me/x` and `www.x.kz` as links too, without a scheme.
         url = candidate if candidate.lower().startswith(("http://", "https://")) else f"https://{candidate}"
-        if is_http_url(url) and len(url) <= URL_MAX_CHARS:
+        if is_http_url(url) and len(url) <= URL_MAX_CHARS and detect_platform(url) in CAPTURED_PLATFORMS:
             return url
     return None
 

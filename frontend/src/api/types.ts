@@ -888,10 +888,15 @@ export interface ActivityEvent {
   is_demo: boolean | null;
 }
 
-/** `GET /activity?after=<cursor>&limit=`: `items` are newest first, `cursor` is passed back as `after`. */
+/**
+ * `GET /activity?after=<cursor>&limit=`: `items` are newest first, `cursor` is passed back as `after`.
+ * A poll can repeat events the client already has (the server looks 2 minutes back from the cursor): skip them by `id`.
+ */
 export interface ActivityFeed {
   items: ActivityEvent[];
   cursor: string;
+  /** the cursor was too old (the tab was away): `items` are only the latest events, not news */
+  reset: boolean;
 }
 
 // ---------------------------------------------------------------- ad versions (SPEC 10.6)

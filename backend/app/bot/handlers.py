@@ -165,17 +165,20 @@ async def on_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         else:
             await _submit_report(context.bot, context.application.bot_data, sender, state[CITY], [message])
     elif mode in {COMPLAINT_NAME, CHECK_NAME}:
-        await _offer_objects(context.bot, sender, state[CITY], message)
+        await _offer_objects(context.bot, context.application.bot_data, sender, state[CITY], message)
     elif mode == COMPLAINT_TEXT:
         await _submit_complaint(context, sender, message)
     else:
         await _say(context.bot, sender, "menu", _menu(sender.lang))
 
 
-async def _offer_objects(bot: Bot, sender: Sender, city_id: int, message: Message) -> None:
+async def _offer_objects(bot: Bot, shared: dict[str, Any], sender: Sender, city_id: int, message: Message) -> None:
     name = message.text
     if not name:
         await _say(bot, sender, "name_expected")
+        return
+    if not await _within_limit(shared, sender, "search_limiter"):
+        await _say(bot, sender, "rate_limited")
         return
     matches = await _with_session(lambda session: service.search_objects(session, city_id, name))
     buttons = [[InlineKeyboardButton(match.name, callback_data=f"pick:{match.id}")] for match in matches]
@@ -196,6 +199,9 @@ async def on_pick(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         key = "not_listed_complaint" if mode == COMPLAINT_NAME else "not_listed_check"
         await _say(context.bot, sender, key, _menu(sender.lang))
     elif mode == CHECK_NAME:
+        if not await _within_limit(context.application.bot_data, sender, "search_limiter"):
+            await _say(context.bot, sender, "rate_limited", _menu(sender.lang))
+            return
         facts = await _with_session(lambda session: service.object_facts(session, city_id, object_id))
         if facts is None:
             await _say(context.bot, sender, "object_missing")
@@ -232,8 +238,10 @@ async def _submit_complaint(context: ContextTypes.DEFAULT_TYPE, sender: Sender, 
 # ---------------------------------------------------------------- report of advertising
 
 
-async def _within_limit(shared: dict[str, Any], sender: Sender) -> bool:
-    limiter: RateLimiter = shared["limiter"]
+async def _within_limit(shared: dict[str, Any], sender: Sender, kind: str = "limiter") -> bool:
+    """Count one more action of the citizen against `shared[kind]`: "limiter" for reports and complaints,
+    "search_limiter" for searches and the facts of a complex."""
+    limiter: RateLimiter = shared[kind]
     return await asyncio.to_thread(limiter.allow, sender.user_id)
 
 

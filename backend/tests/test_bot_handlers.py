@@ -19,7 +19,7 @@ from telegram.ext import Application
 from app.bot import handlers, service
 from app.bot.ratelimit import RateLimiter
 from app.models import AdPost, Complaint, Evidence, Notification
-from app.models.enums import AdOrigin, ComplaintSource, Platform
+from app.models.enums import AdOrigin, CaptureStatus, ComplaintSource, Platform
 from tests.conftest import PNG_BYTES, World, make_object
 
 REDIS_URL = "redis://localhost:6379/0"
@@ -122,7 +122,9 @@ def harness(db: Session, bucket: str, monkeypatch: pytest.MonkeyPatch) -> Iterat
     application = Application.builder().bot(bot).build()
     client = Redis.from_url(REDIS_URL)
     prefix = f"test-bot-handlers-{id(application)}:"
-    application.bot_data["limiter"] = RateLimiter(client, "test-secret-test-secret-test-secret-0123456789", 100, prefix)
+    secret = "test-secret-test-secret-test-secret-0123456789"
+    application.bot_data["limiter"] = RateLimiter(client, secret, 100, prefix)
+    application.bot_data["search_limiter"] = RateLimiter(client, secret, 100, f"{prefix}search:")
     application.bot_data["albums"] = {}
     handlers.register(application)
     harness = Harness(application)
@@ -196,27 +198,42 @@ def test_message_before_the_city_is_chosen_asks_for_start(harness: Harness, worl
 
 
 def test_text_with_a_link_becomes_a_report(harness: Harness, world: World, db: Session) -> None:
-    text = "Бронь квартир https://example.kz/promo до конца месяца"
+    link = "https://www.instagram.com/p/AbC123/"
+    text = f"Бронь квартир {link} до конца месяца"
 
     async def scenario(h: Harness) -> None:
         await h.open_menu("report")
-        await h.send(text, entities=[{"type": "url", "offset": 14, "length": 24}])
+        await h.send(text, entities=[{"type": "url", "offset": 14, "length": len(link)}])
 
     run(harness, scenario)
 
     ad = citizen_ads(db)[0]
-    assert (ad.text, ad.url, ad.platform, ad.territory_id) == (
-        text,
-        "https://example.kz/promo",
-        Platform.website,
-        world.ust.id,
-    )
+    assert (ad.text, ad.url, ad.platform, ad.territory_id) == (text, link, Platform.instagram, world.ust.id)
+    assert ad.capture_status is CaptureStatus.pending
     assert harness.last == f"Спасибо! Сообщение №{ad.id} передано специалистам МИО."
     assert [label for label, _ in harness.sent[-1].buttons] == [
         "Сообщить о рекламе",
         "Пожаловаться на ЖК",
         "Проверить ЖК",
     ]
+
+
+def test_link_to_another_site_stays_in_the_text_and_is_not_captured(
+    harness: Harness, world: World, db: Session
+) -> None:
+    """The capture browser opens only the public platforms: a citizen's link to any other address is not sent there."""
+    link = "http://127.0.0.1:8000/admin"
+    text = f"Бронь квартир {link}"
+
+    async def scenario(h: Harness) -> None:
+        await h.open_menu("report")
+        await h.send(text, entities=[{"type": "url", "offset": 14, "length": len(link)}])
+
+    run(harness, scenario)
+
+    ad = citizen_ads(db)[0]
+    assert (ad.text, ad.url, ad.platform, ad.capture_status) == (text, None, Platform.other, None)
+    assert harness.last == f"Спасибо! Сообщение №{ad.id} передано специалистам МИО."
 
 
 def test_forwarded_channel_post_is_reported_by_its_link(harness: Harness, world: World, db: Session) -> None:
@@ -290,6 +307,53 @@ def test_reports_are_limited_per_citizen(harness: Harness, world: World, db: Ses
     run(harness, scenario)
 
     assert [ad.text for ad in citizen_ads(db)] == ["Первая реклама"]
+
+
+def test_searches_are_limited_per_citizen(harness: Harness, world: World, db: Session) -> None:
+    make_object(db, world.ust, "ЖК Самал Парк")
+    harness.application.bot_data["search_limiter"]._limit = 2
+
+    async def scenario(h: Harness) -> None:
+        await h.open_menu("complaint")
+        await h.send("самал")
+        assert [label for label, _ in h.sent[-1].buttons] == ["ЖК Самал Парк", "Нет в списке"]
+        await h.send("самал парк")
+        assert [label for label, _ in h.sent[-1].buttons] == ["ЖК Самал Парк", "Нет в списке"]
+        await h.send("самал")
+        assert "слишком много сообщений" in h.last and h.sent[-1].buttons == []
+
+    run(harness, scenario)
+
+
+def test_facts_of_a_complex_are_limited_like_searches(harness: Harness, world: World, db: Session) -> None:
+    make_object(db, world.ust, "ЖК Самал Парк")
+    harness.application.bot_data["search_limiter"]._limit = 1
+
+    async def scenario(h: Harness) -> None:
+        await h.open_menu("check")
+        await h.send("самал")  # the one allowed action
+        pick = h.button("ЖК Самал Парк")
+        await h.press(pick)
+        assert "слишком много сообщений" in h.last
+        assert "ЖК «ЖК Самал Парк»" not in h.texts
+
+    run(harness, scenario)
+
+
+def test_searches_do_not_use_up_the_limit_of_reports(harness: Harness, world: World, db: Session) -> None:
+    make_object(db, world.ust, "ЖК Самал Парк")
+    harness.application.bot_data["limiter"]._limit = 1
+
+    async def scenario(h: Harness) -> None:
+        await h.open_menu("check")
+        for _ in range(3):
+            await h.send("самал")
+            assert "ЖК Самал Парк" in [label for label, _ in h.sent[-1].buttons]
+        await h.press("menu:report")
+        await h.send("Реклама")
+        assert "Спасибо" in h.last
+
+    run(harness, scenario)
 
 
 def test_complaint_about_a_listed_complex(harness: Harness, world: World, db: Session) -> None:

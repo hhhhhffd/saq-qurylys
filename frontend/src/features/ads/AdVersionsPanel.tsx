@@ -81,21 +81,22 @@ interface Props {
 
 /**
  * «Удалили — а у нас осталось» (SPEC 10.6): when the publication was saved, what the source said later, and when
- * it was found removed, with the proof of each moment. Shown for a publication that has later versions or was removed.
+ * it was found removed, with the proof of each moment. Shown for a publication that has later versions or was found
+ * removed (`removed_detected_at`): a removed post whose link is not confirmed keeps the status `verification`.
  */
 export function AdVersionsPanel({ ad }: Props) {
   const { t } = useTranslation('ads');
   const f = useFormat();
   const headingId = useId();
   const latest = ad.versions.at(-1);
-  const removed = ad.status === 'removed_saved';
+  const removedAt = ad.removed_detected_at;
   // The comparison is with the publication's own text: the part read from its photos is not what the source showed.
   const original = splitOcr(ad.text ?? '', []).own.text;
   const diff = useMemo(() => (latest ? diffWords(original, latest.text) : null), [original, latest]);
-  if (!latest && !removed) return null;
+  if (!latest && removedAt === null) return null;
 
-  const removedAfterMs = ad.removed_detected_at
-    ? new Date(ad.removed_detected_at).getTime() - new Date(ad.original_captured_at).getTime()
+  const removedAfterMs = removedAt
+    ? new Date(removedAt).getTime() - new Date(ad.original_captured_at).getTime()
     : Number.NaN;
   const removedAfter =
     Number.isFinite(removedAfterMs) && removedAfterMs >= 0
@@ -160,12 +161,12 @@ export function AdVersionsPanel({ ad }: Props) {
           </li>
         ))}
 
-        {removed && ad.removed_detected_at && (
+        {removedAt && (
           <li className={`${classes.event} ${classes.eventRemoved}`}>
             <div className={classes.eventHead}>
               <strong>{t('versions.removed')}</strong>
-              <time className="tnum" dateTime={ad.removed_detected_at}>
-                {f.dateTime(ad.removed_detected_at)}
+              <time className="tnum" dateTime={removedAt}>
+                {f.dateTime(removedAt)}
               </time>
             </div>
             {removedAfter && <p className={classes.removedAfter}>{t('versions.removedAfter', { duration: removedAfter })}</p>}

@@ -567,6 +567,27 @@ def test_status_changes_track_the_removal_time(client: TestClient, db: Session, 
     assert restored["status"] == "captured" and restored["removed_detected_at"] is None
 
 
+@pytest.mark.parametrize(
+    "patch",
+    [lambda object_id: {"status": "captured"}, lambda object_id: {"object_id": object_id}],
+    ids=["confirm", "set"],
+)
+def test_confirming_the_link_of_a_removed_post_keeps_it_removed(
+    client: TestClient, db: Session, world: World, patch: Any
+) -> None:
+    obj = make_object(db, world.ust)
+    removed_at = datetime.now(UTC) - timedelta(days=1)
+    ad = add_ad(db, world.ust, object_id=obj.id, status=AdStatus.verification, removed_detected_at=removed_at)
+    live = add_ad(db, world.ust, object_id=obj.id, status=AdStatus.verification)
+    headers = auth(world.users["mio_ust"])
+
+    body = client.patch(f"{ADS}/{ad.id}", headers=headers, json=patch(obj.id)).json()
+    assert body["status"] == "removed_saved" and body["removed_detected_at"] is not None
+
+    body = client.patch(f"{ADS}/{live.id}", headers=headers, json=patch(obj.id)).json()
+    assert body["status"] == "captured" and body["removed_detected_at"] is None
+
+
 # ---------------------------------------------------------------- hits and LLM
 
 

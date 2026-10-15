@@ -38,7 +38,13 @@ class ActivityEvent(BaseModel):
 
 
 class ActivityFeed(BaseModel):
-    """`items` are newest first. Pass `cursor` back as `after` to get what happened since."""
+    """`items` are newest first. Pass `cursor` back as `after` to get what happened since.
+
+    A poll may send events the client already has (it looks back 2 minutes from the cursor): tell them by
+    `ActivityEvent.id`. `reset` means the cursor was too old (the client was away): `items` are only the latest
+    events, not everything since, and are not news.
+    """
 
     items: list[ActivityEvent]
     cursor: str
+    reset: bool = False

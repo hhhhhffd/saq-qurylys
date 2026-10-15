@@ -82,6 +82,10 @@ export function AdCard({ ad, highlighted = false, focusHitId = null }: Props) {
         <div className={classes.headerMain}>
           {view.is_demo && <DemoBadge />}
           <Chip tone={STATUS_TONE[view.status]}>{e('ad_status', view.status)}</Chip>
+          {/* A removed post whose link is still unconfirmed stays `verification`: the removal is its own fact. */}
+          {view.removed_detected_at !== null && view.status !== 'removed_saved' && (
+            <Chip tone={STATUS_TONE.removed_saved}>{e('ad_status', 'removed_saved')}</Chip>
+          )}
         </div>
       </header>
 
