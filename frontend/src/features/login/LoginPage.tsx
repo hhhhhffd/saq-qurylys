@@ -57,7 +57,7 @@ export function LoginPage() {
           SAQ QURYLYS
         </GlitchText>
         <form
-          className="w-full max-w-[400px] overflow-hidden rounded-lg border border-primary/60 bg-surface"
+          className="w-full max-w-[400px] overflow-hidden rounded-lg border border-primary/40 bg-surface"
           onSubmit={submit}
           noValidate
         >
