@@ -1,0 +1,70 @@
+/* A field that spans both columns of the form grid. */
+.full {
+  grid-column: 1 / -1;
+}
+
+.thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.thumb {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  box-shadow: var(--shadow-1);
+  overflow: hidden;
+}
+
+.thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.thumbRemove {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: var(--surface-glass);
+  transition: background var(--dur) var(--ease);
+}
+
+.thumbRemove:hover {
+  background: var(--surface-raised);
+}
+
+.resultErrors {
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-1);
+  background: var(--surface-raised);
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-1);
+}
+
+.statValue {
+  font-size: 1.375rem;
+  font-weight: 620;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.statLabel {
+  font-size: 0.75rem;
+  color: var(--text-2);
+}
