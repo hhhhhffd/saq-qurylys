@@ -1,0 +1,49 @@
+{
+  "name": "saq-qurylys-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "pnpm@10.15.1",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@mantine/core": "^9.7.2",
+    "@mantine/dates": "^9.7.2",
+    "@mantine/form": "^9.7.2",
+    "@mantine/hooks": "^9.7.2",
+    "@mantine/modals": "^9.7.2",
+    "@mantine/notifications": "^9.7.2",
+    "@tabler/icons-react": "^3.49.0",
+    "@tanstack/react-query": "^5.104.2",
+    "@tanstack/react-table": "^9.3.1",
+    "dayjs": "^1.11.23",
+    "i18next": "^26.4.4",
+    "maplibre-gl": "^6.14.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-i18next": "^17.0.16",
+    "react-router": "^8.4.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "eslint": "^10.12.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.7",
+    "globals": "^17.13.0",
+    "postcss": "^8.5.30",
+    "postcss-preset-mantine": "^1.18.0",
+    "postcss-simple-vars": "^7.0.1",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.71.2",
+    "vite": "^8.3.4"
+  }
+}

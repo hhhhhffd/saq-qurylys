@@ -1,0 +1,75 @@
+/*
+ * Design tokens (D16): one theme only. Calm, neutral mid-tone palette.
+ * Zone colors are the ONLY saturated accents in the UI.
+ * Every color in the app should come from a token defined here.
+ */
+:root {
+  color-scheme: light;
+
+  /* Surfaces */
+  --bg: #e6e6e3;
+  --surface: #f1f1ee;
+  --surface-raised: #f6f6f3;
+  --surface-sunken: #dcdcd8;
+  --surface-glass: rgba(241, 241, 238, 0.78);
+  --hover: rgba(28, 28, 30, 0.05);
+  --pressed: rgba(28, 28, 30, 0.09);
+  --scrim: rgba(28, 28, 30, 0.38);
+
+  /* Lines */
+  --border: rgba(28, 28, 30, 0.11);
+  --border-strong: rgba(28, 28, 30, 0.22);
+
+  /* Text */
+  --text: #1d1d1f;
+  --text-2: #55555a;
+  --text-3: #6e6e73;
+
+  /* Interactive (neutral on purpose) */
+  --accent: #2c2c2e;
+  --accent-hover: #1d1d1f;
+  --accent-ink: #f6f6f3;
+  --link: #3d566e;
+  --focus: #4b6178;
+
+  /* Zones: base, tinted background, readable ink */
+  --zone-green: #3f8f5b;
+  --zone-green-bg: rgba(63, 143, 91, 0.17);
+  --zone-green-ink: #245c39;
+  --zone-yellow: #d49a1f;
+  --zone-yellow-bg: rgba(212, 154, 31, 0.2);
+  --zone-yellow-ink: #6f4d06;
+  --zone-red: #c2453d;
+  --zone-red-bg: rgba(194, 69, 61, 0.15);
+  --zone-red-ink: #8e2a24;
+  --zone-none: #9a9a95;
+  --zone-none-bg: rgba(28, 28, 30, 0.08);
+  --zone-none-ink: #55555a;
+
+  /* Shape */
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --shadow-1: 0 1px 2px rgba(28, 28, 30, 0.05), 0 0 0 1px var(--border);
+  --shadow-2: 0 8px 28px rgba(28, 28, 30, 0.14), 0 0 0 1px var(--border);
+
+  /* Type */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', Inter, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+
+  /* Motion */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --dur: 160ms;
+
+  /* Layout */
+  --header-h: 56px;
+  --page-max: 1480px;
+  --gutter: 24px;
+}
+
+@media (max-width: 48em) {
+  :root {
+    --gutter: 16px;
+  }
+}
