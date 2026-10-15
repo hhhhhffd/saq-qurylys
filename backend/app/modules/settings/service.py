@@ -18,8 +18,14 @@ class AppSettings(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     review_days: int = Field(default=5, ge=1, le=60)
-    ad_window_days: int = Field(default=7, ge=1, le=365)
-    readiness_gap_pp: int = Field(default=10, ge=1, le=100)
+    ad_window_days: int = Field(default=30, ge=1, le=365)
+    readiness_gap_pp: int = Field(default=20, ge=1, le=100)
+    # R6: a delay of at least this many days (forecast over plan, or the plan passed long ago) counts as significant.
+    significant_delay_days: int = Field(default=90, ge=1, le=3650)
+    # Zones by score (SPEC 6.2): green below `zone_yellow_min`, red from `zone_red_min` when R1 and R2 both fired.
+    zone_yellow_min: int = Field(default=25, ge=1, le=100)
+    zone_red_min: int = Field(default=60, ge=1, le=100)
+    # No longer used by the risk model (R4 needs a verified collective complaint); kept for stored settings.
     complaints_threshold: int = Field(default=3, ge=1, le=1000)
     stalled_days: int = Field(default=30, ge=1, le=3650)
     recheck_after_days: int = Field(default=3, ge=1, le=365)

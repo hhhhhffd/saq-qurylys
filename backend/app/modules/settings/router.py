@@ -4,6 +4,7 @@ from fastapi import APIRouter, Body, Request
 
 from app import audit
 from app.deps import GlobalAdmin, SessionDep, StaffUser
+from app.errors import api_error
 from app.modules.settings.service import AppSettings, load_settings, save_settings
 
 router = APIRouter(prefix="/settings", tags=["settings"])
@@ -21,6 +22,9 @@ def update_settings(
     """Partial update: only keys present in the request body are changed."""
     before = load_settings(session)
     changes = body.model_dump(mode="json", include=body.model_fields_set)
+    merged = {**before.model_dump(mode="json"), **changes}
+    if merged["zone_yellow_min"] >= merged["zone_red_min"]:
+        raise api_error(422, "invalid_zone_thresholds", "Порог жёлтой зоны должен быть ниже порога красной зоны")
     after = save_settings(session, changes)
     audit.record(
         session,

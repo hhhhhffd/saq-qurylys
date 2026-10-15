@@ -13,19 +13,40 @@ from tests.conftest import World, auth, make_object
 def test_settings_defaults_partial_update_and_validation(client: TestClient, db: Session, world: World) -> None:
     admin, officer = auth(world.users["admin"]), auth(world.users["mio_ust"])
     defaults = client.get("/api/v1/settings", headers=officer).json()
-    assert defaults["review_days"] == 5 and defaults["ad_window_days"] == 7
+    assert defaults["review_days"] == 5 and defaults["ad_window_days"] == 30
     assert defaults["link_confidence_threshold"] == 0.8 and defaults["yellow_interval_days"] == 7
 
     updated = client.put("/api/v1/settings", headers=admin, json={"review_days": 3})
     assert updated.status_code == 200
-    assert updated.json()["review_days"] == 3 and updated.json()["ad_window_days"] == 7
+    assert updated.json()["review_days"] == 3 and updated.json()["ad_window_days"] == 30
     assert get_setting(db, "review_days") == 3
     assert load_settings(db).complaints_threshold == 3
+    case_defaults = (
+        ("readiness_gap_pp", 20),
+        ("significant_delay_days", 90),
+        ("zone_yellow_min", 25),
+        ("zone_red_min", 60),
+    )
+    assert all(defaults[key] == value for key, value in case_defaults)
 
     assert client.put("/api/v1/settings", headers=admin, json={"review_days": 0}).status_code == 422
     assert client.put("/api/v1/settings", headers=admin, json={"unknown_key": 1}).status_code == 422
     audit = db.scalars(select(AuditLog).where(AuditLog.action == "settings.update")).one()
     assert audit.before == {"review_days": 5} and audit.after == {"review_days": 3}
+
+
+def test_zone_thresholds_are_validated_together_with_the_stored_values(client: TestClient, world: World) -> None:
+    admin = auth(world.users["admin"])
+    # The zone thresholds are checked together with the stored values, not in isolation.
+    assert client.put("/api/v1/settings", headers=admin, json={"zone_yellow_min": 60}).status_code == 422
+    assert client.put("/api/v1/settings", headers=admin, json={"zone_red_min": 20}).status_code == 422
+    changed = client.put("/api/v1/settings", headers=admin, json={"zone_yellow_min": 10, "zone_red_min": 50})
+    assert changed.status_code == 200 and (changed.json()["zone_yellow_min"], changed.json()["zone_red_min"]) == (
+        10,
+        50,
+    )
+    assert client.put("/api/v1/settings", headers=admin, json={"zone_red_min": 12}).status_code == 200
+    assert client.put("/api/v1/settings", headers=admin, json={"zone_yellow_min": 12}).status_code == 422
 
 
 def test_recipient_emails_setting(client: TestClient, world: World) -> None:
