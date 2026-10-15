@@ -4,3 +4,7 @@ dist
 .env.local
 .git
 Dockerfile
+e2e
+test-results
+playwright-report
+playwright.config.ts
