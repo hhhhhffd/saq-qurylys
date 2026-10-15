@@ -283,7 +283,7 @@ export function ActivityIsland() {
 
   return (
     <div ref={slotRef} className={classes.slot}>
-      <VisuallyHidden role="status" aria-live="polite" aria-atomic="true">
+      <VisuallyHidden role="status" aria-live="polite" aria-atomic="true" data-testid="activity-live-region">
         {open && content ? content.announcement : ''}
       </VisuallyHidden>
       {geometry && (

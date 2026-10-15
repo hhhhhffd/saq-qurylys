@@ -70,7 +70,7 @@ export function TimeMachineBar({ timeline, machine, onClose }: Props) {
         >
           {machine.playing ? <IconPlayerPauseFilled size={16} /> : <IconPlayerPlayFilled size={16} />}
         </ActionIcon>
-        <time className={`${classes.date} tnum`} dateTime={frame.at}>
+        <time className={`${classes.date} tnum`} dateTime={frame.at} data-testid="time-machine-date">
           {dateLabel(frame.at)}
           {machine.isToday && <span className={classes.today}> · {t('timeMachine.today')}</span>}
         </time>

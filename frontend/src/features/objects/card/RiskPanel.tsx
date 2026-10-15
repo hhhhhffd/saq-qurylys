@@ -63,7 +63,7 @@ export function RiskPanel({ object }: { object: ObjectDetail }) {
     <Panel title={t('card.risk.title')} id="risk">
       {latest ? (
         <>
-          <div className={classes.scoreRow}>
+          <div className={classes.scoreRow} data-testid="risk-summary">
             <div className={classes.score}>
               <span className={`${classes.scoreValue} tnum`}>{latest.score}</span>
               <span className={classes.scoreMax}>/ 100</span>

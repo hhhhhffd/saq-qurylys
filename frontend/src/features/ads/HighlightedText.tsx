@@ -47,6 +47,7 @@ function TextBlock({ text, hits, focusHitId = null }: Props) {
           segment.hit ? (
             <mark
               key={index}
+              data-testid="phrase-mark"
               className={`${classes.mark} ${markClass(segment.hit)} ${segment.hit.id === focusHitId ? classes.focus : ''}`}
               title={`${e('phrase_category', segment.hit.category)} · ${e('hit_source', hitSource(segment.hit))}`}
             >
