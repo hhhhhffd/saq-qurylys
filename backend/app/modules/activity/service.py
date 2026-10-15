@@ -2,6 +2,10 @@
 
 Events are not stored; they are read from the tables that already record them. Only the last `LOOKBACK`
 is searched, so the query stays cheap however long the system has been running.
+
+A row is dated by the start of the transaction that wrote it, which can be well before it becomes visible to
+the feed. So a poll also looks `GRACE` back from the cursor and sends again what it finds there; the client
+tells the events it has seen by their ids.
 """
 
 import base64
@@ -22,6 +26,13 @@ from app.scope import TerritoryScope
 LOOKBACK = timedelta(days=7)
 # What a client without a cursor gets: enough to show the feed is alive, few enough not to pile up animations.
 INITIAL_LIMIT = 5
+# How far before the cursor a poll looks for events that were committed after the cursor moved past their time,
+# and how many of them (the oldest first) each kind sends per poll.
+GRACE = timedelta(minutes=2)
+GRACE_LIMIT = 50
+# A cursor issued longer ago than this belongs to a client that was away: it gets the latest events and `reset`
+# instead of the whole backlog.
+RESET_AFTER = timedelta(minutes=10)
 
 # Events of different kinds can share a timestamp; this order settles their sequence.
 KIND_ORDER = (
@@ -45,20 +56,23 @@ class Position:
 Found = list[tuple[Position, ActivityEvent]]
 
 
-def encode_cursor(position: Position) -> str:
-    raw = f"{position.at.astimezone(UTC).isoformat()}|{position.kind_rank}|{position.row_id}"
+def encode_cursor(position: Position, issued_at: datetime) -> str:
+    """The newest event the client has, and when the cursor was handed out (to tell a client that was away)."""
+    at, issued = position.at.astimezone(UTC), issued_at.astimezone(UTC)
+    raw = f"{at.isoformat()}|{position.kind_rank}|{position.row_id}|{issued.isoformat()}"
     return base64.urlsafe_b64encode(raw.encode()).decode()
 
 
-def decode_cursor(cursor: str) -> Position:
+def decode_cursor(cursor: str) -> tuple[Position, datetime]:
     try:
-        at_text, rank_text, id_text = base64.urlsafe_b64decode(cursor).decode().split("|")
+        at_text, rank_text, id_text, issued_text = base64.urlsafe_b64decode(cursor).decode().split("|")
         position = Position(datetime.fromisoformat(at_text), int(rank_text), int(id_text))
+        issued_at = datetime.fromisoformat(issued_text)
     except ValueError as exc:  # also covers bad base64, non-UTF-8 bytes and a wrong number of parts
         raise api_error(400, "invalid_cursor", "Некорректный курсор ленты") from exc
-    if position.at.tzinfo is None or not 0 <= position.kind_rank < len(KIND_ORDER):
+    if position.at.tzinfo is None or issued_at.tzinfo is None or not 0 <= position.kind_rank < len(KIND_ORDER):
         raise api_error(400, "invalid_cursor", "Некорректный курсор ленты")
-    return position
+    return position, issued_at
 
 
 def _page[*Ts](
@@ -70,14 +84,18 @@ def _page[*Ts](
     after: Position | None,
     limit: int,
 ) -> Select[*Ts]:
-    """Events of one kind inside the look-back and, with a cursor, strictly after it. Without a cursor the
-    newest come first; with one the oldest do, so a burst larger than `limit` is delivered in several polls."""
+    """Events of one kind inside the look-back. Without a cursor the newest come first.
+
+    With a cursor, the events after it come first, the oldest first, so a burst larger than `limit` is delivered
+    in several polls; they are followed by up to `GRACE_LIMIT` events from the grace window that are not after
+    the cursor (`load_feed` tells the two apart by position).
+    """
     stmt = stmt.where(at >= cutoff)
     if after is None:
         return stmt.order_by(at.desc(), row_id.desc()).limit(limit)
     rank = KIND_ORDER.index(kind)
-    stmt = stmt.where(tuple_(at, rank, row_id) > tuple_(after.at, after.kind_rank, after.row_id))
-    return stmt.order_by(at, row_id).limit(limit)
+    ahead = tuple_(at, rank, row_id) > tuple_(after.at, after.kind_rank, after.row_id)
+    return stmt.where(at >= after.at - GRACE).order_by(ahead.desc(), at, row_id).limit(limit + GRACE_LIMIT)
 
 
 def _ad_events(session: Session, scope: TerritoryScope, cutoff: datetime, after: Position | None, limit: int) -> Found:
@@ -225,10 +243,19 @@ def _signal_events(
 
 
 def load_feed(session: Session, scope: TerritoryScope, after: str | None, limit: int) -> ActivityFeed:
-    """Without a cursor: the latest `INITIAL_LIMIT` events. With one: the oldest `limit` events after it.
-    Items are newest first either way and `cursor` points at the newest of them."""
-    cutoff = datetime.now(UTC) - LOOKBACK
-    position = decode_cursor(after) if after is not None else None
+    """Without a cursor, or with one issued more than `RESET_AFTER` ago (`reset`): the latest `INITIAL_LIMIT`
+    events. With a current one: the oldest `limit` events after it, and the events of the grace window before it.
+    Items are newest first either way. `cursor` points at the newest event the client is given, and never moves
+    back."""
+    now = datetime.now(UTC)
+    cutoff = now - LOOKBACK
+    position: Position | None = None
+    reset = False
+    if after is not None:
+        position, issued_at = decode_cursor(after)
+        reset = now - issued_at > RESET_AFTER
+        if reset:
+            position = None
     size = INITIAL_LIMIT if position is None else limit
     found: Found = [
         *_ad_events(session, scope, cutoff, position, size),
@@ -239,12 +266,16 @@ def load_feed(session: Session, scope: TerritoryScope, after: str | None, limit:
             for event in _signal_events(session, scope, kind, cutoff, position, size)
         ),
     ]
-    # Every kind returned its own best `size`, so the best `size` overall are among them.
-    found.sort(key=lambda item: item[0], reverse=position is None)
-    page = found[:size]
-    if not page:
+    if position is None:
+        # Every kind returned its own newest `size`, so the newest `size` overall are among them.
+        page = sorted(found, key=lambda item: item[0], reverse=True)[:size]
         # Nothing yet: a later event is newer than the start of the look-back, whatever its time.
-        return ActivityFeed(items=[], cursor=after or encode_cursor(Position(cutoff, 0, 0)))
-    if position is not None:
-        page.reverse()
-    return ActivityFeed(items=[event for _, event in page], cursor=encode_cursor(page[0][0]))
+        newest = page[0][0] if page else Position(cutoff, 0, 0)
+    else:
+        # Every kind returned its own oldest events after the cursor, so the oldest `size` overall are among them.
+        ahead = sorted((item for item in found if item[0] > position), key=lambda item: item[0])[:size]
+        page = sorted(
+            [*ahead, *(item for item in found if item[0] <= position)], key=lambda item: item[0], reverse=True
+        )
+        newest = ahead[-1][0] if ahead else position
+    return ActivityFeed(items=[event for _, event in page], cursor=encode_cursor(newest, now), reset=reset)
