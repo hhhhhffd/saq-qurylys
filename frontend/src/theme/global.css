@@ -49,6 +49,13 @@ h3 {
   font-weight: 600;
 }
 
+/* Visually hidden labels (Mantine) are absolutely positioned; anchoring them to their cell keeps
+   them from stretching the page when a table scrolls horizontally inside its panel. */
+th,
+td {
+  position: relative;
+}
+
 a {
   color: var(--link);
   text-decoration-color: color-mix(in srgb, var(--link) 35%, transparent);
