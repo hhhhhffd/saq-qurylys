@@ -39,7 +39,7 @@ pnpm dev          # http://localhost:5173, прокси /api → http://localhos
 pnpm typecheck && pnpm lint && pnpm build
 ```
 
-Весь wire-формат API — в `frontend/src/api/types.ts` и `client.ts`; переводы — `frontend/src/i18n/locales/{ru,kk}`; цвета и токены темы — `frontend/src/theme/tokens.css`.
+Весь wire-формат API — в `frontend/src/api/types.ts` и `client.ts`; переводы — `frontend/src/i18n/locales/{ru,kk}`; цвета и токены темы — `frontend/src/theme/tokens.css`, Tailwind и шрифты — `frontend/src/theme/app.css`; компоненты — `frontend/src/components/ui` (shadcn/ui), поля форм — `components/form`, эффекты — `components/fx`; правила вида — [docs/UI.md](UI.md). Витрина всех контролов: `pnpm dev` → http://localhost:5173/_kit. E2E: `pnpm e2e` (см. `frontend/e2e/README.md`).
 
 ## Celery contract
 

@@ -1,7 +1,6 @@
 /*
- * Legacy global styles for screens that are not migrated to Tailwind yet (docs/UI.md §2, §7).
- * Everything sits in a layer, so Tailwind utilities and shadcn components are never overridden by it.
- * Phase C deletes this file together with the CSS modules.
+ * Element defaults of the theme (docs/UI.md §2): body, headings, links, focus, selection, reduced motion.
+ * Everything sits in the base layer, so Tailwind utilities and the shadcn components always win.
  */
 @layer base {
   html {
@@ -50,7 +49,7 @@
     font-weight: 600;
   }
 
-  /* Visually hidden labels (Mantine) are absolutely positioned; anchoring them to their cell keeps
+  /* Visually hidden labels (`sr-only`) are absolutely positioned; anchoring them to their cell keeps
      them from stretching the page when a table scrolls horizontally inside its panel. */
   th,
   td {
@@ -82,65 +81,6 @@
   /* maplibre needs its container to have a size */
   .maplibregl-map {
     font-family: var(--font-sans);
-  }
-}
-
-/* After Mantine's layer: its inputs sit on the sunken surface, like every field of the theme. */
-@layer components {
-  .mantine-Input-input,
-  .mantine-Select-input,
-  .mantine-MultiSelect-input,
-  .mantine-Textarea-input,
-  .mantine-PasswordInput-input,
-  .mantine-NumberInput-input,
-  .mantine-DateInput-input,
-  .mantine-DateTimePicker-input {
-    background-color: var(--surface-sunken);
-    border-color: var(--border-strong);
-  }
-
-  .mantine-Input-input:focus,
-  .mantine-Input-input:focus-within {
-    border-color: var(--focus);
-  }
-
-  .mantine-Modal-content,
-  .mantine-Modal-header,
-  .mantine-Drawer-content,
-  .mantine-Drawer-header {
-    background: var(--surface-raised);
-  }
-
-  .mantine-Modal-content {
-    box-shadow: var(--shadow-window);
-  }
-
-  .mantine-Modal-title,
-  .mantine-Drawer-title {
-    font-size: 1.0625rem;
-    font-weight: 620;
-    letter-spacing: -0.012em;
-  }
-}
-
-@layer components {
-  .tnum {
-    font-variant-numeric: tabular-nums;
-  }
-
-  .muted {
-    color: var(--text-2);
-  }
-
-  .faint {
-    color: var(--text-3);
-  }
-
-  /* Container surfaces */
-  .panel {
-    background: var(--surface);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-1);
   }
 }
 

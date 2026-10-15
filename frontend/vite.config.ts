@@ -13,10 +13,6 @@ export default defineConfig({
   optimizeDeps: {
     include: [
       '@hookform/resolvers/zod',
-      '@mantine/core',
-      '@mantine/dates',
-      '@mantine/form',
-      '@mantine/hooks',
       '@tabler/icons-react',
       '@tanstack/react-query',
       '@tanstack/react-table',

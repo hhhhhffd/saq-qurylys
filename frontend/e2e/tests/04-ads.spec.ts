@@ -66,21 +66,26 @@ test('a removed publication shows its history with the time it stayed online', a
 });
 
 test('the platform filter narrows the feed and can be reset', async ({ page }) => {
+  const telegram = t('enums:platform.telegram');
+  // Content, not counts: both pages are capped by the page size, and the runs keep adding publications.
+  const isTelegram = (text: string) => text.includes(telegram);
   await page.goto('/ads');
   await expect(articles(page).first()).toBeVisible();
   const all = await articles(page).count();
+  expect((await articles(page).allInnerTexts()).some((text) => !isTelegram(text))).toBe(true);
 
-  await choose(page, page.getByRole('combobox', { name: t('ads:filters.platform'), exact: true }), t('enums:platform.telegram'));
+  await choose(page, page.getByRole('combobox', { name: t('ads:filters.platform'), exact: true }), telegram);
 
   await expect(page).toHaveURL(/platform=telegram/);
   await expect
     .poll(async () => {
       const texts = await articles(page).allInnerTexts();
-      return texts.length > 0 && texts.length < all && texts.every((text) => text.includes(t('enums:platform.telegram')));
+      return texts.length > 0 && texts.every(isTelegram);
     })
     .toBe(true);
 
   await page.getByRole('button', { name: t('reset') }).click();
   await expect(page).not.toHaveURL(/platform=/);
   await expect.poll(() => articles(page).count()).toBe(all);
+  await expect.poll(async () => (await articles(page).allInnerTexts()).some((text) => !isTelegram(text))).toBe(true);
 });

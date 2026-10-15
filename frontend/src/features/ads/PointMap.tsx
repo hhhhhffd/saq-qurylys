@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { MAP_STYLE_URL } from '@/features/map/mapStyle';
+import { MAP_CONTROLS_CLASS, MAP_STYLE_URL, recolorBasemap } from '@/features/map/mapStyle';
 import { MapLibreMap, Marker, NavigationControl } from '@/lib/maplibre';
 import { useTranslation } from 'react-i18next';
 import { useTerritoryList } from '@/lib/territories';
@@ -59,6 +59,7 @@ export default function PointMap({ lat, lon, onPick, onUnavailable }: Props) {
       return;
     }
     map.addControl(new NavigationControl({ showCompass: false }), 'top-right');
+    map.on('style.load', () => recolorBasemap(map));
     map.on('click', (event) => callbacksRef.current.onPick(event.lngLat.lat, event.lngLat.lng));
     mapRef.current = map;
 
@@ -92,7 +93,7 @@ export default function PointMap({ lat, lon, onPick, onUnavailable }: Props) {
   return (
     <div
       ref={containerRef}
-      className="relative h-60 overflow-hidden rounded border border-border-strong bg-surface-sunken [&_.maplibregl-canvas]:cursor-crosshair"
+      className={`relative h-60 overflow-hidden rounded border border-border-strong bg-surface-sunken [&_.maplibregl-canvas]:cursor-crosshair ${MAP_CONTROLS_CLASS}`}
       role="region"
       aria-label={t('point.mapLabel')}
     />

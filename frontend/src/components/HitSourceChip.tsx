@@ -35,7 +35,7 @@ export function HitSourceChip({ hit }: Props) {
         title={source === 'ai_hypothesis' ? t('hits.llmUnreviewedHint') : undefined}
       >
         {e('hit_source', source)}
-        {confidence !== null && <span className="tnum">{`· ${confidence}%`}</span>}
+        {confidence !== null && <span className="tabular-nums">{`· ${confidence}%`}</span>}
       </Chip>
       {hit.uncertain && source === 'ai_hypothesis' && <Chip tone="red">{t('hits.uncertain')}</Chip>}
     </>

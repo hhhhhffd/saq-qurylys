@@ -133,7 +133,7 @@ SAQ QURYLYS собирает всё в одну карточку ЖК, фикс�
 | NLP и ИИ | pymorphy3, rapidfuzz, phonenumbers; Tesseract OCR (rus, kaz); Ollama + Qwen 3.5 9B (локально) |
 | Бот | python-telegram-bot (long polling) |
 | Документы | Jinja2 + WeasyPrint (PDF) |
-| Frontend | React 19, TypeScript, Vite, Mantine, TanStack Query/Table, React Router, MapLibre GL, react-force-graph, react-i18next |
+| Frontend | React 19, TypeScript, Vite, Tailwind CSS 4, shadcn/ui (Radix), react-hook-form + zod, TanStack Query/Table, React Router, MapLibre GL, react-force-graph, react-i18next; шрифты Tektur и Play; эффекты React Bits |
 | Инфраструктура | Docker Compose, nginx |
 
 ## Запуск
@@ -259,7 +259,9 @@ python3 scripts/verify_case_scenarios.py   # на запущенном стек�
 
 ## Сторонние компоненты и использование AI-инструментов
 
-- Библиотеки перечислены в `backend/pyproject.toml` и `frontend/package.json`. Образы: `postgis/postgis`,
+- Библиотеки перечислены в `backend/pyproject.toml` и `frontend/package.json`. Компоненты и шрифты, которые лежат
+  в репозитории или раздаются с приложением (React Bits, shadcn/ui, Tektur, Play, данные карты), и их лицензии —
+  [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Вид интерфейса и правила — [docs/UI.md](docs/UI.md). Образы: `postgis/postgis`,
   `redis`, `alpine/minio` (сборка последнего релиза MinIO), `nginx`, `node`, Playwright Chromium. MinIO (AGPL-3.0)
   используется как отдельный сервис, без линковки.
 - Модель: Qwen 3.5 9B (открытые веса) через Ollama, локально.

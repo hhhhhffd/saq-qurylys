@@ -15,6 +15,7 @@ import {
   CITY_ZOOM,
   FALLBACK_STYLE,
   KAZAKHSTAN_VIEW,
+  MAP_CONTROLS_CLASS,
   MAP_STYLE_URL,
   isWebGlAvailable,
   prefersReducedMotion,
@@ -22,15 +23,9 @@ import {
   recolorBasemap,
 } from './mapStyle';
 
-// Frame, MapLibre controls and the popup, restyled for the dark theme. MapLibre's own CSS is light and unlayered,
-// so it beats Tailwind's layered utilities: the overrides of its classes need `!`.
-const FRAME_CLASS = [
-  'relative h-[var(--map-h,320px)] overflow-hidden rounded-lg bg-surface-sunken shadow-1',
-  '[&_.maplibregl-ctrl-group]:rounded! [&_.maplibregl-ctrl-group]:border! [&_.maplibregl-ctrl-group]:border-border-strong! [&_.maplibregl-ctrl-group]:bg-surface-raised! [&_.maplibregl-ctrl-group]:shadow-none!',
-  '[&_.maplibregl-ctrl-group_button]:border-border! [&_.maplibregl-ctrl-icon]:invert! [&_.maplibregl-ctrl-group_button:hover]:bg-hover!',
-  '[&_.maplibregl-ctrl-attrib]:bg-surface-glass! [&_.maplibregl-ctrl-attrib]:text-text-3! [&_.maplibregl-ctrl-attrib_a]:text-text-2!',
-  '[&_.maplibregl-ctrl-attrib-button]:invert!',
-].join(' ');
+// Frame and popup, restyled for the dark theme. MapLibre's own CSS is light and unlayered, so it beats Tailwind's
+// layered utilities: the overrides of its classes need `!` (the controls are in MAP_CONTROLS_CLASS).
+const FRAME_CLASS = `relative h-[var(--map-h,320px)] overflow-hidden rounded-lg bg-surface-sunken shadow-1 ${MAP_CONTROLS_CLASS}`;
 const POPUP_CLASS = [
   'pointer-events-none',
   '[&_.maplibregl-popup-content]:rounded! [&_.maplibregl-popup-content]:border! [&_.maplibregl-popup-content]:border-border-strong! [&_.maplibregl-popup-content]:bg-surface-raised! [&_.maplibregl-popup-content]:px-3! [&_.maplibregl-popup-content]:py-2! [&_.maplibregl-popup-content]:font-sans! [&_.maplibregl-popup-content]:text-sm! [&_.maplibregl-popup-content]:text-text! [&_.maplibregl-popup-content]:shadow-2!',

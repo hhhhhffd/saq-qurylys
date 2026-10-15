@@ -142,7 +142,7 @@
 |---|---|---|
 | A. Фундамент | один исполнитель | Tailwind + shadcn init, токены и шрифт, `components/ui/*` в стиле Fatality, обёртки `toast`/`confirm`/даты/формы, `lib/hooks.ts`, слой Mantine (тёмный) |
 | B. Перенос | параллельно, по папкам | оболочка и общие компоненты + логин + «островок»; карта + граф + «машина времени»; объекты; реклама + источники; сигналы + администрирование |
-| C. Финал | ведущий | удалить Mantine, эффекты, атрибуции, README/SPEC, скриншоты, e2e целиком |
+| C. Финал | ведущий | удалить Mantine, эффекты, атрибуции, README/SPEC, скриншоты, e2e целиком (сделано) |
 
 ## 9. Для переноса фич
 
@@ -301,13 +301,12 @@ const { register, control, handleSubmit, formState: { errors } } = useForm({
 Атрибуции в начале файлов и в `THIRD_PARTY_NOTICES.md` (React Bits, shadcn/ui, Tektur и Play OFL-1.1, OpenFreeMap, OpenMapTiles, OSM).
 Keyframes эффектов и анимации `animate-glitch-*`, `animate-spotlight`, `animate-moving-border` лежат в `app.css`.
 
-### 9.6 Что пока держится на Mantine
+### 9.6 Mantine удалён (этап C)
 
-`MantineProvider` и `DatesProvider` в `Providers.tsx`; `theme/theme.ts` (форсированная тёмная схема, палитры и резолвер на токенах);
-слои `@mantine/core/styles.layer.css` и `@mantine/dates/styles.layer.css` в `app.css`; переопределения `.mantine-*` в `theme/global.css`;
-`postcss-preset-mantine` (нужен CSS-модулям); все импорты `@mantine/core`, `@mantine/dates`, `@mantine/form` в непереведённых папках,
-включая `LanguageSwitch` и остальную оболочку (этап B). `@mantine/hooks` остался только как peer-зависимость `@mantine/core`.
-Старые `.panel`, `.tnum`, `.muted`, `.faint`, `.page-enter` в `global.css` исчезнут вместе с CSS-модулями (этапы B и C).
+Переезд завершён 14.10.2026: пакетов `@mantine/*`, `postcss-preset-mantine`, `theme/theme.ts` и CSS-модулей в проекте нет.
+`theme/global.css` держит только умолчания элементов (body, заголовки, ссылки, фокус, выделение, reduced motion),
+`theme/app.css` — Tailwind, токены, шрифты и keyframes эффектов. Стили контролов MapLibre — `MAP_CONTROLS_CLASS`
+в `features/map/mapStyle.ts` (его же использует карта точки в форме публикации).
 
 ### 9.7 Проверка на своём порту и грабли
 

@@ -2,6 +2,14 @@ import type { Map as MapLibreMap, StyleSpecification } from '@/lib/maplibre';
 
 export const MAP_STYLE_URL = import.meta.env.VITE_MAP_STYLE_URL || 'https://tiles.openfreemap.org/styles/dark';
 
+/** MapLibre's controls and attribution in the dark theme; its CSS is unlayered, so the overrides need `!`. */
+export const MAP_CONTROLS_CLASS = [
+  '[&_.maplibregl-ctrl-group]:rounded! [&_.maplibregl-ctrl-group]:border! [&_.maplibregl-ctrl-group]:border-border-strong! [&_.maplibregl-ctrl-group]:bg-surface-raised! [&_.maplibregl-ctrl-group]:shadow-none!',
+  '[&_.maplibregl-ctrl-group_button]:border-border! [&_.maplibregl-ctrl-icon]:invert! [&_.maplibregl-ctrl-group_button:hover]:bg-hover!',
+  '[&_.maplibregl-ctrl-attrib]:bg-surface-glass! [&_.maplibregl-ctrl-attrib]:text-text-3! [&_.maplibregl-ctrl-attrib_a]:text-text-2!',
+  '[&_.maplibregl-ctrl-attrib-button]:invert!',
+].join(' ');
+
 /** Used when the style above cannot be loaded (offline, blocked host): plain OpenStreetMap raster tiles. */
 export const FALLBACK_STYLE: StyleSpecification = {
   version: 8,

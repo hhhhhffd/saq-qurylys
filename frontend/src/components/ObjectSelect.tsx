@@ -9,12 +9,10 @@ interface Props extends FieldProps {
   onChange: (id: number | null) => void;
   placeholder?: string;
   disabled?: boolean;
-  /** Mantine leftover of callers that are not migrated yet; ignored. Remove with the last caller. */
-  comboboxProps?: unknown;
 }
 
 /** Searchable object picker backed by `GET /objects?q=`. */
-export function ObjectSelect({ value, onChange, comboboxProps: _ignored, ...rest }: Props) {
+export function ObjectSelect({ value, onChange, ...rest }: Props) {
   const [search, setSearch] = useState('');
   const [debounced] = useDebouncedValue(search, 250);
   const { data, isFetching } = useObjects({ q: debounced || undefined, limit: 20 });
