@@ -21,6 +21,7 @@ from app.models.enums import (
     LinkMethod,
     LlmStatus,
     PhraseCategory,
+    Platform,
 )
 from app.modules.nlp import llm
 from app.modules.nlp.text import extract_links, extract_phones, find_matches, mentions_readiness
@@ -69,8 +70,9 @@ def analyze_ad(session: Session, ad: AdPost, phrases: list[Phrase] | None = None
     """Replace the dictionary hits of the post, extract its phones and links.
 
     Idempotent: a hit that is found again (same phrase and position) is kept together with the person's
-    confirmation; hits of the LLM are not touched. `phrases` are the active phrases when the caller already
-    has them. Returns whether the dictionary hits changed.
+    confirmation; hits of the LLM are not touched. Links already stored for the post are kept, the ones of the
+    text are added. `phrases` are the active phrases when the caller already has them. Returns whether the
+    dictionary hits changed.
     """
     text = ad.text or ""
     if phrases is None:
@@ -105,7 +107,8 @@ def analyze_ad(session: Session, ad: AdPost, phrases: list[Phrase] | None = None
     session.flush()
 
     ad.phones = extract_phones(text)
-    ad.links = extract_links(text)
+    # The links a collector took from the markup of the page are not in the text: they stay.
+    ad.links = list(dict.fromkeys([*(ad.links or []), *extract_links(text)]))
     recompute_weights(session, ad)
     return changed
 
@@ -251,7 +254,8 @@ def link_ad(session: Session, ad: AdPost) -> tuple[int | None, int | None]:
     ambiguous = False
 
     account = session.get(SourceAccount, ad.source_account_id) if ad.source_account_id else None
-    if account is not None and account.object_id is not None:
+    # A saved search of an aggregator returns the listings of any seller: it says nothing about the object.
+    if account is not None and account.object_id is not None and account.platform is not Platform.aggregator:
         stmt = select(ConstructionObject.id).where(ConstructionObject.id == account.object_id)
         linked = session.scalar(scope.restrict(stmt, ConstructionObject.territory_id))
         if linked is not None:

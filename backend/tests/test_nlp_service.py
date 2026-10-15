@@ -600,3 +600,16 @@ def test_tasks_ignore_a_missing_post(db: Session, monkeypatch: pytest.MonkeyPatc
     monkeypatch.setattr(tasks, "get_sessionmaker", lambda: SessionFactory(db))
     for task in (tasks.analyze, tasks.link, tasks.llm_extract):
         task(987654321)
+
+
+def test_analyze_keeps_the_links_stored_for_the_post_and_adds_those_of_the_text(db: Session, world: World) -> None:
+    # A collector stores the addresses behind the words of links; the text does not show them.
+    ad = add_ad(db, world.ust, "Условия по ссылке, канал t.me/alatau", links=["https://alatau.test/terms"])
+
+    service.analyze_ad(db, ad)
+    service.analyze_ad(db, ad)
+
+    assert ad.links == ["https://alatau.test/terms", "t.me/alatau"]
+    ad.links = ["t.me/alatau", "https://alatau.test/terms"]
+    service.analyze_ad(db, ad)
+    assert ad.links == ["t.me/alatau", "https://alatau.test/terms"]  # no repeats, the order is the stored one
