@@ -1,0 +1,19 @@
+{
+  "business_discovery": {
+    "media": {
+      "data": [
+        {
+          "id": "17900000000000005",
+          "caption": "Давний пост",
+          "permalink": "https://www.instagram.com/p/CdemoEEE5/",
+          "timestamp": "2026-08-01T08:00:00+0000",
+          "media_type": "IMAGE",
+          "media_url": "https://scontent.cdn.test/v/image5.jpg?sig=abc"
+        }
+      ],
+      "paging": {"cursors": {"after": "QVFIUdemoCursor2"}}
+    },
+    "id": "17841400000000000"
+  },
+  "id": "17841400000000001"
+}

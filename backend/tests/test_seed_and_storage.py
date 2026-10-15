@@ -262,12 +262,17 @@ def test_collector_registry() -> None:
     from datetime import datetime
 
     from app.collectors import base
+    from app.models import SourceAccount
     from app.models.enums import Platform
 
     class FakeCollector:
         platform = Platform.telegram
+        capture_urls = True
 
-        def collect(self, account: object, since: datetime) -> list[base.CollectedPost]:
+        def handles(self, account: SourceAccount) -> bool:
+            return True
+
+        def collect(self, account: SourceAccount, since: datetime, is_known: base.IsKnown) -> list[base.CollectedPost]:
             return [base.CollectedPost(external_id="1", text="пост")]
 
     base._registry.clear()

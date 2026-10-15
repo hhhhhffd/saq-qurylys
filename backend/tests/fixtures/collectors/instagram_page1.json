@@ -1,0 +1,48 @@
+{
+  "business_discovery": {
+    "media": {
+      "data": [
+        {
+          "id": "17900000000000001",
+          "caption": "Старт продаж в ЖК «Демо-Парк». Бронь открыта! #демо",
+          "permalink": "https://www.instagram.com/p/CdemoAAA1/",
+          "timestamp": "2026-10-13T08:00:00+0000",
+          "media_type": "IMAGE",
+          "media_url": "https://scontent.cdn.test/v/image1.jpg?sig=abc"
+        },
+        {
+          "id": "17900000000000002",
+          "caption": "Видео со стройплощадки",
+          "permalink": "https://www.instagram.com/reel/CdemoBBB2/",
+          "timestamp": "2026-10-12T08:00:00+0000",
+          "media_type": "VIDEO",
+          "thumbnail_url": "https://scontent.cdn.test/v/thumb2.jpg?sig=abc"
+        },
+        {
+          "id": "17900000000000003",
+          "caption": "Карусель: планировки",
+          "permalink": "https://www.instagram.com/p/CdemoCCC3/",
+          "timestamp": "2026-10-11T08:00:00+0000",
+          "media_type": "CAROUSEL_ALBUM",
+          "media_url": "https://scontent.cdn.test/v/cover3.jpg?sig=abc",
+          "children": {
+            "data": [
+              {"id": "c1", "media_type": "IMAGE", "media_url": "https://scontent.cdn.test/v/child1.jpg?sig=abc"},
+              {"id": "c2", "media_type": "VIDEO", "media_url": "https://scontent.cdn.test/v/child2.mp4?sig=abc"},
+              {"id": "c3", "media_type": "IMAGE", "media_url": "https://scontent.cdn.test/v/child3.jpg?sig=abc"}
+            ]
+          }
+        },
+        {
+          "id": "17900000000000004",
+          "permalink": "https://www.instagram.com/p/CdemoDDD4/",
+          "timestamp": "2026-10-10T08:00:00+0000",
+          "media_type": "IMAGE"
+        }
+      ],
+      "paging": {"cursors": {"after": "QVFIUdemoCursor1"}, "next": "https://graph.facebook.com/next-page"}
+    },
+    "id": "17841400000000000"
+  },
+  "id": "17841400000000001"
+}
