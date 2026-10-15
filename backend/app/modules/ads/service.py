@@ -106,8 +106,12 @@ def dispatch_pipeline(ad_post_id: int, *, capture: bool, requested_by: int | Non
 
 
 def mark_capture_unqueued(session: Session, ad: AdPost) -> None:
-    ad.capture_status = CaptureStatus.failed
-    ad.capture_error = "Не удалось поставить фиксацию в очередь"
+    """The pipeline could not be queued, so nothing will end the pending states of the post: show them as failed."""
+    if ad.capture_status is CaptureStatus.pending:
+        ad.capture_status = CaptureStatus.failed
+        ad.capture_error = "Не удалось поставить фиксацию в очередь"
+    if ad.ocr_status is OcrStatus.pending:
+        ad.ocr_status = OcrStatus.failed
     session.commit()
 
 

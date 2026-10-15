@@ -271,7 +271,8 @@ def create_manual_ad(
         request,
     )
     session.commit()
-    service.dispatch_pipeline(ad.id, capture=False, requested_by=user.id)
+    if not service.dispatch_pipeline(ad.id, capture=False, requested_by=user.id):
+        service.mark_capture_unqueued(session, ad)
     return service.build_detail(session, ad)
 
 

@@ -224,7 +224,7 @@ def submit_citizen_report(
     )
     ad_id = ad.id
     session.commit()
-    if not ads_service.dispatch_pipeline(ad_id, capture=url is not None, requested_by=None) and url is not None:
+    if not ads_service.dispatch_pipeline(ad_id, capture=url is not None, requested_by=None):
         ads_service.mark_capture_unqueued(session, ad)
     return ReportResult(ad_id=ad_id, photos_saved=len(usable))
 
