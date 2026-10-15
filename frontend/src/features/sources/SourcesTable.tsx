@@ -1,4 +1,3 @@
-import { Button, Switch, Tooltip, VisuallyHidden } from '@mantine/core';
 import { IconRefresh } from '@tabler/icons-react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
@@ -8,21 +7,23 @@ import type { CollectorStatus, SourceAccount } from '@/api/types';
 import { Chip } from '@/components/Chip';
 import { dataColumns } from '@/components/dataColumns';
 import { DataTable } from '@/components/DataTable';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { isHttpUrl } from '@/features/ads/url';
 import { usePagedRows } from '@/features/admin/usePagedRows';
 import { useEnum } from '@/i18n/useEnum';
 import { useFormat } from '@/i18n/useFormat';
 import { useTerritoryList } from '@/lib/territories';
 import { collectorOf, isCollectorOn } from './collectors';
-import classes from './SourcesPage.module.css';
 
 const PAGE_SIZE = 50;
 const col = dataColumns<SourceAccount>();
 
 function BoundObject({ id }: { id: number | null }) {
   const object = useObject(id ?? 0, id !== null);
-  if (id === null) return <span className="faint">—</span>;
-  return <Link to={`/objects/${id}`}>{object.data ? `${object.data.code} · ${object.data.name}` : `#${id}`}</Link>;
+  if (id === null) return <span className="text-text-3">—</span>;
+  return <Link className="text-link hover:underline" to={`/objects/${id}`}>{object.data ? `${object.data.code} · ${object.data.name}` : `#${id}`}</Link>;
 }
 
 interface Props {
@@ -59,15 +60,15 @@ export function SourcesTable({ accounts, collectors }: Props) {
       cell: ({ row }) => {
         const { handle, url } = row.original;
         return (
-          <div className={classes.source}>
-            <span className={classes.mono}>{handle}</span>
+          <div className="flex max-w-80 min-w-0 flex-col gap-0.5">
+            <span className="font-mono text-sm [overflow-wrap:anywhere]">{handle}</span>
             {url &&
               (isHttpUrl(url) ? (
-                <a className={classes.url} href={url} target="_blank" rel="noopener noreferrer" title={url}>
+                <a className="truncate text-xs text-link hover:underline" href={url} target="_blank" rel="noopener noreferrer" title={url}>
                   {url}
                 </a>
               ) : (
-                <span className={classes.url}>{url}</span>
+                <span className="truncate text-xs text-text-2">{url}</span>
               ))}
           </div>
         );
@@ -94,9 +95,7 @@ export function SourcesTable({ accounts, collectors }: Props) {
           checked={row.original.is_watched}
           aria-label={t('watch', { name: row.original.handle })}
           disabled={update.isPending && update.variables?.id === row.original.id}
-          onChange={(event) =>
-            update.mutate({ id: row.original.id, data: { is_watched: event.currentTarget.checked } })
-          }
+          onCheckedChange={(checked) => update.mutate({ id: row.original.id, data: { is_watched: checked } })}
         />
       ),
     }),
@@ -105,9 +104,9 @@ export function SourcesTable({ accounts, collectors }: Props) {
       header: t('columns.lastCollected'),
       cell: ({ row }) =>
         row.original.last_collected_at ? (
-          <span className="tnum">{dateTime(row.original.last_collected_at)}</span>
+          <span className="tabular-nums">{dateTime(row.original.last_collected_at)}</span>
         ) : (
-          <span className="faint">{t('notCollected')}</span>
+          <span className="text-text-3">{t('notCollected')}</span>
         ),
     }),
     col.display({
@@ -115,38 +114,41 @@ export function SourcesTable({ accounts, collectors }: Props) {
       header: t('columns.lastError'),
       cell: ({ row }) => {
         const { last_error: error, last_error_at: at } = row.original;
-        if (!error) return <span className="faint">—</span>;
+        if (!error) return <span className="text-text-3">—</span>;
         return (
-          <div className={classes.error}>
-            <span className={classes.errorText} title={error}>
+          <div className="flex max-w-72 flex-col gap-0.5 text-sm">
+            <span className="line-clamp-3 text-zone-red-ink" title={error}>
               {error}
             </span>
-            <span className="faint tnum">{dateTime(at)}</span>
+            <span className="text-text-3 tabular-nums">{dateTime(at)}</span>
           </div>
         );
       },
     }),
     col.display({
       id: 'actions',
-      header: () => <VisuallyHidden>{t('collectNow')}</VisuallyHidden>,
+      header: () => <span className="sr-only">{t('collectNow')}</span>,
       cell: ({ row }) => {
         const blocker = collectBlocker(row.original);
         return (
-          <div className={classes.actions}>
-            <Tooltip label={blocker} disabled={blocker === null} multiline maw={260}>
+          <div className="flex justify-end">
+            <Tooltip>
               {/* A disabled button gets no pointer events, so the tooltip hangs on its wrapper. */}
-              <span>
-                <Button
-                  variant="default"
-                  size="compact-sm"
-                  leftSection={<IconRefresh size={14} stroke={1.8} />}
-                  disabled={blocker !== null}
-                  loading={collect.isPending && collect.variables === row.original.id}
-                  onClick={() => collect.mutate(row.original.id)}
-                >
-                  {t('collectNow')}
-                </Button>
-              </span>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={blocker !== null}
+                    loading={collect.isPending && collect.variables === row.original.id}
+                    onClick={() => collect.mutate(row.original.id)}
+                  >
+                    <IconRefresh />
+                    {t('collectNow')}
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              {blocker !== null && <TooltipContent>{blocker}</TooltipContent>}
             </Tooltip>
           </div>
         );

@@ -1,12 +1,11 @@
 import { useEffect, useRef } from 'react';
+import { MAP_STYLE_URL } from '@/features/map/mapStyle';
 import { MapLibreMap, Marker, NavigationControl } from '@/lib/maplibre';
 import { useTranslation } from 'react-i18next';
 import { useTerritoryList } from '@/lib/territories';
 import { useAuth } from '@/auth/useAuth';
 import { toLatLon } from '@/lib/geo';
-import classes from './PointPicker.module.css';
 
-const STYLE_URL = import.meta.env.VITE_MAP_STYLE_URL || 'https://tiles.openfreemap.org/styles/positron';
 /** Geographic center of Kazakhstan, shown when the user's territory has no center. */
 const COUNTRY_CENTER: [number, number] = [67.0, 48.0];
 const COUNTRY_ZOOM = 4;
@@ -50,7 +49,7 @@ export default function PointMap({ lat, lon, onPick, onUnavailable }: Props) {
     try {
       map = new MapLibreMap({
         container,
-        style: STYLE_URL,
+        style: MAP_STYLE_URL,
         center: start ? [start.lon, start.lat] : COUNTRY_CENTER,
         zoom: point ? POINT_ZOOM : center ? TERRITORY_ZOOM : COUNTRY_ZOOM,
         attributionControl: { compact: true },
@@ -83,12 +82,19 @@ export default function PointMap({ lat, lon, onPick, onUnavailable }: Props) {
       markerRef.current.setLngLat([lon, lat]);
     } else {
       const element = document.createElement('div');
-      element.className = classes.marker;
+      element.className = 'size-[18px] rounded-full border-[3px] border-surface-raised bg-primary shadow-2';
       markerRef.current = new Marker({ element }).setLngLat([lon, lat]).addTo(map);
     }
     // Coordinates typed into the fields may be off-screen.
     if (!map.getBounds().contains([lon, lat])) map.easeTo({ center: [lon, lat] });
   }, [lat, lon]);
 
-  return <div ref={containerRef} className={classes.map} role="region" aria-label={t('point.mapLabel')} />;
+  return (
+    <div
+      ref={containerRef}
+      className="relative h-60 overflow-hidden rounded border border-border-strong bg-surface-sunken [&_.maplibregl-canvas]:cursor-crosshair"
+      role="region"
+      aria-label={t('point.mapLabel')}
+    />
+  );
 }

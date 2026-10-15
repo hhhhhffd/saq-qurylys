@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Button, Group, Popover } from '@mantine/core';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useUpdateAd } from '@/api/hooks/ads';
@@ -7,9 +6,10 @@ import { useSettings } from '@/api/hooks/reference';
 import type { AdDetail, AdRow } from '@/api/types';
 import { Chip } from '@/components/Chip';
 import { ObjectSelect } from '@/components/ObjectSelect';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useEnum } from '@/i18n/useEnum';
 import { DEFAULT_LINK_THRESHOLD } from './constants';
-import classes from './AdCard.module.css';
 
 interface Props {
   ad: AdRow;
@@ -36,58 +36,57 @@ export function ObjectLink({ ad, linked, editable }: Props) {
   const lowConfidence = target !== null && confidence !== null && confidence < threshold;
   const needsConfirmation = target !== null && ad.status === 'verification';
 
-  const toggle = () => {
-    if (!opened) setDraft(targetId);
-    setOpened(!opened);
+  const toggle = (next: boolean) => {
+    if (next) setDraft(targetId);
+    setOpened(next);
   };
   const save = () => updateAd.mutate({ id: ad.id, data: { object_id: draft } }, { onSuccess: () => setOpened(false) });
   const confirmLink = () => updateAd.mutate({ id: ad.id, data: { status: 'captured' } });
 
   return (
-    <div className={classes.fact}>
-      <span className={classes.label}>{t('link.label')}</span>
-      <div className={classes.chips}>
+    <div className="flex min-w-0 flex-col gap-1 text-sm">
+      <span className="text-xs font-medium text-text-3">{t('link.label')}</span>
+      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5">
         {target ? (
-          <Link to={`/objects/${target.id}`} className={classes.objectLink}>
+          <Link to={`/objects/${target.id}`} className="font-semibold text-link [overflow-wrap:anywhere] hover:underline">
             {[target.code, target.name].filter(Boolean).join(' · ')}
           </Link>
         ) : (
-          <span className="faint">{t('link.none')}</span>
+          <span className="text-text-3">{t('link.none')}</span>
         )}
         {target && confidence !== null && (
-          <span className="tnum faint">{t('link.confidence', { value: Math.round(confidence * 100) })}</span>
+          <span className="text-text-3 tabular-nums">{t('link.confidence', { value: Math.round(confidence * 100) })}</span>
         )}
         {target && ad.link_method && <Chip>{e('link_method', ad.link_method)}</Chip>}
         {editable && (
-          <Popover opened={opened} onChange={setOpened} position="bottom-start" width={320} trapFocus>
-            <Popover.Target>
-              <Button size="compact-xs" variant="default" onClick={toggle}>
+          <Popover open={opened} onOpenChange={toggle}>
+            <PopoverTrigger asChild>
+              <Button size="xs" variant="secondary">
                 {target ? t('link.change') : t('link.attach')}
               </Button>
-            </Popover.Target>
-            <Popover.Dropdown>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 gap-3 p-3">
               <ObjectSelect
                 label={t('link.object')}
                 placeholder={t('link.objectPlaceholder')}
                 value={draft}
                 onChange={setDraft}
-                comboboxProps={{ withinPortal: false, shadow: 'md' }}
               />
-              <Group justify="flex-end" mt="sm" gap="xs">
-                <Button variant="default" size="xs" onClick={() => setOpened(false)}>
+              <div className="flex justify-end gap-2">
+                <Button variant="secondary" size="sm" onClick={() => setOpened(false)}>
                   {t('cancel', { ns: 'common' })}
                 </Button>
-                <Button size="xs" disabled={draft === targetId} loading={updateAd.isPending} onClick={save}>
+                <Button size="sm" disabled={draft === targetId} loading={updateAd.isPending} onClick={save}>
                   {t('save', { ns: 'common' })}
                 </Button>
-              </Group>
-            </Popover.Dropdown>
+              </div>
+            </PopoverContent>
           </Popover>
         )}
         {editable && needsConfirmation && (
           <Button
-            size="compact-xs"
-            variant="default"
+            size="xs"
+            variant="secondary"
             loading={updateAd.isPending && updateAd.variables.data.status === 'captured'}
             onClick={confirmLink}
           >
@@ -96,9 +95,9 @@ export function ObjectLink({ ad, linked, editable }: Props) {
         )}
       </div>
       {lowConfidence && (
-        <p className={classes.warn}>{t('link.lowConfidence', { threshold: Math.round(threshold * 100) })}</p>
+        <p className="m-0 text-sm text-zone-yellow-ink">{t('link.lowConfidence', { threshold: Math.round(threshold * 100) })}</p>
       )}
-      {!lowConfidence && needsConfirmation && <p className={classes.warn}>{t('link.needsConfirmation')}</p>}
+      {!lowConfidence && needsConfirmation && <p className="m-0 text-sm text-zone-yellow-ink">{t('link.needsConfirmation')}</p>}
     </div>
   );
 }
