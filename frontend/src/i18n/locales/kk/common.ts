@@ -41,13 +41,11 @@ const common: typeof ru = {
   },
   auth: {
     title: 'Жүйеге кіру',
-    subtitle: 'Үлестік құрылыстағы ақшаны заңсыз тартуды бақылау',
     username: 'Логин',
     password: 'Құпиясөз',
     login: 'Кіру',
     logout: 'Шығу',
     invalidCredentials: 'Логин немесе құпиясөз қате',
-    internalOnly: 'Тек қызметкерлерге арналған. Қолжетімділікті әкімші береді.',
   },
   header: {
     language: 'Тіл',

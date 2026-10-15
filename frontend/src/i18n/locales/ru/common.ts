@@ -38,13 +38,11 @@ const common = {
   },
   auth: {
     title: 'Вход в систему',
-    subtitle: 'Мониторинг незаконного привлечения денег дольщиков',
     username: 'Логин',
     password: 'Пароль',
     login: 'Войти',
     logout: 'Выйти',
     invalidCredentials: 'Неверный логин или пароль',
-    internalOnly: 'Только для сотрудников. Доступ выдаёт администратор.',
   },
   header: {
     language: 'Язык',

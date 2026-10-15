@@ -57,7 +57,7 @@ export function LoginPage() {
           SAQ QURYLYS
         </GlitchText>
         <form
-          className="w-full max-w-[400px] overflow-hidden rounded-lg bg-surface shadow-window"
+          className="w-full max-w-[400px] overflow-hidden rounded-lg bg-surface shadow-2"
           onSubmit={submit}
           noValidate
         >
@@ -65,7 +65,6 @@ export function LoginPage() {
             <h1 className="font-heading text-xs font-bold tracking-wider text-text uppercase">{t('auth.title')}</h1>
           </div>
           <div className="p-5">
-            <p className="mb-5 text-sm text-text-2">{t('auth.subtitle')}</p>
             <div className="flex flex-col gap-3">
               <TextInput label={t('auth.username')} autoComplete="username" autoFocus error={errors.username?.message} {...register('username')} />
               <PasswordInput
@@ -83,7 +82,6 @@ export function LoginPage() {
             <Button type="submit" className="mt-5 w-full" loading={submitting}>
               {t('auth.login')}
             </Button>
-            <p className="mt-4 text-center text-xs text-text-3">{t('auth.internalOnly')}</p>
           </div>
         </form>
       </div>
