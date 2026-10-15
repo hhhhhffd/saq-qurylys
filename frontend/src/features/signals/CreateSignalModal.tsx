@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Button, Group, Modal, Stack, Text } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { useCreateSignal } from '@/api/hooks/signals';
 import { ObjectSelect } from '@/components/ObjectSelect';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useApplySignal } from './useApplySignal';
 
 interface Props {
@@ -36,27 +37,22 @@ export function CreateSignalModal({ opened, onClose }: Props) {
   };
 
   return (
-    <Modal opened={opened} onClose={close} title={t('create.title')}>
-      <Stack gap="md">
-        <Text size="sm" c="dimmed">
-          {t('create.hint')}
-        </Text>
-        <ObjectSelect
-          label={t('create.object')}
-          placeholder={t('create.objectPlaceholder')}
-          value={objectId}
-          onChange={setObjectId}
-          data-autofocus
-        />
-        <Group justify="flex-end" gap="sm">
-          <Button variant="default" onClick={close}>
+    <Dialog open={opened} onOpenChange={(open) => !open && close()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{t('create.title')}</DialogTitle>
+          <DialogDescription>{t('create.hint')}</DialogDescription>
+        </DialogHeader>
+        <ObjectSelect label={t('create.object')} placeholder={t('create.objectPlaceholder')} value={objectId} onChange={setObjectId} />
+        <DialogFooter>
+          <Button variant="secondary" onClick={close}>
             {tc('cancel')}
           </Button>
           <Button onClick={submit} disabled={objectId === null} loading={create.isPending}>
             {t('create.submit')}
           </Button>
-        </Group>
-      </Stack>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

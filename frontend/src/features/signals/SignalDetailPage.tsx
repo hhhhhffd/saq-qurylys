@@ -1,8 +1,8 @@
-import { Button } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router';
 import { ApiError } from '@/api/client';
 import { useSignal } from '@/api/hooks/signals';
+import { Button } from '@/components/ui/button';
 import { EmptyState, ErrorBlock, LoadingBlock } from '@/components/QueryState';
 import { SignalCard } from './SignalCard';
 
@@ -11,8 +11,8 @@ function NotFound() {
   return (
     <EmptyState
       action={
-        <Button component={Link} to="/signals" variant="default">
-          {t('detail.back')}
+        <Button asChild variant="secondary">
+          <Link to="/signals">{t('detail.back')}</Link>
         </Button>
       }
     >

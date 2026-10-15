@@ -6,10 +6,10 @@ import { Chip, type ChipTone } from '@/components/Chip';
 import { DemoBadge } from '@/components/DemoBadge';
 import { HitSourceChip } from '@/components/HitSourceChip';
 import { Panel } from '@/components/Panel';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useEnum } from '@/i18n/useEnum';
 import { useFormat } from '@/i18n/useFormat';
 import { EvidenceList } from './EvidenceList';
-import classes from './Sections.module.css';
 
 const AD_TONE: Record<AdStatus, ChipTone> = {
   captured: 'neutral',
@@ -41,85 +41,85 @@ export function PublicationsSection({ items, showAdLinks }: Props) {
   return (
     <Panel title={t('sections.publications')} flush>
       {items.length === 0 ? (
-        <p className={classes.empty}>{t('sections.empty')}</p>
+        <p className="px-3 py-2.5 text-text-3">{t('sections.empty')}</p>
       ) : (
         <>
-          <p className={classes.tableHint}>{t('publications.hitsNote')}</p>
-          <div className={classes.scroll}>
-            <table className={classes.table}>
-              <thead>
-                <tr>
-                  <th>{t('publications.platform')}</th>
-                  <th>{t('publications.link')}</th>
-                  <th>{t('publications.publishedAt')}</th>
-                  <th>{t('publications.capturedAt')}</th>
-                  <th>{t('publications.status')}</th>
-                  <th>{t('publications.evidence')}</th>
-                  {showAdLinks && <th>{t('publications.registry')}</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item) => {
-                  const href = externalHref(item.url);
-                  return (
-                    <Fragment key={item.ad_post_id}>
-                      <tr>
-                        <td>
-                          <span className={classes.demoRow}>
-                            {e('platform', item.platform)}
-                            {item.is_demo && <DemoBadge />}
-                          </span>
-                        </td>
-                        <td>
-                          {href ? (
-                            <a
-                              href={href}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className={classes.link}
-                              title={href}
-                            >
-                              {item.url}
-                            </a>
-                          ) : (
-                            (item.url ?? '—')
-                          )}
-                        </td>
-                        <td className="tnum">{date(item.published_at)}</td>
-                        <td className="tnum">{dateTime(item.captured_at)}</td>
-                        <td>
-                          <Chip tone={AD_TONE[item.status]}>{e('ad_status', item.status)}</Chip>
-                        </td>
-                        <td>
-                          <EvidenceList ids={item.evidence_ids} />
-                        </td>
-                        {showAdLinks && (
-                          <td>
-                            <Link to={`/ads?ad=${item.ad_post_id}`}>{t('publications.openInRegistry')}</Link>
-                          </td>
+          <p className="px-3 py-2 text-xs text-text-3">{t('publications.hitsNote')}</p>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t('publications.platform')}</TableHead>
+                <TableHead>{t('publications.link')}</TableHead>
+                <TableHead>{t('publications.publishedAt')}</TableHead>
+                <TableHead>{t('publications.capturedAt')}</TableHead>
+                <TableHead>{t('publications.status')}</TableHead>
+                <TableHead>{t('publications.evidence')}</TableHead>
+                {showAdLinks && <TableHead>{t('publications.registry')}</TableHead>}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {items.map((item) => {
+                const href = externalHref(item.url);
+                return (
+                  <Fragment key={item.ad_post_id}>
+                    <TableRow className={item.hits.length > 0 ? 'border-b-0' : undefined}>
+                      <TableCell>
+                        <span className="inline-flex items-center gap-1.5">
+                          {e('platform', item.platform)}
+                          {item.is_demo && <DemoBadge />}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {href ? (
+                          <a
+                            href={href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-block max-w-64 truncate align-bottom text-link hover:underline"
+                            title={href}
+                          >
+                            {item.url}
+                          </a>
+                        ) : (
+                          (item.url ?? '—')
                         )}
-                      </tr>
-                      {item.hits.length > 0 && (
-                        <tr className={classes.hitsRow}>
-                          <td colSpan={showAdLinks ? 7 : 6}>
-                            <ul className={classes.hits} aria-label={t('publications.hits')}>
-                              {item.hits.map((hit) => (
-                                <li key={hit.id}>
-                                  <span>«{hit.fragment}»</span>
-                                  <span className={classes.hitCategory}>{e('phrase_category', hit.category)}</span>
-                                  <HitSourceChip hit={hit} />
-                                </li>
-                              ))}
-                            </ul>
-                          </td>
-                        </tr>
+                      </TableCell>
+                      <TableCell className="tabular-nums">{date(item.published_at)}</TableCell>
+                      <TableCell className="tabular-nums">{dateTime(item.captured_at)}</TableCell>
+                      <TableCell>
+                        <Chip tone={AD_TONE[item.status]}>{e('ad_status', item.status)}</Chip>
+                      </TableCell>
+                      <TableCell>
+                        <EvidenceList ids={item.evidence_ids} />
+                      </TableCell>
+                      {showAdLinks && (
+                        <TableCell>
+                          <Link to={`/ads?ad=${item.ad_post_id}`} className="text-link hover:underline">
+                            {t('publications.openInRegistry')}
+                          </Link>
+                        </TableCell>
                       )}
-                    </Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                    </TableRow>
+                    {item.hits.length > 0 && (
+                      <TableRow className="bg-surface-raised">
+                        <TableCell colSpan={showAdLinks ? 7 : 6} className="h-auto pt-0">
+                          <ul className="m-0 flex list-none flex-col gap-1 p-0" aria-label={t('publications.hits')}>
+                            {item.hits.map((hit) => (
+                              <li key={hit.id} className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+                                <span>«{hit.fragment}»</span>
+                                <span className="text-xs text-text-3">{e('phrase_category', hit.category)}</span>
+                                <HitSourceChip hit={hit} />
+                              </li>
+                            ))}
+                          </ul>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </TableBody>
+          </Table>
         </>
       )}
     </Panel>

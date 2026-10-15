@@ -2,10 +2,10 @@ import { useTranslation } from 'react-i18next';
 import type { CheckStatus, SignalSections } from '@/api/types';
 import { Chip, type ChipTone } from '@/components/Chip';
 import { Panel } from '@/components/Panel';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useEnum } from '@/i18n/useEnum';
 import { useFormat } from '@/i18n/useFormat';
 import { EvidenceList } from './EvidenceList';
-import classes from './Sections.module.css';
 
 const CHECK_TONE: Record<CheckStatus, ChipTone> = {
   confirmed: 'green',
@@ -20,38 +20,36 @@ export function PermitChecksSection({ items }: { items: SignalSections['permit_c
   return (
     <Panel title={t('sections.permit_checks')} flush>
       {items.length === 0 ? (
-        <p className={classes.empty}>{t('sections.empty')}</p>
+        <p className="px-3 py-2.5 text-text-3">{t('sections.empty')}</p>
       ) : (
-        <div className={classes.scroll}>
-          <table className={classes.table}>
-            <thead>
-              <tr>
-                <th>{t('permitChecks.docType')}</th>
-                <th>{t('permitChecks.number')}</th>
-                <th>{t('permitChecks.source')}</th>
-                <th>{t('permitChecks.status')}</th>
-                <th>{t('permitChecks.checkedAt')}</th>
-                <th>{t('permitChecks.evidence')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item, index) => (
-                <tr key={index}>
-                  <td>{e('doc_type', item.doc_type)}</td>
-                  <td>{item.number ?? '—'}</td>
-                  <td>{e('check_source', item.source) || '—'}</td>
-                  <td>
-                    <Chip tone={CHECK_TONE[item.check_status]}>{e('check_status', item.check_status)}</Chip>
-                  </td>
-                  <td className="tnum">{date(item.checked_at)}</td>
-                  <td>
-                    <EvidenceList ids={item.evidence_ids} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{t('permitChecks.docType')}</TableHead>
+              <TableHead>{t('permitChecks.number')}</TableHead>
+              <TableHead>{t('permitChecks.source')}</TableHead>
+              <TableHead>{t('permitChecks.status')}</TableHead>
+              <TableHead>{t('permitChecks.checkedAt')}</TableHead>
+              <TableHead>{t('permitChecks.evidence')}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {items.map((item, index) => (
+              <TableRow key={index}>
+                <TableCell>{e('doc_type', item.doc_type)}</TableCell>
+                <TableCell>{item.number ?? '—'}</TableCell>
+                <TableCell>{e('check_source', item.source) || '—'}</TableCell>
+                <TableCell>
+                  <Chip tone={CHECK_TONE[item.check_status]}>{e('check_status', item.check_status)}</Chip>
+                </TableCell>
+                <TableCell className="tabular-nums">{date(item.checked_at)}</TableCell>
+                <TableCell>
+                  <EvidenceList ids={item.evidence_ids} />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       )}
     </Panel>
   );

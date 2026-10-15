@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Button, Select } from '@mantine/core';
 import { IconPlus } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router';
@@ -14,13 +13,14 @@ import { ObjectSelect } from '@/components/ObjectSelect';
 import { PageHeader } from '@/components/PageHeader';
 import { ZoneBadge } from '@/components/Zone';
 import { ZoneDisclaimer } from '@/components/ZoneDisclaimer';
+import { Button } from '@/components/ui/button';
+import { SelectInput } from '@/components/form/SelectInput';
 import { useEnum, useEnumOptions } from '@/i18n/useEnum';
 import { useFormat } from '@/i18n/useFormat';
 import { PAGE_SIZE, SIGNAL_STATUSES } from './constants';
 import { CreateSignalModal } from './CreateSignalModal';
 import { DueInfo } from './DueInfo';
 import { SignalStatusChip } from './SignalStatusChip';
-import classes from './SignalsPage.module.css';
 
 function parseStatus(value: string | null): SignalStatus | undefined {
   return SIGNAL_STATUSES.find((status) => status === value);
@@ -70,7 +70,7 @@ export function SignalsPage() {
     col.accessor('number', {
       header: t('list.columns.number'),
       cell: (info) => (
-        <Link to={`/signals/${info.row.original.id}`} onClick={(event) => event.stopPropagation()}>
+        <Link to={`/signals/${info.row.original.id}`} className="text-link hover:underline" onClick={(event) => event.stopPropagation()}>
           {info.getValue()}
         </Link>
       ),
@@ -78,7 +78,7 @@ export function SignalsPage() {
     col.accessor('object_name', {
       header: t('list.columns.object'),
       cell: (info) => (
-        <span className={classes.nameCell}>
+        <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
           {info.getValue()}
           {info.row.original.is_demo && <DemoBadge />}
         </span>
@@ -108,7 +108,7 @@ export function SignalsPage() {
     }),
     col.accessor('created_at', {
       header: t('list.columns.created'),
-      cell: (info) => <span className="tnum">{dateTime(info.getValue())}</span>,
+      cell: (info) => <span className="tabular-nums">{dateTime(info.getValue())}</span>,
     }),
   ]);
 
@@ -124,14 +124,15 @@ export function SignalsPage() {
         subtitle={isRecipient ? t('list.subtitleRecipient') : t('list.subtitle')}
         actions={
           canManageSignals && (
-            <Button leftSection={<IconPlus size={16} />} onClick={() => setCreateOpen(true)}>
+            <Button onClick={() => setCreateOpen(true)}>
+              <IconPlus />
               {t('list.create')}
             </Button>
           )
         }
       />
-      <div className={classes.filters}>
-        <Select
+      <div className="mb-4 flex flex-wrap items-end gap-3 *:max-w-80 *:min-w-52 *:flex-1">
+        <SelectInput
           label={t('list.filters.status')}
           placeholder={t('list.filters.statusPlaceholder')}
           data={enumOptions('signal_status', SIGNAL_STATUSES)}
@@ -165,7 +166,7 @@ export function SignalsPage() {
           emptyText={emptyText}
         />
       )}
-      <ZoneDisclaimer className={classes.disclaimer} />
+      <ZoneDisclaimer className="mt-3" />
       <CreateSignalModal opened={createOpen} onClose={() => setCreateOpen(false)} />
     </>
   );

@@ -1,6 +1,7 @@
-import { NumberInput, Select } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import type { SignalDetail } from '@/api/types';
+import { NumberInput } from '@/components/form/NumberInput';
+import { SelectInput } from '@/components/form/SelectInput';
 import { KeyValue } from '@/components/KeyValue';
 import { Panel } from '@/components/Panel';
 import { useEnum, useEnumOptions } from '@/i18n/useEnum';
@@ -8,7 +9,6 @@ import { useFormat } from '@/i18n/useFormat';
 import { DueInfo } from '../DueInfo';
 import { MAX_REVIEW_DAYS, RECIPIENTS } from '../constants';
 import type { SignalDraft } from '../useSignalDraft';
-import classes from './Sections.module.css';
 
 interface Props {
   detail: SignalDetail;
@@ -26,14 +26,13 @@ export function RouteSection({ detail, value, editable, onChange }: Props) {
   if (editable) {
     return (
       <Panel title={t('sections.route')}>
-        <div className={classes.stack}>
-          <Select
+        <div className="flex flex-col gap-3.5">
+          <SelectInput
             label={t('route.recipient')}
             placeholder={t('route.recipientPlaceholder')}
             data={enumOptions('recipient', RECIPIENTS)}
             value={value.recipient}
             onChange={(next) => onChange({ recipient: RECIPIENTS.find((code) => code === next) ?? null })}
-            allowDeselect={false}
           />
           <NumberInput
             label={t('route.reviewDays')}
@@ -45,7 +44,7 @@ export function RouteSection({ detail, value, editable, onChange }: Props) {
             allowNegative={false}
             error={value.review_days === '' ? t('route.reviewDaysRequired') : undefined}
           />
-          <p className={classes.hint}>{t('route.hint')}</p>
+          <p className="text-xs text-text-3">{t('route.hint')}</p>
         </div>
       </Panel>
     );
