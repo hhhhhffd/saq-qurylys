@@ -1,0 +1,58 @@
+.text {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.clamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+  line-clamp: 6;
+  overflow: hidden;
+}
+
+.mark {
+  color: inherit;
+  border-radius: 3px;
+  padding: 0 1px;
+}
+
+/* Counts towards the score: dictionary hits and confirmed AI hits. */
+.solid {
+  background: var(--zone-yellow-bg);
+  box-shadow: inset 0 -2px 0 var(--zone-yellow);
+}
+
+/* AI assumption that nobody has confirmed yet. */
+.assumption {
+  background: transparent;
+  outline: 1.5px dashed var(--text-3);
+  outline-offset: 1px;
+}
+
+.rejected {
+  background: transparent;
+  color: var(--text-3);
+  text-decoration: line-through;
+}
+
+.toggle {
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--link);
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--link) 35%, transparent);
+  text-underline-offset: 2px;
+}
+
+.toggle:hover {
+  text-decoration-color: currentColor;
+}

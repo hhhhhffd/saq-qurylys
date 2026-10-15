@@ -1,0 +1,79 @@
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+}
+
+.hit {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 8px 12px;
+}
+
+.hit + .hit {
+  border-top: 1px solid var(--border);
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.matched {
+  font-size: 0.875rem;
+  font-weight: 560;
+  overflow-wrap: anywhere;
+}
+
+.rejected .matched {
+  color: var(--text-3);
+  font-weight: 400;
+  text-decoration: line-through;
+}
+
+.rejected .meta {
+  opacity: 0.7;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 10px;
+  color: var(--text-2);
+  font-size: 0.75rem;
+}
+
+.state {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.unreviewed {
+  color: var(--text-3);
+  font-size: 0.75rem;
+}
+
+.actions {
+  display: flex;
+  gap: 6px;
+}
+
+@media (max-width: 48em) {
+  .hit {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .state {
+    justify-content: flex-start;
+  }
+}
