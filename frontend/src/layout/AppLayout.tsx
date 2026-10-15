@@ -3,6 +3,7 @@ import { NavLink, Outlet } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/auth/useAuth';
 import { LoadingBlock } from '@/components/QueryState';
+import { ActivityIsland } from './ActivityIsland';
 import { LanguageSwitch } from './LanguageSwitch';
 import { NotificationsBell } from './NotificationsBell';
 import { UserMenu } from './UserMenu';
@@ -42,6 +43,7 @@ export function AppLayout() {
               </NavLink>
             ))}
           </nav>
+          {canSeeRegistry && <ActivityIsland />}
           <div className={classes.tools}>
             <LanguageSwitch />
             <NotificationsBell />

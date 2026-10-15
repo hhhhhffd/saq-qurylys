@@ -1,0 +1,331 @@
+/*
+ * The island: a graphite pill in the header. Idle it is a small "monitoring" mark; when an event arrives it grows
+ * into a card with the event and shrinks back after a few seconds.
+ * The pill is the only dark element of the UI, so it is built from the neutral tokens (accent / accent-ink) and
+ * uses a zone color only for the zone it reports.
+ */
+
+/* The room the header leaves it, between the navigation and the tools. The pill itself is positioned against the
+   header (see ActivityIsland.tsx for the custom properties) and does not take part in the header's layout. */
+.slot {
+  flex: 1 1 0;
+  align-self: stretch;
+  min-width: 0;
+  pointer-events: none;
+}
+
+.island {
+  --h-idle: 32px;
+  --h-open: 48px;
+  --ink: var(--accent-ink);
+  --ink-2: color-mix(in srgb, var(--accent-ink) 64%, transparent);
+  --line: color-mix(in srgb, var(--accent-ink) 12%, transparent);
+  --collapse: cubic-bezier(0.32, 0.72, 0, 1);
+  --expand: cubic-bezier(0.3, 1.35, 0.4, 1);
+
+  position: absolute;
+  top: calc(var(--mid) - var(--h-idle) / 2);
+  left: 50%;
+  width: var(--w-idle);
+  height: var(--h-idle);
+  transform: translateX(calc(-50% + var(--shift-idle)));
+  border-radius: calc(var(--h-idle) / 2);
+  overflow: hidden;
+  background: var(--accent-hover);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--line), 0 1px 2px rgba(28, 28, 30, 0.22), 0 6px 18px rgba(28, 28, 30, 0.14);
+  pointer-events: none;
+  transition:
+    width 400ms var(--collapse),
+    height 400ms var(--collapse),
+    top 400ms var(--collapse),
+    transform 400ms var(--collapse),
+    border-radius 400ms var(--collapse),
+    box-shadow 400ms var(--collapse);
+}
+
+.island[data-open='true'] {
+  top: calc(var(--mid) - var(--h-open) / 2);
+  width: var(--w-open);
+  height: var(--h-open);
+  transform: translateX(calc(-50% + var(--shift-open)));
+  border-radius: 22px;
+  box-shadow: inset 0 0 0 1px var(--line), 0 2px 4px rgba(28, 28, 30, 0.2), 0 14px 34px rgba(28, 28, 30, 0.24);
+  pointer-events: auto;
+  transition-duration: 580ms;
+  transition-timing-function: var(--expand);
+}
+
+/* Not enough room in the header row (narrow screens, long navigation): the open island hangs below the header. */
+.island[data-open='true'][data-place='below'] {
+  top: calc(100% + 8px);
+}
+
+/* Entering the red zone: a thin red edge and a soft glow, nothing that blinks. */
+.island[data-alert='true'] {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--zone-red) 62%, transparent),
+    0 2px 4px rgba(28, 28, 30, 0.2),
+    0 14px 34px color-mix(in srgb, var(--zone-red) 30%, rgba(28, 28, 30, 0.2));
+}
+
+/* ------------------------------------------------------------ idle */
+
+.idle {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: var(--w-idle);
+  height: var(--h-idle);
+  transform: translateX(-50%);
+  transition: opacity 260ms var(--collapse) 140ms;
+}
+
+.island[data-open='true'] .idle {
+  opacity: 0;
+  transition: opacity 120ms linear;
+}
+
+.liveDot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ink);
+  opacity: 0.85;
+  animation: breathe 3.2s ease-in-out infinite;
+}
+
+.island[data-offline='true'] .liveDot {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--ink-2);
+  animation: none;
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.85;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.8);
+  }
+}
+
+/* Too little room for the word: the dot alone. */
+.island[data-compact='true'] .idleLabel {
+  display: none;
+}
+
+.idleLabel {
+  overflow: hidden;
+  font-size: 0.75rem;
+  font-weight: 540;
+  letter-spacing: 0.01em;
+  color: var(--ink-2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------ event */
+
+/* Laid out at the final width so the text does not reflow while the island grows; the island clips it. */
+.event {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: var(--w-open);
+  height: var(--h-open);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transform: translateX(-50%);
+  opacity: 0;
+  filter: blur(6px);
+  transition:
+    opacity 140ms linear,
+    filter 140ms linear;
+}
+
+.island[data-open='true'] .event {
+  opacity: 1;
+  filter: none;
+  transition:
+    opacity 300ms var(--collapse) 130ms,
+    filter 300ms var(--collapse) 130ms;
+}
+
+.event:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -4px;
+  border-radius: 22px;
+}
+
+/* Replaced when the next event takes over. */
+.content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 100%;
+  padding: 0 16px 0 8px;
+  animation: swap-in 340ms var(--collapse) both;
+}
+
+@keyframes swap-in {
+  from {
+    opacity: 0;
+    filter: blur(5px);
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
+}
+
+.icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent-ink) 13%, transparent);
+  transition: background-color 400ms var(--collapse);
+}
+
+.island[data-alert='true'] .icon {
+  background: color-mix(in srgb, var(--zone-red) 46%, transparent);
+}
+
+.icon svg {
+  width: 17px;
+  height: 17px;
+  stroke-width: 1.8;
+}
+
+.text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.title,
+.detailText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.006em;
+}
+
+.detail {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 0.75rem;
+  line-height: 1.3;
+  color: var(--ink-2);
+}
+
+/* Stays whole when a long name is cut. */
+.demo {
+  flex: none;
+  padding: 0 5px;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+/* ------------------------------------------------------------ score shift */
+
+.score {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.9375rem;
+  font-weight: 620;
+  letter-spacing: -0.01em;
+}
+
+.scoreFrom {
+  color: var(--ink-2);
+  font-weight: 500;
+}
+
+.scoreTo {
+  min-width: 2ch;
+  text-align: right;
+}
+
+.score svg {
+  color: var(--ink-2);
+}
+
+.zoneDot {
+  width: 9px;
+  height: 9px;
+  margin-left: 3px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-ink) 10%, transparent);
+  transition: background-color 700ms var(--collapse);
+}
+
+/* ------------------------------------------------------------ reduced motion */
+
+/* A plain fade instead of the morph. These rules are `!important` to win over the global reduced-motion reset,
+   which would otherwise cut the fades short as well. */
+@media (prefers-reduced-motion: reduce) {
+  .island,
+  .island[data-open='true'] {
+    transition: none !important;
+  }
+
+  .idle,
+  .island[data-open='true'] .idle,
+  .event,
+  .island[data-open='true'] .event {
+    filter: none !important;
+    transition: opacity 200ms linear !important;
+  }
+
+  .content {
+    animation: fade-in 200ms linear both !important;
+  }
+
+  .liveDot {
+    animation: none !important;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

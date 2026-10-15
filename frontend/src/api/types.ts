@@ -856,3 +856,34 @@ export interface RegistrySyncStatus {
   scheduled_enabled: boolean;
   last_sync: RegistrySyncResult | null;
 }
+
+// ---------------------------------------------------------------- activity feed (SPEC 10.7)
+
+export type ActivityKind = 'ad_received' | 'score_changed' | 'signal_created' | 'signal_sent';
+
+/** Only the fields of the event's `kind` are filled, the rest are null. */
+export interface ActivityEvent {
+  /** `<kind>:<row id>` */
+  id: string;
+  kind: ActivityKind;
+  at: string;
+  object_id: number | null;
+  object_name: string | null;
+  ad_id: number | null;
+  signal_id: number | null;
+  /** publication origin for `ad_received`, card origin (`auto`/`manual`) for the signal kinds */
+  origin: AdOrigin | SignalOrigin | null;
+  platform: Platform | null;
+  score_before: number | null;
+  score_after: number | null;
+  zone_before: Zone | null;
+  zone_after: Zone | null;
+  number: string | null;
+  is_demo: boolean | null;
+}
+
+/** `GET /activity?after=<cursor>&limit=`: `items` are newest first, `cursor` is passed back as `after`. */
+export interface ActivityFeed {
+  items: ActivityEvent[];
+  cursor: string;
+}
