@@ -17,6 +17,8 @@ _LINK = re.compile(
     re.IGNORECASE,
 )
 _LINK_TRAILING = ".,;:!?)]}'"
+# Text read from the photos of a publication is appended to `ad_post.text` after this marker (SPEC 10.2).
+OCR_MARKER = "\n\n[OCR]\n"
 
 
 @dataclass(frozen=True)
@@ -116,3 +118,9 @@ def mentions_readiness(text: str, percent: int) -> bool:
 def to_utf16_offsets(text: str, offsets: Sequence[int]) -> list[int]:
     """Convert code point offsets into UTF-16 code unit offsets (JavaScript string indices)."""
     return [len(text[:offset].encode("utf-16-le")) // 2 for offset in offsets]
+
+
+def split_ocr(text: str) -> tuple[str, str | None]:
+    """(the publication's own text, the text read from its photos or None)."""
+    own, marker, recognised = text.partition(OCR_MARKER)
+    return own, recognised if marker else None
