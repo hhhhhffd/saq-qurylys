@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Select, type SelectProps } from '@mantine/core';
-import { useDebouncedValue } from '@mantine/hooks';
+import { useDebouncedValue } from '@/lib/hooks';
 import { useObject, useObjects } from '@/api/hooks/objects';
 
 interface Props extends Omit<SelectProps, 'data' | 'value' | 'onChange' | 'searchable' | 'onSearchChange'> {

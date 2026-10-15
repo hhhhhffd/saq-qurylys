@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button, Select, TextInput } from '@mantine/core';
-import { useDebouncedCallback } from '@mantine/hooks';
+import { useDebouncedCallback } from '@/lib/hooks';
 import { IconSearch } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import type { AdStatus, Platform } from '@/api/types';

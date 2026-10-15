@@ -1,6 +1,6 @@
 import { useEffect, useReducer, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { VisuallyHidden } from '@mantine/core';
-import { useReducedMotion } from '@mantine/hooks';
+import { useReducedMotion } from '@/lib/hooks';
 import {
   IconArrowRight,
   IconArrowsExchange,
@@ -247,7 +247,7 @@ export function ActivityIsland() {
   const { t: tc } = useTranslation();
   const navigate = useNavigate();
   const present = usePresentation();
-  const reduced = useReducedMotion(false, { getInitialValueInEffect: false });
+  const reduced = useReducedMotion();
 
   const [{ shown, open, waiting }, dispatch] = useReducer(reduce, { shown: null, open: false, waiting: [] });
   const [hovered, setHovered] = useState(false);

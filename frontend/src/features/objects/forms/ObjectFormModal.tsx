@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button, Modal, Select, SimpleGrid, TagsInput, Textarea, TextInput } from '@mantine/core';
-import { useDebouncedValue, useDisclosure } from '@mantine/hooks';
+import { useDebouncedValue, useDisclosure } from '@/lib/hooks';
 import { useForm } from '@mantine/form';
 import { IconPlus } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';

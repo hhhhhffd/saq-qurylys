@@ -107,6 +107,23 @@ const common = {
     pp: 'п.п.',
     pct: '%',
   },
+  ui: {
+    nothingFound: 'Ничего не найдено',
+    clear: 'Очистить',
+    remove: 'Убрать «{{value}}»',
+    addTag: 'Добавить «{{value}}»',
+    datePlaceholder: 'ДД.ММ.ГГГГ',
+    dateTimePlaceholder: 'ДД.ММ.ГГГГ ЧЧ:ММ',
+    chooseDate: 'Выберите дату',
+    chooseDateTime: 'Выберите дату и время',
+    time: 'Время',
+    today: 'Сегодня',
+    prevMonth: 'Предыдущий месяц',
+    nextMonth: 'Следующий месяц',
+    showPassword: 'Показать пароль',
+    hidePassword: 'Скрыть пароль',
+    chooseFiles: 'Выберите файлы',
+  },
   lastUpdated: 'Обновлено {{value}}',
 };
 

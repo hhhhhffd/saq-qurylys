@@ -110,6 +110,23 @@ const common: typeof ru = {
     pp: 'п.б.',
     pct: '%',
   },
+  ui: {
+    nothingFound: 'Ештеңе табылмады',
+    clear: 'Тазарту',
+    remove: '«{{value}}» алып тастау',
+    addTag: '«{{value}}» қосу',
+    datePlaceholder: 'КК.АА.ЖЖЖЖ',
+    dateTimePlaceholder: 'КК.АА.ЖЖЖЖ СС:ММ',
+    chooseDate: 'Күнді таңдаңыз',
+    chooseDateTime: 'Күн мен уақытты таңдаңыз',
+    time: 'Уақыт',
+    today: 'Бүгін',
+    prevMonth: 'Алдыңғы ай',
+    nextMonth: 'Келесі ай',
+    showPassword: 'Құпиясөзді көрсету',
+    hidePassword: 'Құпиясөзді жасыру',
+    chooseFiles: 'Файлдарды таңдаңыз',
+  },
   lastUpdated: 'Жаңартылды: {{value}}',
 };
 

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button, SegmentedControl, TextInput, VisuallyHidden } from '@mantine/core';
-import { useDebouncedCallback } from '@mantine/hooks';
+import { useDebouncedCallback } from '@/lib/hooks';
 import { IconChevronRight, IconPlus, IconSearch, IconUpload } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router';

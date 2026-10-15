@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Button, Loader, Skeleton } from '@mantine/core';
-import { useReducedMotion } from '@mantine/hooks';
+import { useReducedMotion } from '@/lib/hooks';
 import { IconAlertTriangle, IconCheck, IconExternalLink, IconMapPin } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useAd } from '@/api/hooks/ads';

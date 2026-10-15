@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Button, Tooltip } from '@mantine/core';
-import { notifications } from '@mantine/notifications';
 import { IconFileTypePdf } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { downloadFile } from '@/api/client';
@@ -9,6 +8,7 @@ import { errorMessage } from '@/api/queryClient';
 import type { SignalDetail, SignalRecipient } from '@/api/types';
 import { useAuth } from '@/auth/useAuth';
 import { confirmAction } from '@/lib/confirm';
+import { toast } from '@/lib/toast';
 import { ConfirmSendModal } from './ConfirmSendModal';
 import { ResponseModal } from './ResponseModal';
 import { ReturnModal } from './ReturnModal';
@@ -26,7 +26,7 @@ function DownloadButton({ path, filename, label }: { path: string; filename: str
     try {
       await downloadFile(path, filename);
     } catch (error) {
-      notifications.show({ color: 'red', title: tc('error'), message: errorMessage(error) });
+      toast.error(errorMessage(error), { title: tc('error') });
     } finally {
       setLoading(false);
     }

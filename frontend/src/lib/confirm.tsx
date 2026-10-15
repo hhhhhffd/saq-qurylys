@@ -1,7 +1,15 @@
-import type { ReactNode } from 'react';
-import { Text } from '@mantine/core';
-import { modals } from '@mantine/modals';
-import i18n from '@/i18n';
+import { useEffect, useState, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface ConfirmOptions {
   title: string;
@@ -12,13 +20,48 @@ interface ConfirmOptions {
   onConfirm: () => void;
 }
 
-/** Shared confirmation dialog; keep wording explicit about what will happen. */
-export function confirmAction({ title, message, confirmLabel, danger, onConfirm }: ConfirmOptions) {
-  modals.openConfirmModal({
-    title,
-    children: typeof message === 'string' ? <Text size="sm">{message}</Text> : message,
-    labels: { confirm: confirmLabel, cancel: i18n.t('cancel', { ns: 'common' }) },
-    confirmProps: danger ? { color: 'red' } : undefined,
-    onConfirm,
-  });
+let show: ((options: ConfirmOptions) => void) | null = null;
+
+/** Shared confirmation dialog; keep wording explicit about what will happen. Needs `ConfirmProvider` (Providers.tsx). */
+// eslint-disable-next-line react-refresh/only-export-components -- the helper and its provider are one unit
+export function confirmAction(options: ConfirmOptions) {
+  if (!show) throw new Error('ConfirmProvider is not mounted');
+  show(options);
+}
+
+/** Renders the dialog of `confirmAction`. Mount once. */
+export function ConfirmProvider() {
+  const { t } = useTranslation();
+  const [options, setOptions] = useState<ConfirmOptions | null>(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    show = (next) => {
+      setOptions(next);
+      setOpen(true);
+    };
+    return () => {
+      show = null;
+    };
+  }, []);
+
+  // `options` stays after closing so the dialog does not go empty during its exit animation.
+  return (
+    <AlertDialog open={open} onOpenChange={setOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{options?.title}</AlertDialogTitle>
+        </AlertDialogHeader>
+        <AlertDialogDescription asChild>
+          <div>{options?.message}</div>
+        </AlertDialogDescription>
+        <AlertDialogFooter>
+          <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
+          <AlertDialogAction variant={options?.danger ? 'destructive' : 'default'} onClick={() => options?.onConfirm()}>
+            {options?.confirmLabel}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
 }

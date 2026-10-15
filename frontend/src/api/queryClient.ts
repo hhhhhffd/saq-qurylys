@@ -1,6 +1,6 @@
 import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query';
-import { notifications } from '@mantine/notifications';
 import i18n from '@/i18n';
+import { toast } from '@/lib/toast';
 import { ApiError } from './client';
 
 declare module '@tanstack/react-query' {
@@ -28,11 +28,7 @@ export function errorMessage(error: unknown): string {
 
 function toastError(error: unknown) {
   if (error instanceof ApiError && error.status === 401) return; // handled by the login redirect
-  notifications.show({
-    color: 'red',
-    title: i18n.t('error', { ns: 'common' }),
-    message: errorMessage(error),
-  });
+  toast.error(errorMessage(error), { title: i18n.t('error', { ns: 'common' }) });
 }
 
 export const queryClient = new QueryClient({
@@ -48,7 +44,7 @@ export const queryClient = new QueryClient({
     onSuccess: (_data, _variables, _context, mutation) => {
       const key = mutation.meta?.success;
       if (key) {
-        notifications.show({ color: 'gray', message: i18n.t(`toasts.${key}`, { ns: 'common' }) });
+        toast.success(i18n.t(`toasts.${key}`, { ns: 'common' }));
       }
     },
   }),

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useReducedMotion } from '@mantine/hooks';
+import { useReducedMotion } from '@/lib/hooks';
 import type { DashboardCounts, ObjectRow, TimelineFrame } from '@/api/types';
 
 export const SPEEDS = [1, 2, 4] as const;

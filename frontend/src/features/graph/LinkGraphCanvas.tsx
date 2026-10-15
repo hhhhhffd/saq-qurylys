@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { ActionIcon } from '@mantine/core';
-import { useElementSize } from '@mantine/hooks';
+import { useElementSize } from '@/lib/hooks';
 import { IconArrowsMaximize } from '@tabler/icons-react';
 import ForceGraph2D, { type ForceGraphMethods, type LinkObject, type NodeObject } from 'react-force-graph-2d';
 import { useTranslation } from 'react-i18next';
