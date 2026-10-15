@@ -27,7 +27,8 @@ NETWORK_IDLE_TIMEOUT_S = 8
 MAX_TEXT_CHARS = 20_000
 MIN_BODY_CHARS = 40
 MAX_ERROR_CHARS = 500
-_SOCIAL = frozenset({Platform.instagram, Platform.tiktok, Platform.telegram})
+# Their pages carry the caption of the post in the description; Telegram posts come from the embed widget.
+_CAPTION_IN_DESCRIPTION = frozenset({Platform.instagram, Platform.tiktok})
 
 # `widget`: the page is the embed widget of a single Telegram post, whose message and time are the post's own.
 _EXTRACT_SCRIPT = """
@@ -74,11 +75,11 @@ def _publication_time(value: str) -> datetime | None:
 
 
 def _choose_text(info: dict[str, str], platform: Platform) -> str:
-    """The text of the publication: the caption/description on social networks, the main text elsewhere."""
+    """The text of the publication: the caption on Instagram and TikTok, the main text of the page elsewhere."""
     if info["message"]:
         return info["message"]
     description, body = info["description"], info["body"]
-    if platform in _SOCIAL:
+    if platform in _CAPTION_IN_DESCRIPTION:
         return description or body
     return body if len(body) >= MIN_BODY_CHARS or len(body) >= len(description) else description
 

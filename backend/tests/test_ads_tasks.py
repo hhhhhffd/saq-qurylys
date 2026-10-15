@@ -580,6 +580,16 @@ def test_feed_page_gives_its_whole_text_and_no_publication_time(
     assert ad.published_at is None
 
 
+def test_text_is_the_caption_on_instagram_and_the_page_text_elsewhere() -> None:
+    info = {"description": "Подпись к посту", "body": "Войдите, чтобы продолжить. " * 5, "message": "", "published": ""}
+    assert capture._choose_text(info, Platform.instagram) == "Подпись к посту"
+    assert capture._choose_text(info, Platform.telegram) == info["body"]
+    assert capture._choose_text(info, Platform.website) == info["body"]
+    short = {**info, "body": "Меню", "description": "Подробное описание страницы со всеми условиями продажи"}
+    assert capture._choose_text(short, Platform.website) == short["description"]
+    assert capture._choose_text({**info, "message": "Текст поста"}, Platform.telegram) == "Текст поста"
+
+
 def test_failed_capture_is_recorded_and_reported_to_the_requesting_user(db: Session, world: World, site: Site) -> None:
     user = world.users["mio_ust"]
     ad = add_ad(db, world.ust, None, url=f"{site.url}/gone", capture_status=CaptureStatus.pending)
