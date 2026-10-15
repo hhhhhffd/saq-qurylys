@@ -99,7 +99,7 @@ API: префикс `/api/v1`, JSON, даты ISO 8601 (UTC в БД, отобр�
 - **LLM**: Ollama `/api/chat` со structured output (`format` — JSON-схема `{findings: [{category, quote, confidence: 0..1}], payment_schemes: [...], claimed_readiness_pct: int|null, price_before_completion: bool, confidence: 0..1}`; находки с `confidence < 0.5` помечаются «неуверенно»); результат пишется в `llm_extraction` и как `phrase_hit` с `detected_by=llm, confirmed=null`. В `payment_schemes`/`claimed_readiness_pct` поста он попадает только после подтверждения пользователем.
 - **Перепроверка**: через `recheck_after_days` воркер проверяет URL (HTTP-статус и признаки удаления). Если публикация удалена, статус `removed_saved`; доказательства не трогаются.
 - **Наружная реклама**: ручной ввод (текст, фото, геоточка, `is_outdoor=true`).
-- **Коллекторы (фаза 2)**: `collectors/base.py`: `class Collector(Protocol): platform; def collect(account: SourceAccount, since: datetime) -> Iterable[CollectedPost]`. Реестр коллекторов по `platform`; задача `collect.run_all` (beat, ежедневно) для v1 зарегистрирована, но при отсутствии реализаций ничего не делает и пишет это в лог.
+- **Коллекторы (фаза 2, раздел 10.1)**: `collectors/base.py`: `class Collector(Protocol): platform; capture_urls: bool; def handles(account) -> bool; def collect(account, since, is_known) -> Iterable[CollectedPost]`. `CollectedPost` несёт `media_urls`. Реестр коллекторов по `platform`; регистрируются только включённые (`collectors.register_enabled`). Сборщик возвращает и уже известные посты окна, чтобы заметить правку текста.
 
 ## 6. Оценка риска (модель кейса Codemasters 8.0)
 
@@ -272,7 +272,8 @@ Auth
 - `aggregator`: сохранённый поиск. В `source_account.url` — URL поиска на `olx.kz` (читается JSON `/api/v1/offers/` с теми же фильтрами) или `krisha.kz` (страница списка и детальные страницы, `window.data`). Другие хосты не принимаются. `handle` — название поиска.
 - `instagram`: только официальный Graph API, Business Discovery (`INSTAGRAM_GRAPH_TOKEN`, `INSTAGRAM_GRAPH_USER_ID`). Работает только для бизнес-аккаунтов и аккаунтов авторов.
 - TikTok автоматически не собирается (OPEN_QUESTIONS 31): только по ссылке.
-- Каждый сборщик включается своим флагом (у Instagram — токеном). Выключенный сборщик не регистрируется, и его источники пропускаются.
+- Каждый сборщик включается своим флагом (у Instagram — токеном и `INSTAGRAM_GRAPH_USER_ID`). Выключенный сборщик не регистрируется, и его источники пропускаются. Токен Instagram передаётся в заголовке `Authorization`, не в адресе (адреса пишутся в журналы).
+- OLX и Krisha закрыты WAF для небраузерных клиентов (OPEN_QUESTIONS 36). Krisha не опирается на `since`: открываются только ещё не сохранённые объявления, не больше 20 за запуск (OPEN_QUESTIONS 37).
 - `CollectedPost.media_urls`: фото поста. Они скачиваются (не больше 10 МБ, jpeg/png/webp по сигнатуре) и сохраняются как evidence `photo`, затем идут на OCR.
 - Пост уже известен (`platform`, `external_id`), а текст изменился → строка `ad_post_version` с `source=collector`.
 - Ошибка источника записывается в `last_error` и `last_error_at`; успешный сбор очищает их. При переходе источника из «ок» в «ошибка» администраторам приходит уведомление `collector_failed`.
@@ -323,6 +324,8 @@ Auth
 
 - `ad_post.text` — сохранённый оригинал. `ad_post_version` — более поздние тексты, которые от него отличаются: только добавление, с sha256 и ссылкой на снимок.
 - Источники версий: повторная фиксация (`capture`), сборщик (`collector`), перепроверка (`recheck`).
+  - Повторная фиксация пишет версию только для постов соцсетей (telegram, instagram, tiktok) и не для сообщений граждан: у сайтов и агрегаторов снятый текст — вся страница.
+  - Перепроверка читает текст только у поста Telegram (`t.me/<канал>/<id>`, виджет `?embed=1`). Там же она видит удаление: виджет показывает «Post not found», тогда как сама страница поста отвечает 200.
 - Интерфейс: сравнение оригинала и последней версии (удалённые слова зачёркнуты), время фиксации, sha256 и метка времени снимка, «удалено через N ч после фиксации».
 
 ### 10.7 Живая лента («островок»)

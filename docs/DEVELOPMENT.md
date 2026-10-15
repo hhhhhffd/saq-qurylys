@@ -49,10 +49,11 @@ Queues: `collect`, `archive`, `nlp`, `score`, `notify`, `default`. Tasks are imp
 | Task | Queue | Schedule (UTC) |
 |---|---|---|
 | `archive.capture` | archive | on demand |
-| `nlp.analyze`, `nlp.link`, `nlp.llm_extract` | nlp | on demand |
+| `nlp.ocr`, `nlp.analyze`, `nlp.link`, `nlp.llm_extract` | nlp | on demand, chained after `archive.capture` |
 | `risk.recalc_object(object_id)` | score | on demand, via `app.events.object_changed(object_id)` |
 | `risk.sweep_due` | score | daily 02:00 |
-| `collect.run_all` | collect | daily 01:00 |
+| `collect.run_all` | collect | every 3 hours; collects only with the enabled collectors (`COLLECT_*`, Instagram token) |
+| `collect.source(source_id)` | collect | on demand («Собрать сейчас», `POST /source-accounts/{id}/collect`) |
 | `registry.sync_homeportal` | collect | daily 03:00, runs only if `HOMEPORTAL_SYNC_ENABLED=true`; on demand via the API |
 | `ads.recheck_due` | collect | every 6 hours |
 | `signals.check_deadlines` | notify | daily 06:00 |
