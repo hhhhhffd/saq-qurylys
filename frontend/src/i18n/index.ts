@@ -6,7 +6,7 @@ import type { Locale } from '@/api/types';
 
 const LANG_KEY = 'saq_lang';
 
-export const namespaces = ['common', 'enums', 'map', 'objects', 'objectForms', 'ads', 'signals', 'admin'] as const;
+export const namespaces = ['common', 'enums', 'map', 'objects', 'objectForms', 'ads', 'signals', 'admin', 'sources'] as const;
 
 export function getStoredLanguage(): Locale | null {
   try {

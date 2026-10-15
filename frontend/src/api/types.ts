@@ -856,3 +856,18 @@ export interface RegistrySyncStatus {
   scheduled_enabled: boolean;
   last_sync: RegistrySyncResult | null;
 }
+
+// ---------------------------------------------------------------- collectors (SPEC 10.1)
+
+/** `GET /source-accounts/collectors`: the collectors are switched on in `.env`, not in the interface. */
+export interface CollectorStatus {
+  platform: Platform;
+  enabled: boolean;
+  /** aggregator only: whether the collector of each site (`olx`, `krisha`) is on */
+  sources: Record<string, boolean>;
+}
+
+/** `POST /source-accounts/{id}/collect` (202) */
+export interface CollectQueued {
+  queued: boolean;
+}

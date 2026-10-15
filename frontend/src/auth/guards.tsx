@@ -37,7 +37,13 @@ export function RequireAuth({ children }: { children: ReactNode }) {
 }
 
 /** Sends users without the capability to their home screen. */
-export function RequireCapability({ capability, children }: { capability: 'canSeeRegistry' | 'isAdmin'; children: ReactNode }) {
+export function RequireCapability({
+  capability,
+  children,
+}: {
+  capability: 'canSeeRegistry' | 'canEditRegistry' | 'isAdmin';
+  children: ReactNode;
+}) {
   const auth = useAuth();
   if (!auth[capability]) return <Navigate to="/" replace />;
   return <>{children}</>;

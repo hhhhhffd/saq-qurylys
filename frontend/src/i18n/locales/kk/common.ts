@@ -75,6 +75,7 @@ const common: typeof ru = {
     reanalysisQueued: 'Жарияланымдарды қайта талдау басталды',
     syncStarted: 'Тізілімді синхрондау басталды',
     closed: 'Карточка жабылды',
+    collectQueued: 'Жинау басталды. Жаңа жарияланымдар лентада бірнеше минуттан кейін пайда болады',
   },
   errors: {
     network_error: 'Сервермен байланыс жоқ',
@@ -86,6 +87,8 @@ const common: typeof ru = {
     invalid_credentials: 'Логин немесе құпиясөз қате',
     queue_unavailable: 'Тапсырмалар кезегі қолжетімсіз. Кейінірек қайталаңыз',
     invalid_zone_thresholds: 'Сары аймақ шегі қызыл аймақ шегінен төмен болуы керек',
+    collector_disabled: 'Бұл дереккөздің жинағышы өшірулі: ол сервердің .env файлында қосылады',
+    invalid_source_url: 'olx.kz немесе krisha.kz сайтындағы іздеу сілтемесін көрсетіңіз',
   },
   states: {
     loadError: 'Деректерді жүктеу мүмкін болмады',

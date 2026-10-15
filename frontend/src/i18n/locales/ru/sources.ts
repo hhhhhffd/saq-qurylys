@@ -1,0 +1,50 @@
+const sources = {
+  title: 'Источники',
+  subtitle: 'Аккаунты и поиски, с которых система сама собирает публикации. Собранное попадает в ленту «Реклама».',
+  backToAds: 'К рекламе',
+  add: 'Добавить источник',
+  collectors: {
+    title: 'Сборщики',
+    on: 'включён',
+    off: 'выключен — включается в .env',
+    names: { instagram: 'Instagram', telegram: 'Telegram', olx: 'OLX.kz', krisha: 'Krisha.kz' },
+  },
+  columns: {
+    platform: 'Платформа',
+    source: 'Аккаунт или поиск',
+    object: 'Объект',
+    territory: 'Территория',
+    watched: 'Следим',
+    lastCollected: 'Последний сбор',
+    lastError: 'Ошибка',
+  },
+  empty: 'Источников пока нет. Добавьте канал, аккаунт или сохранённый поиск.',
+  notCollected: 'ещё не собирался',
+  watch: 'Следить за источником {{name}}',
+  collectNow: 'Собрать сейчас',
+  collectOff: 'Сборщик этого источника выключен. Он включается в .env сервера.',
+  collectUnsupported: 'Для этой платформы нет автоматического сбора.',
+  form: {
+    title: 'Новый источник',
+    platform: 'Платформа',
+    telegramHandle: 'Канал',
+    telegramHandleHint: 'Публичный канал: имя без @ или ссылка t.me/…. Страница t.me/s/<имя> должна открываться.',
+    telegramHandlePlaceholder: 'zhk_alatau',
+    instagramHandle: 'Аккаунт',
+    instagramHandleHint: 'Только бизнес-аккаунты и аккаунты авторов: сбор идёт через официальный API Instagram.',
+    instagramHandlePlaceholder: 'zhk_alatau',
+    label: 'Название поиска',
+    labelHint: 'Необязательно. Без названия поиск называется по его адресу.',
+    labelPlaceholder: 'Новостройки Усть-Каменогорска, OLX',
+    url: 'Ссылка на поиск',
+    urlHint:
+      'Сохранённый поиск на olx.kz или krisha.kz. Для OLX можно указать и адрес API: https://www.olx.kz/api/v1/offers/?query=…&city_id=…',
+    urlPlaceholder: 'https://krisha.kz/prodazha/kvartiry/…',
+    urlInvalid: 'Укажите ссылку на поиск на olx.kz или krisha.kz',
+    object: 'Объект (необязательно)',
+    objectNote:
+      'Публикации аккаунта, привязанного к объекту, засчитываются в балл сразу — привязывайте только проверенные аккаунты.',
+  },
+};
+
+export default sources;

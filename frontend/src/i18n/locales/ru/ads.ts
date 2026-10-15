@@ -4,6 +4,7 @@ const ads = {
   actions: {
     capture: 'Зафиксировать по ссылке',
     manual: 'Добавить вручную',
+    sources: 'Источники',
   },
   filters: {
     platform: 'Платформа',
