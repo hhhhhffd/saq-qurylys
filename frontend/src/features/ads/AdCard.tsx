@@ -11,6 +11,7 @@ import { DemoBadge } from '@/components/DemoBadge';
 import { EvidenceThumbs } from '@/components/evidence/EvidenceImage';
 import { useEnum } from '@/i18n/useEnum';
 import { useFormat } from '@/i18n/useFormat';
+import { AdVersionsPanel } from './AdVersionsPanel';
 import { HighlightedText } from './HighlightedText';
 import { LlmPanel } from './LlmPanel';
 import { ObjectLink } from './ObjectLink';
@@ -206,6 +207,8 @@ export function AdCard({ ad, highlighted = false, focusHitId = null }: Props) {
       </div>
 
       <LlmPanel ad={view} extraction={detail?.llm_extraction ?? null} editable={canEditRegistry} />
+
+      {detail && <AdVersionsPanel ad={detail} />}
 
       {detail && detail.evidence.length > 0 && (
         <div className={classes.section}>

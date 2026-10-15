@@ -659,9 +659,12 @@ def run(demo: bool, pilot: bool = False) -> None:
         run_pilot(factory)
     if not demo:
         return
+    from app.seed_versions import seed_demo_versions  # imported here: that module builds on this one
+
     with factory() as session:
         credentials = seed_demo_users(session)
         object_ids = seed_demo_objects(session)
+        object_ids += seed_demo_versions(session)
         ads = [
             (row.id, row.object_id)
             for row in session.execute(select(AdPost.id, AdPost.object_id).where(AdPost.object_id.in_(object_ids)))

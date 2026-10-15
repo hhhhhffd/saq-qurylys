@@ -7,6 +7,7 @@ from app.models import PhraseHit
 from app.models.enums import (
     AdOrigin,
     AdStatus,
+    AdVersionSource,
     CaptureStatus,
     DetectedBy,
     LinkMethod,
@@ -97,11 +98,29 @@ class LinkedObject(ORMModel):
     name: str
 
 
+class AdVersionOut(ORMModel):
+    """A later text of the publication (SPEC 10.6); `AdRow.text` stays the saved original."""
+
+    id: int
+    text: str
+    text_sha256: str
+    observed_at: datetime
+    source: AdVersionSource
+    # The capture of the page showing this text, when one was taken.
+    evidence_id: int | None
+
+
 class AdDetail(AdRow):
     phrase_hits: list[PhraseHitOut]
     evidence: list[EvidenceOut]
     llm_extraction: Extraction | None
     linked_object: LinkedObject | None
+    # Oldest first.
+    versions: list[AdVersionOut]
+    # When the original was saved: the capture time, else the time the post was entered.
+    original_captured_at: datetime
+    # The first screenshot of the publication: the proof of what the original looked like.
+    original_evidence: EvidenceOut | None
 
 
 class CaptureRequest(BaseModel):

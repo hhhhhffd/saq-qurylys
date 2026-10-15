@@ -142,8 +142,12 @@ def put_evidence(
     *,
     link: EvidenceLink,
     created_by: int | None = None,
+    captured_at: datetime | None = None,
 ) -> Evidence:
     """Record the Evidence row (flushed, not committed) and store the bytes under Object Lock.
+
+    `captured_at` dates a capture made earlier than now (demo data); such evidence gets no RFC 3161 token, since a
+    token states the time it was issued.
 
     The row is flushed first so constraint violations surface before anything is written to the
     locked bucket; if the upload then fails the caller's transaction is rolled back. If the commit
@@ -157,7 +161,8 @@ def put_evidence(
     retention_until = datetime.now(UTC) + timedelta(days=settings.evidence_retention_days)
     lock_mode = LockMode(settings.evidence_lock_mode)
     key = f"{owner_name.removesuffix('_id')}/{owner_id}/{secrets.token_hex(16)}{extension_for(content_type)}"
-    tsa_token = request_timestamp(digest.digest(), settings.tsa_url) if settings.tsa_url else None
+    timestamped = settings.tsa_url and captured_at is None
+    tsa_token = request_timestamp(digest.digest(), settings.tsa_url) if timestamped else None
 
     evidence = Evidence(
         kind=kind,
@@ -173,6 +178,8 @@ def put_evidence(
         created_by=created_by,
         **vars(link),
     )
+    if captured_at is not None:
+        evidence.captured_at = captured_at
     session.add(evidence)
     session.flush()
     session.refresh(evidence)

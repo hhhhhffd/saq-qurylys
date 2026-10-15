@@ -632,6 +632,12 @@ export interface AdRow {
 }
 
 export interface AdDetail extends AdRow {
+  /** later texts that differ from the saved original, oldest first (SPEC 10.6) */
+  versions: AdVersion[];
+  /** when the original was saved: the capture time, else the time the publication was entered */
+  original_captured_at: string;
+  /** the first screenshot of the publication */
+  original_evidence: AdEvidence | null;
   phrase_hits: PhraseHit[];
   evidence: EvidenceMeta[];
   llm_extraction: LlmExtraction | null;
@@ -886,4 +892,22 @@ export interface ActivityEvent {
 export interface ActivityFeed {
   items: ActivityEvent[];
   cursor: string;
+}
+
+// ---------------------------------------------------------------- ad versions (SPEC 10.6)
+
+/** A later text of a publication that differs from the saved original (`AdRow.text`). */
+export interface AdVersion {
+  id: number;
+  text: string;
+  text_sha256: string;
+  observed_at: string;
+  source: AdVersionSource;
+  /** the capture of the page that showed this text; null when none was taken */
+  evidence_id: number | null;
+}
+
+/** Evidence as `GET /ads/{id}` sends it: with the flag of an RFC 3161 time stamp. */
+export interface AdEvidence extends EvidenceMeta {
+  has_tsa_token: boolean;
 }

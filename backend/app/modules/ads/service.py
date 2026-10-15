@@ -8,9 +8,9 @@ from sqlalchemy.orm import Session
 from app.collectors.base import CollectedPost, get_collector, registered_platforms
 from app.config import get_settings
 from app.errors import api_error
-from app.models import AdPost, ConstructionObject, Evidence, PhraseHit, SourceAccount
-from app.models.enums import AdOrigin, CaptureStatus, Platform
-from app.modules.ads.schemas import AdDetail, AdRow, LinkedObject, PhraseHitOut
+from app.models import AdPost, AdPostVersion, ConstructionObject, Evidence, PhraseHit, SourceAccount
+from app.models.enums import AdOrigin, CaptureStatus, EvidenceKind, Platform
+from app.modules.ads.schemas import AdDetail, AdRow, AdVersionOut, LinkedObject, PhraseHitOut
 from app.modules.ads.urls import handle_from_url
 from app.modules.evidence.schemas import EvidenceOut
 from app.modules.nlp.llm import Extraction
@@ -39,15 +39,26 @@ def build_detail(session: Session, ad: AdPost) -> AdDetail:
     hits = session.scalars(
         select(PhraseHit).where(PhraseHit.ad_post_id == ad.id).order_by(PhraseHit.start, PhraseHit.id)
     )
-    evidence = session.scalars(select(Evidence).where(Evidence.ad_post_id == ad.id).order_by(Evidence.id))
+    evidence = [
+        EvidenceOut.model_validate(item)
+        for item in session.scalars(select(Evidence).where(Evidence.ad_post_id == ad.id).order_by(Evidence.id))
+    ]
+    versions = session.scalars(
+        select(AdPostVersion)
+        .where(AdPostVersion.ad_post_id == ad.id)
+        .order_by(AdPostVersion.observed_at, AdPostVersion.id)
+    )
     text = ad.text or ""
     extraction = Extraction.model_validate(ad.llm_extraction) if ad.llm_extraction is not None else None
     return AdDetail(
         **build_row(ad, obj.name if obj else None).model_dump(),
         phrase_hits=[PhraseHitOut.from_hit(hit, text, finding_for_hit(hit, extraction)) for hit in hits],
-        evidence=[EvidenceOut.model_validate(item) for item in evidence],
+        evidence=evidence,
         llm_extraction=extraction,
         linked_object=LinkedObject.model_validate(obj) if obj else None,
+        versions=[AdVersionOut.model_validate(version) for version in versions],
+        original_captured_at=ad.captured_at or ad.created_at,
+        original_evidence=next((item for item in evidence if item.kind is EvidenceKind.screenshot_png), None),
     )
 
 

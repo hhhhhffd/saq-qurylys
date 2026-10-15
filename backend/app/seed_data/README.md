@@ -134,6 +134,24 @@ Rules:
 `--demo` also creates users `demo_admin`, `demo_mio` (Усть-Каменогорск), `demo_gask` (Усть-Каменогорск) and
 `demo_police` (whole region). Their password is `DEMO_USER_PASSWORD` if set, otherwise random and printed once.
 
+## `demo_versions.json` (only with `--demo`)
+
+The story of SPEC 10.6, «Удалили — а у нас осталось»: a fictional object ЖК «Малахит» (own developer, own phones
+`+7 700 000 91 xx`, so no other object is linked to it and no other score moves) with one Telegram post. Read by
+`app/seed_versions.py`, loaded after `demo_objects.json`, idempotent. The shape is
+`{"developers": [...], "object": {...}, "history": {...}}`; `developers` and `object` are as in `demo_objects.json`,
+the object has exactly one ad (status `removed_saved`), `history` says what happened to it:
+
+- `captured`: when the original was captured (relative, `"-90h"`); `original_screenshot`: a file of this directory
+  stored as the screenshot evidence of that moment.
+- `versions`: later texts, each with `observed_after_hours` since the capture, `source` (`capture`, `collector` or
+  `recheck`) and an optional `screenshot` file stored as the evidence of that moment.
+- `removed_after_hours`: when the removal was found (`removed_detected_at`, `last_checked_at`).
+
+The screenshots (`demo_versions_original.png`, `demo_versions_edited.png`) show a synthetic post of a fictional
+channel. They are stored without an RFC 3161 token: a token states when it was issued and cannot be backdated.
+The object scores 35 yellow: the saved original offers a booking, and a removed post still counts (R2 + R3).
+
 ## `pilot/ust-kamenogorsk-public-2026-10-13.json` (only with `--pilot`, optional)
 
 A snapshot of public data collected on 2026-10-13 (third-party data, not verified by SAQ): 26 residential complexes
