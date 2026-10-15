@@ -1,3 +1,476 @@
-from fastapi import APIRouter
+from datetime import UTC, datetime
+from typing import Annotated
+
+from fastapi import APIRouter, File, Form, Query, Request, Response, UploadFile
+from sqlalchemy import func, select
+
+from app import audit, storage
+from app.deps import ScopeDep, SessionDep, StaffUser
+from app.errors import api_error, forbidden
+from app.events import objects_changed
+from app.geo import make_point
+from app.models import AdPost, ConstructionObject, PhraseHit, SourceAccount, Territory
+from app.models.enums import (
+    AdStatus,
+    CaptureStatus,
+    DetectedBy,
+    EvidenceKind,
+    LinkMethod,
+    LlmStatus,
+    Platform,
+)
+from app.modules.ads import service
+from app.modules.ads.schemas import (
+    AdDetail,
+    AdPatch,
+    AdRow,
+    CaptureRequest,
+    HitConfirm,
+    PhraseHitOut,
+    SourceAccountCreate,
+    SourceAccountOut,
+    SourceAccountUpdate,
+)
+from app.modules.ads.urls import (
+    UnsafeUrlError,
+    detect_platform,
+    ensure_public_url,
+    external_id_for,
+    handle_from_url,
+    is_http_url,
+)
+from app.modules.developers.service import get_visible_developer
+from app.modules.nlp.llm import Extraction
+from app.modules.nlp.service import recompute_weights
+from app.modules.objects.service import get_object_in_scope
+from app.schemas import Page
+from app.storage import EvidenceLink
+from app.uploads import PHOTO_TYPES, read_upload
 
 router = APIRouter(tags=["ads"])
+
+MAX_PHOTOS = 20
+MAX_TOTAL_PHOTO_BYTES = 100 * 1024 * 1024
+MAX_TEXT_CHARS = 50_000
+MAX_SOURCE_ACCOUNTS = 500
+
+
+def _escape_like(value: str) -> str:
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+def _public_url(url: str) -> str:
+    if not is_http_url(url):
+        raise api_error(422, "invalid_url", "Ссылка должна начинаться с http:// или https://")
+    return url
+
+
+def _new_ad_fields(session: SessionDep, scope: ScopeDep, user: StaffUser, object_id: int | None) -> dict[str, object]:
+    """Link and territory of a publication entered by a person: the object they name, else their territory."""
+    if object_id is None:
+        return {"territory_id": user.territory_id}
+    obj = get_object_in_scope(session, scope, object_id)
+    return {
+        "object_id": obj.id,
+        "territory_id": obj.territory_id,
+        "link_method": LinkMethod.manual,
+        "link_confidence": 1.0,
+    }
+
+
+# ---------------------------------------------------------------- publications
+
+
+@router.get("/ads", response_model=Page[AdRow])
+def list_ads(
+    session: SessionDep,
+    user: StaffUser,
+    scope: ScopeDep,
+    limit: Annotated[int, Query(ge=1, le=500)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    platform: Annotated[Platform | None, Query()] = None,
+    object_id: Annotated[int | None, Query()] = None,
+    status: Annotated[AdStatus | None, Query()] = None,
+    q: Annotated[str | None, Query(max_length=200)] = None,
+) -> Page[AdRow]:
+    stmt = select(AdPost, ConstructionObject.name).outerjoin(
+        ConstructionObject, ConstructionObject.id == AdPost.object_id
+    )
+    stmt = scope.restrict(stmt, AdPost.territory_id)
+    if platform is not None:
+        stmt = stmt.where(AdPost.platform == platform)
+    if object_id is not None:
+        stmt = stmt.where(AdPost.object_id == object_id)
+    if status is not None:
+        stmt = stmt.where(AdPost.status == status)
+    if q and q.strip():
+        pattern = f"%{_escape_like(q.strip())}%"
+        stmt = stmt.where(
+            AdPost.text.ilike(pattern)
+            | AdPost.author.ilike(pattern)
+            | AdPost.url.ilike(pattern)
+            | ConstructionObject.name.ilike(pattern)
+            | func.array_to_string(AdPost.phones, " ").ilike(pattern)
+        )
+    total = session.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0
+    # Posts without a known publication date are ordered by the time they were captured or entered.
+    recency = func.coalesce(AdPost.published_at, AdPost.captured_at, AdPost.created_at)
+    rows = session.execute(
+        stmt.order_by(AdPost.max_phrase_weight.desc(), recency.desc(), AdPost.id.desc()).limit(limit).offset(offset)
+    )
+    return Page(items=[service.build_row(ad, object_name) for ad, object_name in rows], total=total)
+
+
+@router.post("/ads/capture", response_model=AdDetail, status_code=201)
+def capture_ad(
+    body: CaptureRequest, response: Response, session: SessionDep, user: StaffUser, scope: ScopeDep, request: Request
+) -> AdDetail:
+    """Register a publication by its URL; a worker archives the page and analyzes the text."""
+    url = _public_url(body.url)
+    try:
+        ensure_public_url(url)
+    except UnsafeUrlError as exc:
+        raise api_error(422, "url_not_allowed", str(exc)) from exc
+    platform = body.platform or detect_platform(url)
+    external_id = external_id_for(platform, url)
+
+    existing = session.scalar(select(AdPost).where(AdPost.platform == platform, AdPost.external_id == external_id))
+    if existing is not None:
+        if not scope.contains(existing.territory_id):
+            raise api_error(409, "ad_exists", "Эта публикация уже зафиксирована")
+        response.status_code = 200
+        if existing.capture_status not in {None, CaptureStatus.failed}:
+            return service.build_detail(session, existing)
+        before = audit.snapshot(existing)
+        existing.capture_status = CaptureStatus.pending
+        existing.capture_error = None
+        audit.record(session, user, "ad.recapture", "ad_post", existing.id, before, audit.snapshot(existing), request)
+        session.commit()
+        if not service.dispatch_pipeline(existing.id, capture=True, requested_by=user.id):
+            service.mark_capture_unqueued(session, existing)
+        return service.build_detail(session, existing)
+
+    fields = _new_ad_fields(session, scope, user, body.object_id)
+    source = service.resolve_source_account(session, platform, url)
+    ad = AdPost(
+        platform=platform,
+        url=url,
+        external_id=external_id,
+        author=handle_from_url(platform, url),
+        source_account_id=source.id if source else None,
+        capture_status=CaptureStatus.pending,
+        **fields,
+    )
+    session.add(ad)
+    session.flush()
+    session.refresh(ad)
+    audit.record(session, user, "ad.capture", "ad_post", ad.id, None, audit.snapshot(ad), request)
+    session.commit()
+    if not service.dispatch_pipeline(ad.id, capture=True, requested_by=user.id):
+        service.mark_capture_unqueued(session, ad)
+    return service.build_detail(session, ad)
+
+
+@router.post("/ads/manual", response_model=AdDetail, status_code=201)
+def create_manual_ad(
+    session: SessionDep,
+    user: StaffUser,
+    scope: ScopeDep,
+    request: Request,
+    text: Annotated[str, Form(min_length=1, max_length=MAX_TEXT_CHARS)],
+    platform: Annotated[Platform, Form()],
+    url: Annotated[str | None, Form(max_length=2000)] = None,
+    object_id: Annotated[int | None, Form()] = None,
+    published_at: Annotated[datetime | None, Form()] = None,
+    is_outdoor: Annotated[bool, Form()] = False,
+    lat: Annotated[float | None, Form(ge=-90, le=90)] = None,
+    lon: Annotated[float | None, Form(ge=-180, le=180)] = None,
+    photos: Annotated[list[UploadFile] | None, File()] = None,
+    photos_brackets: Annotated[list[UploadFile] | None, File(alias="photos[]")] = None,
+) -> AdDetail:
+    """Enter a publication by hand (text and photos); outdoor advertising carries a map point."""
+    text = text.strip()
+    if not text:
+        raise api_error(422, "validation_error", "Текст публикации не может быть пустым")
+    if (lat is None) != (lon is None):
+        raise api_error(422, "validation_error", "Координаты lat и lon указываются вместе")
+    url = url.strip() if url and url.strip() else None
+    if url is not None:
+        _public_url(url)
+    uploads = [upload for upload in (*(photos or []), *(photos_brackets or [])) if upload.filename]
+    if len(uploads) > MAX_PHOTOS:
+        raise api_error(422, "too_many_photos", f"Не более {MAX_PHOTOS} фотографий")
+    # Validate every file before anything is written to storage.
+    payloads: list[tuple[bytes, str]] = []
+    total_bytes = 0
+    for upload in uploads:
+        data, content_type = read_upload(upload, PHOTO_TYPES)
+        total_bytes += len(data)
+        if total_bytes > MAX_TOTAL_PHOTO_BYTES:
+            raise api_error(413, "request_too_large", "Суммарный размер фотографий больше 100 МБ")
+        payloads.append((data, content_type))
+
+    external_id = external_id_for(platform, url) if url else None
+    if external_id is not None and session.scalar(
+        select(AdPost.id).where(AdPost.platform == platform, AdPost.external_id == external_id)
+    ):
+        raise api_error(409, "ad_exists", "Эта публикация уже внесена")
+    fields = _new_ad_fields(session, scope, user, object_id)
+    ad = AdPost(
+        platform=platform,
+        url=url,
+        external_id=external_id,
+        text=text,
+        published_at=published_at,
+        captured_at=datetime.now(UTC),
+        is_outdoor=is_outdoor,
+        location=make_point(lat, lon),
+        **fields,
+    )
+    session.add(ad)
+    session.flush()
+    evidence_ids = [
+        storage.put_evidence(
+            session,
+            data,
+            EvidenceKind.photo,
+            content_type,
+            link=EvidenceLink(ad_post_id=ad.id),
+            created_by=user.id,
+        ).id
+        for data, content_type in payloads
+    ]
+    session.refresh(ad)
+    audit.record(
+        session,
+        user,
+        "ad.manual_create",
+        "ad_post",
+        ad.id,
+        None,
+        {**audit.snapshot(ad), "evidence_ids": evidence_ids},
+        request,
+    )
+    session.commit()
+    service.dispatch_pipeline(ad.id, capture=False, requested_by=user.id)
+    return service.build_detail(session, ad)
+
+
+@router.get("/ads/{ad_id}", response_model=AdDetail)
+def get_ad(ad_id: int, session: SessionDep, user: StaffUser, scope: ScopeDep) -> AdDetail:
+    return service.build_detail(session, service.get_ad_in_scope(session, scope, ad_id))
+
+
+@router.patch("/ads/{ad_id}", response_model=AdDetail)
+def update_ad(
+    ad_id: int, body: AdPatch, session: SessionDep, user: StaffUser, scope: ScopeDep, request: Request
+) -> AdDetail:
+    ad = service.get_ad_in_scope(session, scope, ad_id)
+    changes = body.model_dump(exclude_unset=True)
+    before = audit.snapshot(ad)
+    previous_object_id = ad.object_id
+
+    if "object_id" in changes:
+        new_object_id = changes.pop("object_id")
+        if new_object_id is None:
+            ad.object_id = None
+            ad.link_method = None
+            ad.link_confidence = None
+        else:
+            obj = get_object_in_scope(session, scope, new_object_id)
+            ad.object_id = obj.id
+            ad.territory_id = obj.territory_id
+            ad.link_method = LinkMethod.manual
+            ad.link_confidence = 1.0
+            if "status" not in changes and ad.status is AdStatus.verification:
+                ad.status = AdStatus.captured  # a person has decided the link
+    if "status" in changes:
+        new_status = changes.pop("status")
+        if new_status is AdStatus.removed_saved and ad.removed_detected_at is None:
+            ad.removed_detected_at = datetime.now(UTC)
+        elif new_status is not AdStatus.removed_saved:
+            ad.removed_detected_at = None
+        ad.status = new_status
+    for field, value in changes.items():
+        setattr(ad, field, value)
+
+    session.flush()
+    affected = [object_id for object_id in dict.fromkeys([previous_object_id, ad.object_id]) if object_id is not None]
+    for object_id in affected:
+        service.refresh_claimed_readiness(session, object_id)
+    session.refresh(ad)
+    audit.record(session, user, "ad.update", "ad_post", ad.id, before, audit.snapshot(ad), request)
+    session.commit()
+    objects_changed(affected)
+    return service.build_detail(session, ad)
+
+
+@router.post("/ads/{ad_id}/hits/{hit_id}/confirm", response_model=PhraseHitOut)
+def confirm_hit(
+    ad_id: int, hit_id: int, body: HitConfirm, session: SessionDep, user: StaffUser, scope: ScopeDep, request: Request
+) -> PhraseHitOut:
+    ad = service.get_ad_in_scope(session, scope, ad_id)
+    hit = session.get(PhraseHit, hit_id)
+    if hit is None or hit.ad_post_id != ad.id:
+        raise api_error(404, "hit_not_found", "Формулировка в публикации не найдена")
+    before = audit.snapshot(hit)
+    hit.confirmed = body.confirmed
+    hit.confirmed_by = user.id
+    session.flush()
+    recompute_weights(session, ad)
+    audit.record(session, user, "ad.confirm_hit", "phrase_hit", hit.id, before, audit.snapshot(hit), request)
+    result = PhraseHitOut.from_hit(hit, ad.text or "")
+    session.commit()
+    if ad.object_id is not None:
+        objects_changed([ad.object_id])
+    return result
+
+
+@router.post("/ads/{ad_id}/accept-llm", response_model=AdDetail)
+def accept_llm(ad_id: int, session: SessionDep, user: StaffUser, scope: ScopeDep, request: Request) -> AdDetail:
+    """Move what the model extracted into the confirmed fields of the publication."""
+    ad = service.get_ad_in_scope(session, scope, ad_id)
+    if ad.llm_status is not LlmStatus.done or ad.llm_extraction is None:
+        raise api_error(409, "llm_not_ready", "Нет результата ИИ для подтверждения")
+    extraction = Extraction.model_validate(ad.llm_extraction)
+    before = audit.snapshot(ad)
+    ad.payment_schemes = list(
+        dict.fromkeys([*ad.payment_schemes, *(scheme.value for scheme in extraction.payment_schemes)])
+    )
+    if extraction.claimed_readiness_pct is not None:
+        ad.claimed_readiness_pct = extraction.claimed_readiness_pct
+    if extraction.price_before_completion:
+        ad.price_before_completion = True
+    for hit in session.scalars(
+        select(PhraseHit).where(
+            PhraseHit.ad_post_id == ad.id, PhraseHit.detected_by == DetectedBy.llm, PhraseHit.confirmed.is_(None)
+        )
+    ):
+        hit.confirmed = True
+        hit.confirmed_by = user.id
+    session.flush()
+    recompute_weights(session, ad)
+    if ad.object_id is not None:
+        service.refresh_claimed_readiness(session, ad.object_id)
+    audit.record(session, user, "ad.accept_llm", "ad_post", ad.id, before, audit.snapshot(ad), request)
+    session.commit()
+    if ad.object_id is not None:
+        objects_changed([ad.object_id])
+    return service.build_detail(session, ad)
+
+
+# ---------------------------------------------------------------- source accounts
+
+
+def _normalize_handle(handle: str) -> str:
+    return handle.strip().removeprefix("@").lower()
+
+
+def _get_account(session: SessionDep, scope: ScopeDep, account_id: int) -> SourceAccount:
+    account = session.get(SourceAccount, account_id)
+    if account is None or not scope.contains(account.territory_id):
+        raise api_error(404, "source_account_not_found", "Аккаунт не найден")
+    return account
+
+
+def _check_account_references(
+    session: SessionDep, scope: ScopeDep, object_id: int | None, developer_id: int | None, territory_id: int | None
+) -> None:
+    if object_id is not None:
+        get_object_in_scope(session, scope, object_id)
+    if developer_id is not None:
+        get_visible_developer(session, scope, developer_id)
+    if territory_id is not None:
+        if session.get(Territory, territory_id) is None:
+            raise api_error(422, "territory_not_found", "Территория не найдена")
+        if not scope.contains(territory_id):
+            raise forbidden("Территория вне вашей зоны ответственности")
+
+
+def _ensure_account_unique(session: SessionDep, platform: Platform, handle: str, own_id: int | None = None) -> None:
+    stmt = select(SourceAccount.id).where(
+        SourceAccount.platform == platform, func.lower(SourceAccount.handle) == handle
+    )
+    if own_id is not None:
+        stmt = stmt.where(SourceAccount.id != own_id)
+    if session.scalar(stmt) is not None:
+        raise api_error(409, "source_account_exists", "Такой аккаунт уже добавлен")
+
+
+@router.get("/source-accounts", response_model=Page[SourceAccountOut])
+def list_source_accounts(
+    session: SessionDep,
+    user: StaffUser,
+    scope: ScopeDep,
+    limit: Annotated[int, Query(ge=1, le=MAX_SOURCE_ACCOUNTS)] = MAX_SOURCE_ACCOUNTS,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    platform: Annotated[Platform | None, Query()] = None,
+    object_id: Annotated[int | None, Query()] = None,
+    is_watched: Annotated[bool | None, Query()] = None,
+) -> Page[SourceAccountOut]:
+    stmt = scope.restrict(select(SourceAccount), SourceAccount.territory_id)
+    if platform is not None:
+        stmt = stmt.where(SourceAccount.platform == platform)
+    if object_id is not None:
+        stmt = stmt.where(SourceAccount.object_id == object_id)
+    if is_watched is not None:
+        stmt = stmt.where(SourceAccount.is_watched == is_watched)
+    total = session.scalar(select(func.count()).select_from(stmt.subquery())) or 0
+    rows = session.scalars(stmt.order_by(SourceAccount.platform, SourceAccount.handle).limit(limit).offset(offset))
+    return Page(items=[SourceAccountOut.model_validate(row) for row in rows], total=total)
+
+
+@router.post("/source-accounts", response_model=SourceAccountOut, status_code=201)
+def create_source_account(
+    body: SourceAccountCreate, session: SessionDep, user: StaffUser, scope: ScopeDep, request: Request
+) -> SourceAccount:
+    handle = _normalize_handle(body.handle) if body.handle else None
+    if handle is None and body.url is not None:
+        handle = handle_from_url(body.platform, body.url)
+    if not handle:
+        raise api_error(422, "validation_error", "Не удалось определить имя аккаунта: укажите handle")
+    _check_account_references(session, scope, body.object_id, body.developer_id, body.territory_id)
+    _ensure_account_unique(session, body.platform, handle)
+    territory_id = body.territory_id
+    if territory_id is None:
+        object_territory = (
+            session.scalar(select(ConstructionObject.territory_id).where(ConstructionObject.id == body.object_id))
+            if body.object_id is not None
+            else None
+        )
+        territory_id = object_territory if object_territory is not None else user.territory_id
+    account = SourceAccount(
+        **body.model_dump(exclude={"handle", "territory_id"}), handle=handle, territory_id=territory_id
+    )
+    session.add(account)
+    session.flush()
+    session.refresh(account)
+    audit.record(
+        session, user, "source_account.create", "source_account", account.id, None, audit.snapshot(account), request
+    )
+    session.commit()
+    return account
+
+
+@router.patch("/source-accounts/{account_id}", response_model=SourceAccountOut)
+def update_source_account(
+    account_id: int, body: SourceAccountUpdate, session: SessionDep, user: StaffUser, scope: ScopeDep, request: Request
+) -> SourceAccount:
+    account = _get_account(session, scope, account_id)
+    changes = body.model_dump(exclude_unset=True)
+    _check_account_references(
+        session, scope, changes.get("object_id"), changes.get("developer_id"), changes.get("territory_id")
+    )
+    if "handle" in changes:
+        changes["handle"] = _normalize_handle(changes["handle"])
+        _ensure_account_unique(session, account.platform, changes["handle"], account.id)
+    before = audit.snapshot(account)
+    for field, value in changes.items():
+        setattr(account, field, value)
+    session.flush()
+    session.refresh(account)
+    audit.record(
+        session, user, "source_account.update", "source_account", account.id, before, audit.snapshot(account), request
+    )
+    session.commit()
+    return account
