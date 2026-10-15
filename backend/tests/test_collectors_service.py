@@ -1,18 +1,23 @@
 """Collection of accounts: ingest of posts and photos, edits, errors of a source and the notice about them."""
 
+import logging
 import socket
 from collections.abc import Iterable, Iterator
-from datetime import datetime
+from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 import httpx
 import pytest
+from selectolax.lexbor import LexborHTMLParser
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.collectors import base
+from app.collectors import lock as collect_lock
 from app.collectors.base import CollectedPost, CollectorError, IsKnown
 from app.collectors.media import MAX_PHOTO_BYTES, MAX_PHOTOS
+from app.collectors.telegram import parse_message
 from app.models import AdPost, AdPostVersion, AppUser, Evidence, Notification, SourceAccount
 from app.models.enums import (
     AdOrigin,
@@ -24,10 +29,16 @@ from app.models.enums import (
     Platform,
     Role,
 )
-from app.modules.ads import service, tasks
+from app.modules.ads import recheck, service, tasks
 from app.modules.ads import urls as ads_urls
+from app.modules.ads.versions import record_version
+from app.modules.nlp.service import analyze_ad
+from app.modules.nlp.text import split_ocr
 from tests.conftest import PNG_BYTES, World
+from tests.support_collect import collect_locks, lock_db  # noqa: F401
 from tests.test_ads_tasks import SessionFactory
+
+pytestmark = pytest.mark.usefixtures("collect_locks")
 
 JPEG_BYTES = b"\xff\xd8\xff\xe0" + b"\x00" * 64
 CDN = "https://cdn.alatau.test"
@@ -36,6 +47,19 @@ CDN = "https://cdn.alatau.test"
 @pytest.fixture
 def empty_registry(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(base, "_registry", {})
+
+
+@pytest.fixture
+def dispatched(monkeypatch: pytest.MonkeyPatch) -> list[tuple[int, bool, int | None]]:
+    """The pipelines the collection queues (the broker answers)."""
+    queued: list[tuple[int, bool, int | None]] = []
+
+    def record(ad_post_id: int, *, capture: bool, requested_by: int | None) -> bool:
+        queued.append((ad_post_id, capture, requested_by))
+        return True
+
+    monkeypatch.setattr(service, "dispatch_pipeline", record)
+    return queued
 
 
 @pytest.fixture
@@ -117,11 +141,10 @@ def test_photos_are_stored_as_evidence_after_the_checks(db: Session, world: Worl
         "file:///etc/passwd",
     ]
 
-    ad = service.ingest_collected_post(
-        db, account, collected(url="https://t.me/alatau_demo/1", media_urls=urls), capture=True, client=media.client()
-    )
-
+    ad = service.ingest_collected_post(db, account, collected(url="https://t.me/alatau_demo/1"), capture=True)
     assert ad is not None
+    service.store_collected_photos(db, ad, urls, media.client())
+
     stored = list(db.scalars(select(Evidence).where(Evidence.ad_post_id == ad.id).order_by(Evidence.id)))
     assert [(item.kind, item.content_type, item.source_url) for item in stored] == [
         (EvidenceKind.photo, "image/png", f"{CDN}/ok.png"),
@@ -138,11 +161,10 @@ def test_at_most_ten_photos_are_kept(db: Session, world: World) -> None:
     media = Media({f"/{number}.png": photo(PNG_BYTES) for number in range(MAX_PHOTOS + 2)})
     urls = [f"{CDN}/{number}.png" for number in range(MAX_PHOTOS + 2)]
 
-    ad = service.ingest_collected_post(
-        db, telegram_account(db, world), collected(media_urls=urls), capture=True, client=media.client()
-    )
-
+    ad = service.ingest_collected_post(db, telegram_account(db, world), collected(), capture=True)
     assert ad is not None
+    service.store_collected_photos(db, ad, urls, media.client())
+
     assert len(db.scalars(select(Evidence).where(Evidence.ad_post_id == ad.id)).all()) == MAX_PHOTOS
 
 
@@ -150,16 +172,18 @@ def test_at_most_ten_photos_are_kept(db: Session, world: World) -> None:
 def test_a_post_whose_photos_all_fail_is_still_stored_without_ocr(db: Session, world: World) -> None:
     media = Media({})
 
-    ad = service.ingest_collected_post(
-        db, telegram_account(db, world), collected(media_urls=[f"{CDN}/gone.png"]), capture=True, client=media.client()
-    )
+    ad = service.ingest_collected_post(db, telegram_account(db, world), collected(), capture=True)
+    assert ad is not None
+    service.store_collected_photos(db, ad, [f"{CDN}/gone.png"], media.client())
 
-    assert ad is not None and ad.ocr_status is None and ad.text == "Бронь квартир"
+    assert ad.ocr_status is None and ad.text == "Бронь квартир"
     assert db.scalars(select(Evidence)).all() == []
 
 
-def test_a_post_without_media_needs_no_client(db: Session, world: World) -> None:
-    ad = service.ingest_collected_post(db, telegram_account(db, world), collected(), capture=True)
+def test_a_post_is_stored_without_its_photos_which_come_in_a_later_step(db: Session, world: World) -> None:
+    ad = service.ingest_collected_post(
+        db, telegram_account(db, world), collected(media_urls=[f"{CDN}/ok.png"]), capture=True
+    )
 
     assert ad is not None and ad.ocr_status is None
 
@@ -199,6 +223,53 @@ def test_a_known_post_with_a_new_text_gets_a_version(db: Session, world: World) 
     ]
     assert first.text == "Бронь за 10%"  # the saved original is never rewritten
     assert db.scalars(select(AdPost)).all() == [first]
+
+
+def test_nul_characters_and_the_ocr_marker_are_removed_from_third_party_text(db: Session, world: World) -> None:
+    account = telegram_account(db, world)
+    post = collected(text="Бронь\x00 10%\n\n[OCR]\nподделка", author="Ал\x00атау")
+
+    ad = service.ingest_collected_post(db, account, post, capture=True)
+
+    assert ad is not None
+    assert (ad.text, ad.author) == ("Бронь 10%\n\nподделка", "Алатау")
+    assert split_ocr(ad.text or "")[1] is None  # nothing is passed for the text read from the photos
+    # The same post seen again has the same text: it is no edit.
+    assert service.ingest_collected_post(db, account, post, capture=True) is None
+    assert db.scalars(select(AdPostVersion)).all() == []
+
+
+def test_the_links_taken_from_the_markup_survive_the_analysis(db: Session, world: World) -> None:
+    post = collected(text="Подробнее: https://shown.test/x", links=["https://hidden.test/a", "https://shown.test/x"])
+
+    ad = service.ingest_collected_post(db, telegram_account(db, world), post, capture=True)
+
+    assert ad is not None and ad.links == ["https://hidden.test/a", "https://shown.test/x"]
+    analyze_ad(db, ad)
+    analyze_ad(db, ad)
+    assert ad.links == ["https://hidden.test/a", "https://shown.test/x"]
+
+
+def test_a_collected_post_with_a_text_link_is_what_the_recheck_reads_and_adds_no_version(
+    db: Session, world: World, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    html = (Path(__file__).parent / "fixtures" / "collectors" / "telegram_page1.html").read_text(encoding="utf-8")
+    message = LexborHTMLParser(html).css_first('div.tgme_widget_message[data-post="zhk_alatau_demo/101"]')
+    assert message is not None
+    post = parse_message(message)
+    assert post is not None and "смотрите здесь" in post.text
+    account = telegram_account(db, world, "zhk_alatau_demo")
+    ad = service.ingest_collected_post(db, account, post, capture=True)
+    assert ad is not None
+
+    monkeypatch.setattr(recheck, "ensure_public_url", lambda url: None)
+    widget = httpx.Client(transport=httpx.MockTransport(lambda request: httpx.Response(200, text=html)))
+    removed, widget_text = recheck.read_telegram_post(widget, "https://t.me/zhk_alatau_demo/101")
+
+    assert removed is False and widget_text is not None
+    assert record_version(db, ad, widget_text, AdVersionSource.recheck, datetime.now(UTC)) is None
+    assert service.ingest_collected_post(db, account, post, capture=True) is None  # collected again
+    assert db.scalars(select(AdPostVersion)).all() == []
 
 
 # ---------------------------------------------------------------- running the collectors
@@ -321,19 +392,29 @@ def test_posts_read_before_the_error_are_kept(db: Session, world: World) -> None
     created = service.run_collectors(db)
 
     ad = db.scalars(select(AdPost)).one()
-    assert created == [(ad.id, True)] and ad.source_account_id == account.id
+    assert created == [ad.id] and ad.source_account_id == account.id
     assert account.last_error == "сбой" and account.last_collected_at is None
 
 
 @pytest.mark.usefixtures("empty_registry")
-def test_the_collector_decides_whether_pages_are_captured(db: Session, world: World) -> None:
-    base.register(Scripted([collected(url="https://t.me/alatau_demo/1")], capture_urls=False))
+def test_the_collector_decides_whether_pages_are_captured(
+    db: Session, world: World, dispatched: list[tuple[int, bool, int | None]]
+) -> None:
+    collector = Scripted([collected(url="https://t.me/alatau_demo/1")], capture_urls=False)
+    base.register(collector)
     telegram_account(db, world)
 
-    created = service.run_collectors(db)
+    service.run_collectors(db)
 
-    assert [capture for _, capture in created] == [False]
-    assert db.scalars(select(AdPost)).one().capture_status is None
+    ad = db.scalars(select(AdPost)).one()
+    assert ad.capture_status is None and dispatched == [(ad.id, False, None)]
+
+    collector.capture_urls = True
+    collector.posts = [collected("alatau_demo/2", url="https://t.me/alatau_demo/2")]
+    service.run_collectors(db)
+
+    captured = db.scalars(select(AdPost).where(AdPost.external_id == "alatau_demo/2")).one()
+    assert captured.capture_status is CaptureStatus.pending and dispatched[-1] == (captured.id, True, None)
 
 
 @pytest.mark.usefixtures("empty_registry")
@@ -384,23 +465,287 @@ def test_collect_source_collects_that_account_only(db: Session, world: World) ->
     assert service.collect_source(db, 0) == []
 
 
-@pytest.mark.usefixtures("empty_registry")
-def test_collect_source_task_queues_the_pipeline_of_new_posts(db: Session, monkeypatch: pytest.MonkeyPatch) -> None:
-    queued: list[tuple[int, bool, int | None]] = []
-    seen: list[int] = []
+def test_collect_source_task_collects_that_account_in_its_session(db: Session, monkeypatch: pytest.MonkeyPatch) -> None:
+    seen: list[tuple[Session, int]] = []
 
-    def collect_source(session: Session, source_id: int) -> list[tuple[int, bool]]:
-        seen.append(source_id)
-        return [(21, True), (22, False)]
-
-    def record(ad_id: int, *, capture: bool, requested_by: int | None) -> bool:
-        queued.append((ad_id, capture, requested_by))
-        return True
+    def collect_source(session: Session, source_id: int) -> list[int]:
+        seen.append((session, source_id))
+        return []
 
     monkeypatch.setattr(tasks, "get_sessionmaker", lambda: SessionFactory(db))
     monkeypatch.setattr(tasks.service, "collect_source", collect_source)
-    monkeypatch.setattr(tasks.service, "dispatch_pipeline", record)
 
     tasks.collect_source(5)
 
-    assert seen == [5] and queued == [(21, True, None), (22, False, None)]
+    assert seen == [(db, 5)]
+
+
+# ---------------------------------------------------------------- one failing account does not stop the run
+
+
+class PerAccount:
+    """A collector that serves each handle its own posts; a handle in `errors` raises after its posts."""
+
+    platform = Platform.telegram
+
+    def __init__(
+        self,
+        posts: dict[str, list[CollectedPost]],
+        errors: dict[str, Exception] | None = None,
+        capture_urls: bool = False,
+    ) -> None:
+        self.posts = posts
+        self.errors = errors or {}
+        self.capture_urls = capture_urls
+
+    def handles(self, account: SourceAccount) -> bool:
+        return True
+
+    def collect(self, account: SourceAccount, since: datetime, is_known: IsKnown) -> Iterator[CollectedPost]:
+        for post in self.posts.get(account.handle, []):
+            is_known(post.external_id)  # a collector reads the database, which opens a transaction
+            yield post
+        if account.handle in self.errors:
+            raise self.errors[account.handle]
+
+
+def dispatched_ids(dispatched: list[tuple[int, bool, int | None]]) -> list[int]:
+    return [ad_post_id for ad_post_id, _, _ in dispatched]
+
+
+UNEXPECTED = "Непредвиденная ошибка сбора, подробности в журнале сервера"
+
+
+@pytest.mark.usefixtures("empty_registry")
+def test_a_database_error_in_one_account_neither_aborts_the_run_nor_strands_the_saved_posts(
+    db: Session, world: World, dispatched: list[tuple[int, bool, int | None]]
+) -> None:
+    base.register(
+        PerAccount(
+            {
+                "good_one": [collected("good_one/1")],
+                # The author does not fit the column: the INSERT fails, as with a NUL character or a race.
+                "bad_channel": [collected("bad_channel/1"), collected("bad_channel/2", author="a" * 300)],
+                "good_two": [collected("good_two/1")],
+            }
+        )
+    )
+    good_one, bad, good_two = (
+        telegram_account(db, world, handle) for handle in ("good_one", "bad_channel", "good_two")
+    )
+    db.commit()
+
+    created = service.run_collectors(db)
+
+    ads = {ad.external_id: ad for ad in db.scalars(select(AdPost))}
+    # The posts committed before the failure stay, and every saved post got its pipeline at once.
+    assert sorted(ads, key=str) == ["bad_channel/1", "good_one/1", "good_two/1"]
+    assert (
+        created == dispatched_ids(dispatched) == [ads[key].id for key in ("good_one/1", "bad_channel/1", "good_two/1")]
+    )
+    assert bad.last_error == UNEXPECTED and bad.last_error_at is not None and bad.last_collected_at is None
+    assert recipients(db, bad)
+    for fine in (good_one, good_two):
+        assert fine.last_error is None and fine.last_collected_at is not None
+
+
+@pytest.mark.usefixtures("empty_registry")
+def test_a_failure_while_recording_the_outcome_does_not_stop_the_run(
+    db: Session, world: World, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    base.register(PerAccount({"after": [collected("after/1")]}, errors={"broken": CollectorError("сбой")}))
+    broken = telegram_account(db, world, "broken")
+    after = telegram_account(db, world, "after")
+    db.commit()
+
+    def refuse(session: Session, account: SourceAccount, error: str) -> None:
+        raise RuntimeError("the database went away")
+
+    monkeypatch.setattr(service, "_notify_collector_failed", refuse)
+
+    service.run_collectors(db)
+
+    assert db.scalars(select(AdPost.external_id)).all() == ["after/1"]
+    assert after.last_collected_at is not None and broken.last_collected_at is None
+
+
+# ---------------------------------------------------------------- the network stays out of transactions
+
+
+@pytest.mark.usefixtures("empty_registry", "bucket", "dns")
+def test_no_transaction_is_open_while_the_posts_are_read_stored_and_their_photos_downloaded(
+    db: Session, world: World, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    base.register(
+        PerAccount(
+            {
+                "alatau_demo": [
+                    collected("alatau_demo/1", media_urls=[f"{CDN}/1.png"]),
+                    collected("alatau_demo/2", media_urls=[f"{CDN}/2.png"]),
+                ]
+            }
+        )
+    )
+    telegram_account(db, world)
+    db.commit()
+    open_when_stored: list[bool] = []
+    open_when_downloaded: list[bool] = []
+    original = service.ingest_collected_post
+
+    def ingest(*args: Any, **kwargs: Any) -> AdPost | None:
+        open_when_stored.append(db.in_transaction())
+        return original(*args, **kwargs)
+
+    def answer(request: httpx.Request) -> httpx.Response:
+        open_when_downloaded.append(db.in_transaction())
+        return photo(PNG_BYTES)
+
+    monkeypatch.setattr(service, "ingest_collected_post", ingest)
+
+    created = service.run_collectors(db, httpx.Client(transport=httpx.MockTransport(answer)))
+
+    # The collector read the database (a transaction), yet the first post is stored in a transaction of its own, the
+    # photos come after that post is committed, and the next post starts anew.
+    assert open_when_stored == [False, False]
+    assert open_when_downloaded == [False, False]
+    assert [ad.ocr_status for ad in db.scalars(select(AdPost).order_by(AdPost.id))] == [OcrStatus.pending] * 2
+    assert len(created) == 2
+
+
+@pytest.mark.usefixtures("empty_registry", "bucket", "dns")
+def test_a_failure_of_the_photos_leaves_the_post_which_still_gets_its_pipeline(
+    db: Session, world: World, dispatched: list[tuple[int, bool, int | None]], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    base.register(PerAccount({"alatau_demo": [collected("alatau_demo/1", media_urls=[f"{CDN}/1.png"])]}))
+    account = telegram_account(db, world)
+    db.commit()
+
+    def refuse(*args: Any, **kwargs: Any) -> None:
+        raise RuntimeError("the storage went away")
+
+    monkeypatch.setattr(service.storage, "put_evidence", refuse)
+
+    service.run_collectors(db, Media({"/1.png": photo(PNG_BYTES)}).client())
+
+    ad = db.scalars(select(AdPost)).one()
+    assert ad.ocr_status is None and dispatched == [(ad.id, False, None)]
+    assert account.last_error is None and account.last_collected_at is not None
+
+
+# ---------------------------------------------------------------- a pipeline that cannot be queued
+
+
+@pytest.mark.usefixtures("empty_registry", "bucket", "dns")
+def test_a_pipeline_that_cannot_be_queued_ends_the_pending_states_of_the_post(
+    db: Session, world: World, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    base.register(
+        PerAccount(
+            {
+                "alatau_demo": [
+                    collected("alatau_demo/1", url="https://t.me/alatau_demo/1", media_urls=[f"{CDN}/1.png"])
+                ]
+            },
+            capture_urls=True,
+        )
+    )
+    telegram_account(db, world)
+    db.commit()
+    monkeypatch.setattr(service, "dispatch_pipeline", lambda *args, **kwargs: False)
+
+    service.run_collectors(db, Media({"/1.png": photo(PNG_BYTES)}).client())
+
+    ad = db.scalars(select(AdPost)).one()
+    assert ad.capture_status is CaptureStatus.failed and ad.capture_error == "Не удалось поставить фиксацию в очередь"
+    assert ad.ocr_status is OcrStatus.failed
+
+
+# ---------------------------------------------------------------- one run per account
+
+
+class Reentrant(Scripted):
+    """While it collects an account, another run (the button, the schedule) asks for the same account."""
+
+    def __init__(self, db: Session, posts: Iterable[CollectedPost] = ()) -> None:
+        super().__init__(posts)
+        self.db = db
+        self.held: list[bool] = []
+        self.second_run: list[int] | None = None
+
+    def collect(self, account: SourceAccount, since: datetime, is_known: IsKnown) -> Iterator[CollectedPost]:
+        self.held.append(collect_lock.is_held(account.id))
+        if self.second_run is None:
+            self.second_run = []
+            self.second_run = service.collect_source(self.db, account.id)
+        yield from super().collect(account, since, is_known)
+
+
+@pytest.mark.usefixtures("empty_registry")
+def test_an_account_is_not_collected_twice_at_once(db: Session, world: World, caplog: pytest.LogCaptureFixture) -> None:
+    collector = Reentrant(db, [collected("alatau_demo/1")])
+    base.register(collector)
+    account = telegram_account(db, world)
+    db.commit()
+
+    with caplog.at_level(logging.INFO, logger="app.modules.ads.service"):
+        created = service.collect_source(db, account.id)
+
+    assert collector.calls == ["alatau_demo"]  # the second request did not reach the collector
+    assert collector.second_run == [] and collector.held == [True]
+    assert len(created) == 1 and db.scalars(select(AdPost)).one().external_id == "alatau_demo/1"
+    assert f"Source account {account.id} is being collected by another run" in caplog.text
+    assert account.last_error is None and account.last_collected_at is not None
+    assert collect_lock.is_held(account.id) is False  # released at the end
+
+
+@pytest.mark.usefixtures("empty_registry")
+def test_the_lock_is_released_after_a_failure_and_bounds_a_run_in_time(db: Session, world: World) -> None:
+    ttls: list[int] = []
+
+    class Probe(Scripted):
+        def collect(self, account: SourceAccount, since: datetime, is_known: IsKnown) -> Iterator[CollectedPost]:
+            with lock_db() as locks:
+                ttls.append(int(locks.ttl(f"{collect_lock.KEY_PREFIX}{account.id}")))
+            return super().collect(account, since, is_known)
+
+    base.register(Probe(error=RuntimeError("boom")))
+    account = telegram_account(db, world)
+    db.commit()
+
+    service.collect_source(db, account.id)
+
+    assert account.last_error == UNEXPECTED
+    assert len(ttls) == 1 and 0 < ttls[0] <= collect_lock.LOCK_TTL_S
+    assert collect_lock.is_held(account.id) is False
+
+
+@pytest.mark.usefixtures("empty_registry")
+def test_a_held_lock_skips_only_its_account(db: Session, world: World) -> None:
+    collector = Scripted([collected("any/1")])
+    base.register(collector)
+    busy = telegram_account(db, world, "busy_demo")
+    free = telegram_account(db, world, "free_demo")
+    db.commit()
+    with lock_db() as locks:
+        locks.set(f"{collect_lock.KEY_PREFIX}{busy.id}", "another-run")
+
+    service.run_collectors(db)
+
+    assert collector.calls == ["free_demo"]
+    assert busy.last_collected_at is None and busy.last_error is None
+    assert free.last_collected_at is not None
+    with lock_db() as locks:
+        assert locks.get(f"{collect_lock.KEY_PREFIX}{busy.id}") == b"another-run"  # not ours to release
+
+
+def test_a_run_whose_lock_expired_does_not_release_the_lock_of_the_next_run() -> None:
+    key = f"{collect_lock.KEY_PREFIX}7"
+
+    with collect_lock.hold(7) as acquired, lock_db() as locks:
+        assert acquired is True
+        locks.set(key, "next-run")  # the first one expired and another run took the account
+
+    with lock_db() as locks:
+        assert locks.get(key) == b"next-run"
+    with collect_lock.hold(7) as second:
+        assert second is False

@@ -30,6 +30,7 @@ from app.modules.ads.urls import UnsafeUrlError, ensure_public_url, telegram_emb
 from app.storage import EvidenceLink
 from tests.conftest import PNG_BYTES, World, make_object
 from tests.support_ads import add_ad
+from tests.support_collect import collect_locks  # noqa: F401
 
 DAYS_AGO = timedelta(days=4)  # older than the default `recheck_after_days` (3)
 
@@ -309,6 +310,7 @@ def test_collect_does_nothing_without_collectors(db: Session, world: World, capl
     assert db.scalars(select(AdPost)).all() == []
 
 
+@pytest.mark.usefixtures("collect_locks")
 def test_collect_ingests_new_posts_of_watched_accounts(
     db: Session, world: World, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -331,7 +333,7 @@ def test_collect_ingests_new_posts_of_watched_accounts(
 
     ads = list(db.scalars(select(AdPost).order_by(AdPost.id)))
     assert [(ad.external_id, ad.url is not None) for ad in ads] == [("alatau/1", True), ("alatau/2", False)]
-    assert created == [(ads[0].id, True), (ads[1].id, False)]
+    assert created == [ads[0].id, ads[1].id]
     first = ads[0]
     assert (first.platform, first.source_account_id, first.territory_id) == (
         Platform.telegram,
@@ -349,18 +351,17 @@ def test_collect_ingests_new_posts_of_watched_accounts(
     assert dict(collector.calls[-2:])["alatau"] == first_run_at
 
 
-def test_collect_task_queues_the_pipeline_of_new_posts(db: Session, monkeypatch: pytest.MonkeyPatch) -> None:
-    queued: list[tuple[int, bool, int | None]] = []
+def test_collect_all_task_runs_the_collectors_in_its_session(db: Session, monkeypatch: pytest.MonkeyPatch) -> None:
+    ran: list[Session] = []
 
-    def record(ad_id: int, *, capture: bool, requested_by: int | None) -> bool:
-        queued.append((ad_id, capture, requested_by))
-        return True
+    def run_collectors(session: Session) -> list[int]:
+        ran.append(session)
+        return []
 
     monkeypatch.setattr(tasks, "get_sessionmaker", lambda: SessionFactory(db))
-    monkeypatch.setattr(tasks.service, "run_collectors", lambda session: [(11, True), (12, False)])
-    monkeypatch.setattr(tasks.service, "dispatch_pipeline", record)
+    monkeypatch.setattr(tasks.service, "run_collectors", run_collectors)
     tasks.run_all()
-    assert queued == [(11, True, None), (12, False, None)]
+    assert ran == [db]
 
 
 # ---------------------------------------------------------------- URL guard

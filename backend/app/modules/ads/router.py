@@ -4,10 +4,12 @@ from typing import Annotated
 from urllib.parse import urlsplit
 
 from fastapi import APIRouter, File, Form, Query, Request, Response, UploadFile
+from redis.exceptions import RedisError
 from sqlalchemy import func, select
 
 from app import audit, storage
 from app.collectors import COLLECTOR_PLATFORMS, account_enabled, enabled_sources, platform_enabled
+from app.collectors import lock as collect_lock
 from app.collectors.aggregator import check_search_url
 from app.config import get_settings
 from app.deps import ScopeDep, SessionDep, StaffUser
@@ -52,9 +54,9 @@ from app.modules.ads.urls import (
 from app.modules.developers.service import get_visible_developer
 from app.modules.nlp.llm import UNCERTAIN_BELOW, Extraction
 from app.modules.nlp.service import finding_for_hit, recompute_weights, supported_facts
+from app.modules.nlp.text import strip_ocr_marker
 from app.modules.objects.service import get_object_in_scope
 from app.schemas import Page
-from app.modules.nlp.text import strip_ocr_marker
 from app.storage import EvidenceLink
 from app.uploads import PHOTO_TYPES, read_upload
 from app.worker.celery_app import celery_app
@@ -431,8 +433,6 @@ def _checked_search_url(url: str | None) -> str:
     return url
 
 
-def _search_label(url: str) -> str:
-    """Name of a search the user did not name: its address without the scheme, so that two searches differ."""
 def _reject_aggregator_object(object_id: int | None) -> None:
     """A saved search returns the listings of any seller, so it cannot vouch for an object (OPEN_QUESTIONS 29)."""
     if object_id is not None:
@@ -443,6 +443,8 @@ def _reject_aggregator_object(object_id: int | None) -> None:
         )
 
 
+def _search_label(url: str) -> str:
+    """Name of a search the user did not name: its address without the scheme, so that two searches differ."""
     parts = urlsplit(url)
     label = split_url(url)[0] + parts.path.rstrip("/") + (f"?{parts.query}" if parts.query else "")
     return label[:255].lower()
@@ -493,9 +495,9 @@ def create_source_account(
     handle = _normalize_handle(body.handle) if body.handle else None
     if body.platform is Platform.aggregator:
         url = _checked_search_url(body.url)
+        _reject_aggregator_object(body.object_id)
         handle = handle or _search_label(url)
     elif handle is None and body.url is not None:
-        _reject_aggregator_object(body.object_id)
         handle = handle_from_url(body.platform, body.url)
     if not handle:
         raise api_error(422, "validation_error", "Не удалось определить имя аккаунта: укажите handle")
@@ -558,6 +560,13 @@ def collect_source_account(
     account = _get_account(session, scope, account_id)
     if not account_enabled(account, get_settings()):
         raise api_error(409, "collector_disabled", "Сборщик этого источника выключен: он включается в .env сервера")
+    try:
+        collecting = collect_lock.is_held(account.id)
+    except RedisError as exc:
+        logger.exception("Failed to read the collection lock of source account %s", account.id)
+        raise api_error(503, "queue_unavailable", "Очередь задач недоступна") from exc
+    if collecting:
+        raise api_error(409, "collect_in_progress", "Сбор этого источника уже идёт")
     if get_settings().events_enabled:
         try:
             celery_app.send_task("collect.source", args=[account.id], queue="collect", retry=False, ignore_result=True)

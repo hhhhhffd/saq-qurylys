@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app import storage
 from app.collectors import default_client
+from app.collectors import lock as collect_lock
 from app.collectors.base import CollectedPost, CollectorError, get_collector, registered_platforms
 from app.collectors.media import download_photos
 from app.config import get_settings
@@ -30,6 +31,7 @@ from app.modules.ads.versions import record_version
 from app.modules.evidence.schemas import EvidenceOut
 from app.modules.nlp.llm import Extraction
 from app.modules.nlp.service import finding_for_hit
+from app.modules.nlp.text import strip_ocr_marker
 from app.modules.settings.service import load_settings
 from app.modules.signals.notifications import add_notifications, users_covering_territory
 from app.scope import TerritoryScope
@@ -157,9 +159,14 @@ def resolve_source_account(session: Session, platform: Platform, url: str) -> So
     )
 
 
-def _store_photos(session: Session, ad: AdPost, urls: list[str], client: httpx.Client) -> int:
-    """Download the photos of a collected post and keep them as its evidence; returns how many were stored."""
+def store_collected_photos(session: Session, ad: AdPost, urls: list[str], client: httpx.Client) -> None:
+    """Download the photos of a collected post and keep them as its evidence, then queue them for OCR. Commits.
+
+    The download comes first, while no transaction is open; the evidence is stored in a short one.
+    """
     photos = download_photos(client, urls)
+    if not photos:
+        return
     for photo in photos:
         storage.put_evidence(
             session,
@@ -170,28 +177,27 @@ def _store_photos(session: Session, ad: AdPost, urls: list[str], client: httpx.C
             link=EvidenceLink(ad_post_id=ad.id),
             created_by=None,
         )
-    return len(photos)
+    ad.ocr_status = OcrStatus.pending
+    session.commit()
 
 
 def ingest_collected_post(
-    session: Session,
-    account: SourceAccount,
-    post: CollectedPost,
-    *,
-    capture: bool,
-    client: httpx.Client | None = None,
+    session: Session, account: SourceAccount, post: CollectedPost, *, capture: bool
 ) -> AdPost | None:
-    """Store a post found by a collector. Flushed, not committed.
+    """Store a post found by a collector, without its photos. Flushed, not committed.
 
     `capture` tells whether the post's URL is opened with the browser. A known post (same platform and external id)
     is not stored again; when its text has changed at the source, the new text is recorded as a version. Returns the
     new post, or None for a known one.
     """
+    # Third-party text: PostgreSQL does not store NUL characters, and the OCR marker would pass a part of the text
+    # for the recognised one.
+    text = strip_ocr_marker(post.text.replace("\x00", ""))
     known = session.scalar(
         select(AdPost).where(AdPost.platform == account.platform, AdPost.external_id == post.external_id)
     )
     if known is not None:
-        record_version(session, known, post.text, AdVersionSource.collector, datetime.now(UTC))
+        record_version(session, known, text, AdVersionSource.collector, datetime.now(UTC))
         return None
     territory_id = account.territory_id
     if territory_id is None and account.object_id is not None:
@@ -204,17 +210,15 @@ def ingest_collected_post(
         platform=account.platform,
         url=post.url,
         external_id=post.external_id,
-        author=post.author,
+        author=post.author.replace("\x00", "") if post.author else None,
         published_at=post.published_at,
-        text=post.text,
+        text=text,
         links=post.links,
         capture_status=CaptureStatus.pending if capture and post.url else None,
         origin=AdOrigin.collector,
     )
     session.add(ad)
     session.flush()
-    if post.media_urls and _store_photos(session, ad, post.media_urls, client or default_client()):
-        ad.ocr_status = OcrStatus.pending
     return ad
 
 
@@ -232,34 +236,60 @@ def _notify_collector_failed(session: Session, account: SourceAccount, error: st
     add_notifications(session, admins, NotificationKind.collector_failed, "source_account", account.id, payload)
 
 
+def _finish_collected_post(session: Session, ad: AdPost, media_urls: list[str], client: httpx.Client | None) -> None:
+    """Store the photos of a committed post and queue its pipeline."""
+    ad_id, capture = ad.id, ad.capture_status is CaptureStatus.pending
+    if media_urls:
+        try:
+            store_collected_photos(session, ad, media_urls, client or default_client())
+        except Exception:
+            # The post is saved; it goes through the pipeline without its photos.
+            logger.exception("The photos of ad_post %s were not stored", ad_id)
+            session.rollback()
+    if not dispatch_pipeline(ad_id, capture=capture, requested_by=None):
+        mark_capture_unqueued(session, ad)
+
+
 def _collect_account(
     session: Session, account: SourceAccount, since: datetime, client: httpx.Client | None
-) -> list[AdPost]:
-    """Collect one account and record the outcome on it. Commits."""
+) -> list[int]:
+    """Collect one account and record the outcome on it. Commits; returns the ids of the new posts.
+
+    The network is not used inside a transaction (the activity feed reads `created_at`, which is the start of the
+    transaction, and an open one holds locks): the posts are read first, then each is stored and committed on its own,
+    then its photos are downloaded and stored, and its pipeline is queued.
+    """
     collector = get_collector(account.platform)
     if collector is None:
         return []
+    # Read before anything can fail: after a failed flush the account is expired until the rollback.
+    account_id, platform = account.id, account.platform
     started_at = datetime.now(UTC)
 
     def is_known(external_id: str) -> bool:
-        stmt = select(AdPost.id).where(AdPost.platform == account.platform, AdPost.external_id == external_id)
+        stmt = select(AdPost.id).where(AdPost.platform == platform, AdPost.external_id == external_id)
         return session.scalar(stmt) is not None
 
-    ads: list[AdPost] = []
+    posts: list[CollectedPost] = []
+    created: list[int] = []
     error: str | None = None
     try:
-        for post in collector.collect(account, since, is_known):
-            ad = ingest_collected_post(session, account, post, capture=collector.capture_urls, client=client)
+        try:
+            posts.extend(collector.collect(account, since, is_known))
+        except CollectorError as exc:
+            # The posts read before the failure are kept: the source answered for them.
+            error = str(exc)
+            logger.warning("Collecting source account %s (%s) failed: %s", account_id, platform, error)
+        session.commit()  # ends the read transaction before anything is stored
+        for post in posts:
+            ad = ingest_collected_post(session, account, post, capture=collector.capture_urls)
+            session.commit()
             if ad is not None:
-                ads.append(ad)
-    except CollectorError as exc:
-        # The posts read before the failure are kept: the source answered for them.
-        error = str(exc)
-        logger.warning("Collecting source account %s (%s) failed: %s", account.id, account.platform, error)
+                created.append(ad.id)
+                _finish_collected_post(session, ad, post.media_urls, client)
     except Exception:
-        logger.exception("Collecting source account %s (%s) failed", account.id, account.platform)
+        logger.exception("Collecting source account %s (%s) failed", account_id, platform)
         session.rollback()
-        ads = []
         error = "Непредвиденная ошибка сбора, подробности в журнале сервера"
     if error is None:
         account.last_collected_at = started_at
@@ -271,28 +301,37 @@ def _collect_account(
         account.last_error = error
         account.last_error_at = started_at
     session.commit()
-    return ads
+    return created
 
 
-def _collect_accounts(
-    session: Session, accounts: Sequence[SourceAccount], client: httpx.Client | None
-) -> list[tuple[int, bool]]:
+def _collect_accounts(session: Session, accounts: Sequence[SourceAccount], client: httpx.Client | None) -> list[int]:
     default_since = datetime.now(UTC) - timedelta(days=load_settings(session).ad_window_days)
-    created: list[tuple[int, bool]] = []
+    created: list[int] = []
     for account in accounts:
         collector = get_collector(account.platform)
         if collector is None or not collector.handles(account):
             continue
-        ads = _collect_account(session, account, account.last_collected_at or default_since, client)
-        created.extend((ad.id, ad.capture_status is CaptureStatus.pending) for ad in ads)
+        account_id = account.id
+        try:
+            with collect_lock.hold(account_id) as acquired:
+                if acquired:
+                    created.extend(
+                        _collect_account(session, account, account.last_collected_at or default_since, client)
+                    )
+                else:
+                    logger.info("Source account %s is being collected by another run, skipped", account_id)
+        except Exception:
+            # Whatever went wrong with one account, even while recording it, must not stop the others.
+            logger.exception("Collecting source account %s failed", account_id)
+            session.rollback()
     return created
 
 
-def run_collectors(session: Session, client: httpx.Client | None = None) -> list[tuple[int, bool]]:
+def run_collectors(session: Session, client: httpx.Client | None = None) -> list[int]:
     """Collect new posts of the watched accounts with the registered collectors (SPEC 5, 10.1).
 
-    Returns (ad_post id, whether to capture its page) of the new posts, committed; the caller queues their pipeline.
-    A source that fails is recorded on its account and does not stop the others.
+    Returns the ids of the new posts. Each is committed and has its pipeline queued before the next is read. A source
+    that fails is recorded on its account and does not stop the others.
     """
     if not registered_platforms():
         logger.info("collect.run_all: no collectors are registered, nothing to collect")
@@ -301,7 +340,7 @@ def run_collectors(session: Session, client: httpx.Client | None = None) -> list
     return _collect_accounts(session, accounts, client)
 
 
-def collect_source(session: Session, source_id: int, client: httpx.Client | None = None) -> list[tuple[int, bool]]:
+def collect_source(session: Session, source_id: int, client: httpx.Client | None = None) -> list[int]:
     """Collect one account now (the «Собрать сейчас» button); the result is as in `run_collectors`."""
     account = session.get(SourceAccount, source_id)
     if account is None:
