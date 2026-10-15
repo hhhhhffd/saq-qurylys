@@ -49,6 +49,8 @@ def dismiss_source_suggestion(
     body: SuggestionDismiss, session: SessionDep, user: StaffUser, request: Request
 ) -> Response:
     """Stop suggesting an account. Repeating the call changes nothing."""
+    # Deliberately global, not per territory or per user: an account belongs to its platform, not to a territory,
+    # so «не предлагать» holds for everybody who could be offered it.
     handle = body.handle.removeprefix("@").lower()
     if not handle:
         raise api_error(422, "validation_error", "Укажите имя аккаунта")
