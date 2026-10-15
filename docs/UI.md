@@ -21,8 +21,8 @@
 |---|---|
 | Стили | Tailwind CSS 4.3 (`@tailwindcss/vite`), конфигурация в CSS (`@theme`) |
 | Примитивы | shadcn/ui (CLI `shadcn@latest`, база Radix: `init -b radix`), компоненты в `src/components/ui/` |
-| `cn` | `src/lib/utils.ts` (clsx + tailwind-merge или пакет `cn`, как сгенерирует CLI) |
-| Иконки | `@tabler/icons-react` — одна библиотека иконок (в `components.json` `iconLibrary: "tabler"`, lucide не тянуть, если CLI позволяет; иначе заменить импорты в сгенерированных файлах) |
+| `cn` | `src/lib/utils.ts`: clsx + tailwind-merge, расширенный размерами `text-3xs`/`text-2xs` и тенями `shadow-1/2/glow/window` (без расширения merge принял бы их за цвет) |
+| Иконки | `@tabler/icons-react` — одна библиотека иконок (`components.json`: `iconLibrary: "tabler"`, CLI сам генерирует tabler-импорты) |
 | Тосты | `sonner` (обёртка вместо `notifications.show`) |
 | Подтверждение | `AlertDialog` (обёртка вместо `modals.openConfirmModal`, тот же API `lib/confirm.tsx`) |
 | Даты | `react-day-picker` 10 + `date-fns` 4 (локали `ru`, `kk`): компоненты `DateInput` и `DateTimeInput` поверх `calendar` + `popover` |
@@ -142,3 +142,184 @@
 | A. Фундамент | один исполнитель | Tailwind + shadcn init, токены и шрифт, `components/ui/*` в стиле Fatality, обёртки `toast`/`confirm`/даты/формы, `lib/hooks.ts`, слой Mantine (тёмный) |
 | B. Перенос | параллельно, по папкам | оболочка и общие компоненты + логин + «островок»; карта + граф + «машина времени»; объекты; реклама + источники; сигналы + администрирование |
 | C. Финал | ведущий | удалить Mantine, эффекты, атрибуции, README/SPEC, скриншоты, e2e целиком |
+
+## 9. Для переноса фич
+
+Фундамент этапа A. Всё ниже проверено на `/_kit` (dev-страница, регистрируется только при `import.meta.env.DEV`: каждый
+контрол в состояниях, панель настроек в стиле Fatality, формы, оверлеи, эффекты). Держите её открытой рядом с работой.
+
+### 9.1 Классы Tailwind и токены
+
+Токены (`tokens.css`) доступны как утилиты через `@theme inline` в `src/theme/app.css`; утилита читает токен напрямую,
+копий значений нет. Палитры Tailwind по умолчанию отключены: есть только токены, `white` и `black`.
+
+| Что | Классы |
+|---|---|
+| Поверхности | `bg-bg`, `bg-surface` (панель), `bg-surface-raised` (поповер, модалка, шапка), `bg-surface-sunken` (поле, чекбокс, трек), `bg-surface-glass`, `bg-hover`, `bg-pressed`, `bg-scrim` |
+| Рамки | `border-border`, `border-border-strong` |
+| Текст | `text-text`, `text-text-2`, `text-text-3`, `text-text-disabled` |
+| Бренд (розовый) | `bg-primary` (заливка), `text-primary-foreground` (белый на розовом), `hover:bg-accent-hover`, `text-accent-text` (мелкий розовый текст), `text-link`, `ring-focus`, `shadow-glow` |
+| Зоны | `bg-zone-red`, `bg-zone-red-bg`, `text-zone-red-ink` (так же `green`, `yellow`, `none`); `bg-graph-developer` |
+| Тени и радиусы | `shadow-1`, `shadow-2`, `shadow-glow`, `shadow-window`; `rounded-sm` 2px, `rounded` и `rounded-md` 4px, `rounded-lg` и крупнее 6px |
+| Шрифт и размеры | `font-sans` (Tektur), `font-mono`; `text-3xs` 10px, `text-2xs` 11px, `text-xs` 12px, `text-sm` 13px (базовый плотный размер), `text-base` 16px |
+
+Ловушка имён: в shadcn `accent` значит «фон наведения», а наш брендовый `--accent` у shadcn называется `primary`. Поэтому
+`bg-accent` и `bg-primary` разные вещи: розовая заливка только `bg-primary` (и `text-primary`, `border-primary`), а `bg-accent`
+в готовых компонентах это наведение. Остальные shadcn-имена ссылаются на токены: `bg-background`, `bg-card`, `bg-popover`,
+`text-foreground`, `text-muted-foreground`, `bg-secondary`, `bg-muted`, `border-input`, `ring-ring`.
+
+Рецепты, которых нет отдельным компонентом:
+
+- **Панель (группа Fatality)**: `rounded border border-border bg-surface`; заголовок `border-b border-border px-3 py-1.5 text-2xs font-bold tracking-wider uppercase`;
+  строка настройки `flex min-h-7 items-center justify-between gap-4 px-3`, подпись `text-sm text-text-2`.
+- **Плашка-предупреждение** (замена `Alert`): `rounded border border-zone-red/40 bg-zone-red-bg p-3 text-sm text-zone-red-ink` (тон по зоне).
+- **Скрытый текст**: `sr-only`. **Цифры в колонках**: `tabular-nums` (старые `.tnum`, `.muted`, `.faint`, `.panel` в `global.css` живут до этапа C).
+- **Отступы Mantine в Tailwind**: `xs` 10px = `gap-2.5`, `sm` 12px = `gap-3`, `md` 16px = `gap-4`, `lg` 20px = `gap-5`, `xl` 32px = `gap-8`.
+- **Слои**: порядок `theme, base, mantine, components, utilities`. Утилиты Tailwind бьют Mantine, но не бьют **внеслойный** CSS-модуль
+  на том же элементе. Переводя компонент, удаляйте его модуль целиком, не оставляйте вперемешку.
+
+### 9.2 `src/components/ui/*`: что чем заменять
+
+Импорты `@/components/ui/<имя>`, `cn(...)` из `@/lib/utils`. Общие классы в `ui/styles.ts`: `controlClass` (поле 28px),
+`popupClass` (всплывающая поверхность), `itemClass` (строка списка). Подробные пропсы смотрите в файлах: это тонкие обёртки Radix.
+
+| Mantine | Новое | Заметки |
+|---|---|---|
+| `Button` | `Button` | `variant`: `default` (розовая), `secondary` (прежняя `variant="default"`), `outline`, `ghost` (прежняя `subtle`), `destructive` (прежняя `color="red"`), `link`. `size`: `xs` 20px, `sm` 24px, `md` 28px (по умолчанию), `icon`, `icon-sm`, `icon-xs`. `loading` показывает спиннер и блокирует кнопку. `asChild` для ссылок. `fullWidth` это `className="w-full"`; иконка слева или справа просто потомок `<IconX />` |
+| `ActionIcon` | `Button size="icon" variant="ghost"` | `aria-label` обязателен |
+| `Badge` | `Badge` | `variant`: `default` (розовый тон), `secondary` (нейтральный), `outline`, `destructive`, зоны `green`, `yellow`, `red`, `none` |
+| `Modal` | `Dialog`, `DialogContent`, `DialogHeader`, `DialogTitle`, `DialogDescription`, `DialogFooter` | `open`/`onOpenChange` вместо `opened`/`onClose`; ширина `className="sm:max-w-lg"` на `DialogContent`; `DialogHeader` это полоса заголовка окна. Крестик встроен, его подпись берётся из i18n |
+| `Drawer` | `Sheet`, `SheetContent side=…`, `SheetHeader`, `SheetTitle` | |
+| `Tooltip label` | `Tooltip` + `TooltipTrigger asChild` + `TooltipContent` | `TooltipProvider` уже в Providers, задержка 250 мс как была |
+| `Menu` | `DropdownMenu*` | `variant="destructive"` у `DropdownMenuItem` |
+| `Popover` | `Popover`, `PopoverTrigger`, `PopoverContent`, `PopoverAnchor` | |
+| `Select` | `form/SelectInput` (см. 9.4); низкоуровнево `Select*` или `Combobox` | |
+| `SegmentedControl` | `ToggleGroup type="single"` + `ToggleGroupItem` | `onValueChange={(v) => v && set(v)}`: повторный клик по активному даёт пустое значение |
+| `Tabs` | `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent` | иконка и подпись капсом; активная розовая с подчёркиванием |
+| `Table` | `Table`, `TableHeader`, `TableBody`, `TableRow`, `TableHead`, `TableCell` | строки 32px, заголовок 10px капсом |
+| `Loader` | `Spinner` | наследует цвет текста, размер `size-*` |
+| `Skeleton` | `Skeleton` | размер классами `h-* w-*` |
+| `Avatar` | `Avatar`, `AvatarFallback`, `AvatarImage` | `size`: `sm`, `default`, `lg` |
+| `Slider` | `Slider` | массив значений, два значения это диапазон |
+| `Checkbox` | `Checkbox` + `Label` | 12px; подпись рядом: `Field orientation="horizontal"` |
+| `ScrollArea` | `ScrollArea` | |
+| `Group`, `Stack`, `SimpleGrid`, `Text` | `flex`, `flex flex-col`, `grid`, `text-sm text-text-2` | `c="dimmed"` это `text-text-2`, цвет подписей `text-text-3` |
+| `Indicator`, `CopyButton`, `VisuallyHidden` | абсолютный `Badge`, `navigator.clipboard` и `toast.success`, `sr-only` | |
+
+`Field`, `FieldLabel`, `FieldDescription`, `FieldError`, `FieldGroup`, `FieldSet`, `FieldLegend`, `FieldContent` это раскладка
+формы; готовые поля лежат в `components/form`. `InputGroup*` это рамка поля с аддонами (иконка или кнопка внутри поля).
+`Combobox` и `MultiCombobox` (`ui/combobox.tsx`, пропсы `options`, `value`, `onChange`, `placeholder`, `emptyText`, `onSearchChange`, `loading`,
+`clearable`, `disabled`) написаны вручную по ARIA 1.2: **текстовое поле и есть `combobox`**, список это `listbox` из `option`
+во всплывающем слое, фокус остаётся в поле. e2e находит их так: `getByRole('combobox', { name })`, `getByRole('option')`, `fill()` в поле.
+
+### 9.3 Инфраструктура (стабильные API)
+
+```ts
+// src/lib/toast.ts: замена notifications.show
+toast.success(message: string, options?: { title?: string })
+toast.error(message: string, options?: { title?: string })   // title это первая строка, message под ней
+toast.info(message: string, options?: { title?: string })
+// api/queryClient.ts уже использует: ошибки через errorMessage(), meta.success -> toast.success(i18n toasts.*)
+
+// src/lib/confirm.tsx: сигнатура прежняя
+confirmAction({ title: string, message: ReactNode, confirmLabel: string, danger?: boolean, onConfirm: () => void })
+// ConfirmProvider смонтирован один раз в Providers.tsx. Роль диалога `dialog` (на неё опирается e2e), не `alertdialog`
+
+// src/lib/hooks.ts: те же семантики, что у @mantine/hooks
+useDebouncedValue<T>(value: T, wait: number): [T, cancel: () => void]            // первое значение сразу
+useDebouncedCallback(callback, delay: number): ((...args) => void) & { flush(): void; cancel(): void }
+useDisclosure(initial = false): [opened: boolean, { open, close, toggle }]       // без колбэков onOpen/onClose
+useElementSize<T extends HTMLElement = HTMLDivElement>(): { ref, width, height } // ref это колбэк-ref, border-box
+useReducedMotion(): boolean                                                      // читается синхронно с первого рендера
+```
+
+`Providers.tsx`: рядом с ещё живым `MantineProvider` смонтированы `Toaster`, `TooltipProvider`, `ConfirmProvider`.
+`@mantine/modals` и `@mantine/notifications` удалены из зависимостей: `modals.*` и `notifications.show` больше нет.
+
+### 9.4 Формы: react-hook-form + zod + `components/form`
+
+Поля с подписью, подсказкой и ошибкой. Общие пропсы: `id`, `label`, `description`, `error` (строка или `true`: только красная рамка),
+`required` (звёздочка и `aria-required`, вместо `withAsterisk`), `className` (идёт на обёртку), остальное передаётся в нативный элемент.
+
+| Файл | Значение | Заменяет |
+|---|---|---|
+| `TextInput`, `TextArea` (`minRows`, `maxRows`), `PasswordInput` | нативные input-пропсы, `ref` пробрасывается (работает с `register`) | `TextInput`, `Textarea` с `autosize`, `PasswordInput` |
+| `NumberInput` | `value: number \| string` (`''` пусто), `onChange(number \| string)`, `min`, `max`, `step`, `allowDecimal`, `allowNegative`, `decimalScale`, `hideControls` | `NumberInput` |
+| `TagsInput` | `value: string[]`, `onChange`, `splitChars`, `maxTags` | `TagsInput` |
+| `FileInput` | `value: File \| null` и `onChange(file)`, либо `multiple` и `File[]`; `accept`, `clearable`, `leftSection`. Нативный input очищается после выбора, поэтому `value={[]}` работает как «добавить файлы», `resetRef` не нужен | `FileInput` |
+| `DateInput` | `value: 'YYYY-MM-DD' \| null`, `onChange(string \| null)`, `minDate`, `maxDate`, `clearable`. Печатается `ДД.ММ.ГГГГ` или `ГГГГ-ММ-ДД`, корректная дата принимается сразу, недописанная при уходе возвращается к последнему значению; календарь в поповере, локаль `ru` или `kk` по языку i18n, неделя с понедельника | `DateInput` |
+| `DateTimeInput` | `value: 'YYYY-MM-DD HH:mm:ss' \| null` (локальное время без пояса, как у `DateTimePicker`; в API: `new Date(value).toISOString()`) | `DateTimePicker` |
+| `SelectInput` | `data: {value,label,disabled?}[]`, `value: string \| null`, `onChange(string \| null)`, `clearable`, `searchable`, `onSearchChange` (серверный поиск, включает `searchable`), `loading`, `nothingFound` | `Select`; без `searchable` это обычный `Select` Radix с ролью `combobox` и пунктами `option` |
+| `MultiSelect` | `data`, `value: string[]`, `onChange`, `clearable`, `onSearchChange` | `MultiSelect` |
+| `SwitchInput` | `checked`, `onCheckedChange(boolean)`, `label`, `description` | `Switch` |
+
+Эталон: `features/login/LoginPage.tsx` (подписи, `aria` и `noValidate` сохранены). Образец:
+
+```tsx
+const { t } = useTranslation();
+// схема собирается с t: сообщения zod становятся ошибками полей
+const schema = useMemo(() => z.object({ name: z.string().trim().min(1, t('required')) }), [t]);
+const { register, control, handleSubmit, formState: { errors } } = useForm({
+  resolver: zodResolver(schema),
+  defaultValues: { name: '', city: null as string | null },
+});
+
+<form onSubmit={handleSubmit(onValid)} noValidate>
+  <TextInput label={t('name')} required error={errors.name?.message} {...register('name')} />
+  <Controller
+    control={control}
+    name="city"
+    render={({ field, fieldState }) => (
+      <SelectInput label={t('city')} data={cities} value={field.value} onChange={field.onChange} error={fieldState.error?.message} />
+    )}
+  />
+  <Button type="submit" loading={mutation.isPending}>{t('save')}</Button>
+</form>
+```
+
+Нативные текстовые поля подключаются через `register`, остальные (числа, даты, выбор, теги, файлы, переключатели) через `Controller`.
+Ошибка поля (`FieldError`) **не** `role="alert"`: e2e ждёт единственный `alert`, ошибку сервера на форме входа. Ошибку сервера выводите
+отдельным `<p role="alert">`, как на логине. `NumberInput` отдаёт число или `''`: схема `z.union([z.number(), z.literal('')])` с `refine` на непустое.
+
+### 9.5 Эффекты (`src/components/fx`)
+
+Все стоят на месте или показываются статично при `prefers-reduced-motion` (e2e работает именно так). Цвета можно передавать токенами
+(`var(--accent)`): `fx/cssColor.ts` разворачивает их для canvas и WebGL.
+
+| Файл | Откуда | Пропсы (основные) |
+|---|---|---|
+| `Aurora` (default) | React Bits | `colorStops` (по умолчанию розовый, фиолетовый, индиго из токенов), `amplitude`, `blend`, `speed`, `height`, `opacity`, `intro`, `paused`, `mouseInteraction`. Контейнеру задайте размер и `relative`. Пауза вне экрана, один кадр при reduced motion |
+| `GlitchText` (default) | React Bits | `children: string`, `speed`, `enableShadows`, `enableOnHover`, `shadowColors` (розовый и фиолетовый), `backgroundColor` (слой глитча заливается ею, по умолчанию `var(--bg)`; поверх Aurora `transparent`), `className` (размер, например `text-3xl`) |
+| `CountUp` (default) | React Bits | `to`, `from`, `duration`, `delay`, `separator` (`' '` для тысяч), `direction`, `className`; при reduced motion сразу итоговое число |
+| `BorderGlow` (default) | React Bits | `glowColor` (HSL-тройка `'338 98 48'`, красная зона `'5 100 62'`), `colors`, `backgroundColor` (по умолчанию `var(--surface)`), `borderRadius`, `glowRadius`, `glowIntensity`, `coneSpread`, `animated` |
+| `StarBorder` (default) | React Bits | `as` (`'div'` для не-кнопки), `radius` (`999` для пилюли), `duration`, `color`, `trailColor`, `stars`, `glow`, `thickness`, `hover`, `className` (отступы перекрываются) |
+| `GlowCard` | свой | `proximity` (80px) и пропсы `div`. Рамка подсвечивается розовым коническим градиентом к курсору; общий слушатель и rAF, CSS-переменные, без ре-рендеров; вне экрана пропускается; при reduced motion обычная рамка |
+| `Spotlight` | свой | `color` (`var(--accent)`) и пропсы `div`. Первый ребёнок `relative`-контейнера; проявляется один раз |
+| `MovingBorder` | свой | `duration` (3.2 с), `color`; оборачивает кнопку: `<MovingBorder><Button>…</Button></MovingBorder>`. Огонёк идёт по `offset-path: rect()` с постоянной скоростью, вне экрана пауза; без поддержки `rect()` остаётся просто рамка |
+
+Атрибуции в начале файлов и в `THIRD_PARTY_NOTICES.md` (React Bits, shadcn/ui, Tektur OFL-1.1, OpenFreeMap, OpenMapTiles, OSM).
+Keyframes эффектов и анимации `animate-glitch-*`, `animate-spotlight`, `animate-moving-border` лежат в `app.css`.
+
+### 9.6 Что пока держится на Mantine
+
+`MantineProvider` и `DatesProvider` в `Providers.tsx`; `theme/theme.ts` (форсированная тёмная схема, палитры и резолвер на токенах);
+слои `@mantine/core/styles.layer.css` и `@mantine/dates/styles.layer.css` в `app.css`; переопределения `.mantine-*` в `theme/global.css`;
+`postcss-preset-mantine` (нужен CSS-модулям); все импорты `@mantine/core`, `@mantine/dates`, `@mantine/form` в непереведённых папках,
+включая `LanguageSwitch` и остальную оболочку (этап B). `@mantine/hooks` остался только как peer-зависимость `@mantine/core`.
+Старые `.panel`, `.tnum`, `.muted`, `.faint`, `.page-enter` в `global.css` исчезнут вместе с CSS-модулями (этапы B и C).
+
+### 9.7 Проверка на своём порту и грабли
+
+```bash
+cd frontend
+pnpm dev --port 5181 --strictPort &         # свой порт, чтобы не мешать соседям
+E2E_BASE_URL=http://localhost:5181 pnpm e2e  # API :8000 и демо-БД общие
+```
+
+- Подписи иконок-кнопок, `aria-label` и `data-testid` из раздела 7 сохраняются; `Select`, `Tabs`, `Dialog` на Radix дают те же роли, что давал Mantine.
+- Закрытие диалога идёт с анимацией (около 100 мс): в тестах ждите исчезновения, а не фиксированной паузы.
+- Список `Combobox` вынесен порталом из диалога, поэтому у него свой `onWheel`: иначе блокировка прокрутки диалога съедает колесо. Не убирайте.
+- Радиусы почти прямоугольные: `rounded-xl` и `rounded-full` оставьте для точек, аватаров и пилюль.
+- Новые зависимости этапа A: `tailwindcss`, `@tailwindcss/vite`, `tw-animate-css`, `shadcn` (только CSS `shadcn/tailwind.css`), `radix-ui`,
+  `class-variance-authority`, `clsx`, `tailwind-merge`, `sonner`, `react-day-picker`, `date-fns`, `react-hook-form`, `zod`, `@hookform/resolvers`,
+  `motion`, `@fontsource-variable/tektur`. Новые пакеты с `import` из `node_modules` добавляйте в `optimizeDeps.include` в `vite.config.ts`.
