@@ -1,6 +1,6 @@
 """Records of the housing portal registry (homeportal.kz, АО «КЖК») in one normalized shape.
 
-Two sources produce them: the pilot snapshot in `data/pilot` and the live API (`objects-detail/<id>`).
+Two sources produce them: the pilot snapshot in `app/seed_data/pilot` and the live API (`objects-detail/<id>`).
 Both carry the same facts, so the import and the sync share everything after parsing.
 """
 

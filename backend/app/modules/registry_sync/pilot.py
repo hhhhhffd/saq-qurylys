@@ -1,4 +1,4 @@
-"""Import of the public pilot snapshot (data/pilot): real objects of Ust-Kamenogorsk under construction.
+"""Import of the public pilot snapshot (backend/app/seed_data/pilot): real objects of Ust-Kamenogorsk under construction.
 
 The snapshot is untrusted third-party data collected on one day. Only facts from it are stored: no complaints,
 no advertisements and no judgement about an object. The zone of every object is calculated by the risk module

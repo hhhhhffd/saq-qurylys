@@ -138,7 +138,7 @@ Rules:
 
 A snapshot of public data collected on 2026-10-13 (third-party data, not verified by SAQ): 26 residential complexes
 under construction from the krisha.kz catalogue (`objects`) and 15 records of the register of shared construction
-objects of АО «КЖК» (`homeportal_registry_objects_vko`). A copy of `data/pilot/` that ships in the backend image.
+objects of АО «КЖК» (`homeportal_registry_objects_vko`). Ships in the backend image (the build context is `backend/`).
 The import is described in `app/modules/registry_sync/pilot.py`; in short:
 
 - Real objects are `is_demo=false` and carry only facts of the snapshot. **Legal entities only** (SPEC D19): a developer

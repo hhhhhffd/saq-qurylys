@@ -32,12 +32,6 @@ def _documents(db: Session, obj: ConstructionObject) -> list[Document]:
     return list(db.scalars(select(Document).where(Document.object_id == obj.id).order_by(Document.id)))
 
 
-def test_packaged_snapshot_is_the_published_one() -> None:
-    published = Path(__file__).resolve().parents[2] / "data" / "pilot" / PILOT_FILE.name
-    if published.exists():
-        assert published.read_bytes() == PILOT_FILE.read_bytes()
-
-
 def test_union_of_krisha_objects_and_unclaimed_registry_records(db: Session, pilot: PilotResult) -> None:
     objects = list(db.scalars(select(ConstructionObject)))
     assert len(objects) == 28 and not any(obj.is_demo for obj in objects)
