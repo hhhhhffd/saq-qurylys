@@ -13,10 +13,10 @@ from sqlalchemy.orm import Session
 
 from app import storage
 from app.models import AdPost, Notification
-from app.models.enums import AdOrigin, AdVersionSource, CaptureStatus, EvidenceKind, NotificationKind, Platform
+from app.models.enums import AdVersionSource, CaptureStatus, EvidenceKind, NotificationKind, Platform
 from app.modules.ads.urls import UnsafeUrlError, detect_platform, ensure_public_url, telegram_embed_url
-from app.modules.ads.versions import record_version
-from app.modules.nlp.text import split_ocr
+from app.modules.ads.versions import SOURCE_TEXT_ORIGINS, record_version
+from app.modules.nlp.text import OCR_MARKER, split_ocr
 from app.storage import EvidenceLink
 
 logger = logging.getLogger(__name__)
@@ -282,12 +282,13 @@ def capture_ad(
 
     now = datetime.now(UTC)
     if not (ad.text or "").strip():
-        ad.text = captured.text or None
+        # The page is not trusted to carry the OCR marker: text after it would pass for text read from the photos.
+        ad.text = captured.text.replace(OCR_MARKER, "\n\n") or None
     elif (
         captured.text
         and split_ocr(ad.text or "")[0].strip()
         and ad.platform in _POST_TEXT_PLATFORMS
-        and ad.origin is not AdOrigin.citizen  # a citizen's note is their own words, not the text of the post
+        and ad.origin in SOURCE_TEXT_ORIGINS  # not a citizen's note or the words typed in by staff
     ):
         # The saved text stays the original; what the page says now, when it differs, is a later version.
         record_version(session, ad, captured.text, AdVersionSource.capture, now, screenshot_id)

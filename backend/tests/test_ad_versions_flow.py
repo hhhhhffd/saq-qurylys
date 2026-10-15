@@ -18,7 +18,7 @@ from app.models.enums import AdOrigin, AdStatus, AdVersionSource, CaptureStatus,
 from app.modules.ads import capture, recheck
 from app.modules.ads.urls import UnsafeUrlError
 from app.modules.ads.versions import record_version
-from app.modules.nlp.text import OCR_MARKER
+from app.modules.nlp.text import OCR_MARKER, split_ocr
 from app.storage import EvidenceLink
 from tests.conftest import PNG_BYTES, World, auth, make_object
 from tests.support_ads import add_ad
@@ -52,6 +52,7 @@ def recapture(db: Session, world: World, page_text: str, text: str = ORIGINAL, *
         "platform": Platform.telegram,
         "url": POST_URL,
         "capture_status": CaptureStatus.pending,
+        "origin": AdOrigin.capture,
     }
     ad = add_ad(db, world.ust, text, **{**values, **fields})
     page = capture.PageCapture(png=PNG_BYTES, mhtml=b"From: x", final_url=POST_URL, text=page_text, published_at=None)
@@ -91,11 +92,28 @@ def test_first_capture_of_a_post_without_text_fills_the_original_and_is_no_versi
     assert ad.text == EDITED and versions_of(db, ad) == []
 
 
+def test_first_capture_cannot_smuggle_the_ocr_marker_into_the_text(db: Session, world: World, bucket: str) -> None:
+    """A page that carries the marker would pass the words after it for text read from the photos (SPEC 10.2)."""
+    ad = add_ad(db, world.ust, None, platform=Platform.telegram, url=POST_URL, capture_status=CaptureStatus.pending)
+    page_text = f"Старт продаж{OCR_MARKER}бронь за 10%"
+    page = capture.PageCapture(png=PNG_BYTES, mhtml=b"From: x", final_url=POST_URL, text=page_text, published_at=None)
+
+    capture.capture_ad(db, ad.id, None, page_capture=lambda url: page)
+
+    assert ad.text == "Старт продаж\n\nбронь за 10%" and split_ocr(ad.text or "")[1] is None
+
+
+def test_recapture_of_a_collected_post_is_compared_too(db: Session, world: World, bucket: str) -> None:
+    ad = recapture(db, world, EDITED, origin=AdOrigin.collector)
+    assert [version.text for version in versions_of(db, ad)] == [EDITED]
+
+
 @pytest.mark.parametrize(
     "fields",
     [
         {"platform": Platform.website},  # the text of a whole page: menus and counters change on their own
         {"origin": AdOrigin.citizen},  # the note of a citizen is not the text of the post
+        {"origin": AdOrigin.manual},  # nor are the words staff typed in
         {"text": f"{OCR_MARKER}Бронь на фото"},  # nothing but the text read from the photos is saved
     ],
 )
@@ -156,6 +174,7 @@ def due_post(db: Session, world: World, text: str = ORIGINAL, **fields: Any) -> 
         "url": POST_URL,
         "capture_status": CaptureStatus.done,
         "last_checked_at": datetime.now(UTC) - timedelta(days=4),
+        "origin": AdOrigin.capture,
     }
     return add_ad(db, world.ust, text, **{**values, **fields})
 
@@ -178,6 +197,22 @@ def test_recheck_stores_the_text_a_telegram_post_shows_now_as_a_version(db: Sess
     assert ad.text == ORIGINAL and ad.status is AdStatus.captured and ad.removed_detected_at is None
     assert [url.path for url in requested] == ["/alatau_news/42", "/alatau_news/42"]
     assert [url.params.get("embed") for url in requested] == [None, "1"]
+
+
+@pytest.mark.parametrize("origin", [AdOrigin.citizen, AdOrigin.manual])
+def test_recheck_does_not_compare_a_note_with_the_post(db: Session, world: World, origin: AdOrigin) -> None:
+    """Review repro: a citizen's own words about the post are not an earlier version of the post."""
+    ad = due_post(db, world, "Видел эту рекламу, похоже на мошенников", origin=origin)
+
+    run_recheck(db, widget_handler(WIDGET))
+
+    assert versions_of(db, ad) == [] and ad.last_checked_at is not None
+
+
+def test_recheck_compares_a_collected_post_too(db: Session, world: World) -> None:
+    ad = due_post(db, world, origin=AdOrigin.collector)
+    run_recheck(db, widget_handler(WIDGET))
+    assert [version.text for version in versions_of(db, ad)] == [EDITED]
 
 
 def test_recheck_of_an_unchanged_telegram_post_records_nothing(db: Session, world: World) -> None:

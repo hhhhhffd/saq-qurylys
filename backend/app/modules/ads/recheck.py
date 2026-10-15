@@ -13,7 +13,7 @@ from app import audit
 from app.models import AdPost
 from app.models.enums import AdStatus, AdVersionSource, CaptureStatus
 from app.modules.ads.urls import UnsafeUrlError, ensure_public_url, telegram_embed_url
-from app.modules.ads.versions import record_version
+from app.modules.ads.versions import SOURCE_TEXT_ORIGINS, record_version
 from app.modules.settings.service import load_settings
 
 logger = logging.getLogger(__name__)
@@ -123,7 +123,7 @@ def recheck_due(session: Session, client: httpx.Client) -> list[int]:
             logger.warning("Re-check of ad_post %s failed", ad.id, exc_info=True)
             status_code = 0
         ad.last_checked_at = now
-        if text is not None:
+        if text is not None and ad.origin in SOURCE_TEXT_ORIGINS:
             record_version(session, ad, text, AdVersionSource.recheck, now)
         if removed:
             before = audit.snapshot(ad)

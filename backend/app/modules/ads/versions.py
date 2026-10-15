@@ -8,10 +8,13 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import AdPost, AdPostVersion
-from app.models.enums import AdVersionSource
+from app.models.enums import AdOrigin, AdVersionSource
 from app.modules.nlp.text import split_ocr
 
 _SPACE = re.compile(r"\s+")
+# Only a saved text that came from the source itself can be compared with what the source shows later: not the
+# note of a citizen and not the words staff typed in.
+SOURCE_TEXT_ORIGINS = frozenset({AdOrigin.capture, AdOrigin.collector})
 
 
 def _comparable(text: str) -> str:
