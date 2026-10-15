@@ -3,7 +3,7 @@
 import logging
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -43,20 +43,35 @@ class RecalcResult:
 
 
 def load_scoring_input(
-    session: Session, obj: ConstructionObject, settings: AppSettings, now: datetime
+    session: Session,
+    obj: ConstructionObject,
+    settings: AppSettings,
+    now: datetime,
+    today: date,
+    as_of: bool = False,
 ) -> engine.ScoringInput:
+    """The facts the rules read. `today` is `now` as a date in the territory of the object.
+
+    With `as_of`, `now` is a moment in the past that is being reconstructed (SPEC 10.5): only what was dated
+    on or before it is loaded. Ads are taken by their timestamp, complaints by `received_at` (a verification
+    counts once `verified_at` has come), documents by the check date (`created_at` when it has none), inspections
+    by their date. Everything else (ad status, phrase hits, complaint status, the passport of the object) is
+    read as it is now: its history is not kept (OPEN_QUESTIONS 34).
+    """
+    documents_stmt = select(Document).where(
+        Document.object_id == obj.id, Document.doc_type.in_(engine.LEGAL_BASIS_DOC_TYPES)
+    )
+    if as_of:
+        documents_stmt = documents_stmt.where(func.coalesce(Document.checked_at, Document.created_at) <= now)
     documents = [
         engine.DocumentFact(id=row.id, doc_type=row.doc_type, check_status=row.check_status)
-        for row in session.scalars(
-            select(Document)
-            .where(Document.object_id == obj.id, Document.doc_type.in_(engine.LEGAL_BASIS_DOC_TYPES))
-            .order_by(Document.id)
-        )
+        for row in session.scalars(documents_stmt.order_by(Document.id))
     ]
     window_start = now - timedelta(days=settings.ad_window_days)
+    in_window = AD_TIMESTAMP.between(window_start, now) if as_of else window_start <= AD_TIMESTAMP
     ad_rows = session.execute(
         select(AdPost.id, AdPost.payment_schemes, AdPost.status, AdPost.claimed_readiness_pct)
-        .where(AdPost.object_id == obj.id, window_start <= AD_TIMESTAMP)
+        .where(AdPost.object_id == obj.id, in_window)
         .order_by(AD_TIMESTAMP.desc(), AdPost.id.desc())
     ).all()
     hits_by_ad: dict[int, list[engine.HitFact]] = defaultdict(list)
@@ -76,21 +91,24 @@ def load_scoring_input(
                     fragment=hit.matched_text,
                 )
             )
+    complaints_stmt = select(Complaint).where(Complaint.object_id == obj.id)
+    if as_of:
+        complaints_stmt = complaints_stmt.where(Complaint.received_at <= today)
     complaints = [
         engine.ComplaintFact(
             id=row.id,
             is_collective=row.is_collective,
             status=row.status,
             confirmed_payments=row.confirmed_payments,
-            is_verified=row.is_verified,
+            is_verified=row.is_verified and (not as_of or (row.verified_at or row.created_at) <= now),
         )
-        for row in session.scalars(select(Complaint).where(Complaint.object_id == obj.id).order_by(Complaint.id))
+        for row in session.scalars(complaints_stmt.order_by(Complaint.id))
     ]
+    inspection_stmt = select(Inspection.id, Inspection.inspected_at).where(Inspection.object_id == obj.id)
+    if as_of:
+        inspection_stmt = inspection_stmt.where(Inspection.inspected_at <= today)
     latest = session.execute(
-        select(Inspection.id, Inspection.inspected_at)
-        .where(Inspection.object_id == obj.id)
-        .order_by(Inspection.inspected_at.desc(), Inspection.id.desc())
-        .limit(1)
+        inspection_stmt.order_by(Inspection.inspected_at.desc(), Inspection.id.desc()).limit(1)
     ).first()
     return engine.ScoringInput(
         obj=engine.ObjectFact(
@@ -125,6 +143,31 @@ def next_check_delta(zone: Zone, settings: AppSettings) -> timedelta:
     return timedelta(days=days)
 
 
+def active_factor_weights(session: Session) -> list[engine.FactorWeight]:
+    return [
+        engine.FactorWeight(code=factor.code, weight=factor.weight)
+        for factor in session.scalars(
+            select(RiskFactor).where(RiskFactor.is_active.is_(True)).order_by(RiskFactor.sort_order, RiskFactor.code)
+        )
+    ]
+
+
+def evaluate_object(
+    session: Session,
+    obj: ConstructionObject,
+    settings: AppSettings,
+    factors: list[engine.FactorWeight],
+    now: datetime,
+    as_of: bool = False,
+) -> engine.Evaluation:
+    """Run the rules over the facts of the object at `now` (see `load_scoring_input` for `as_of`)."""
+    territory = session.get(Territory, obj.territory_id)
+    if territory is None:
+        raise ValueError(f"object {obj.id} has no territory")
+    today = signals.local_today(territory.timezone, now)
+    return engine.evaluate(load_scoring_input(session, obj, settings, now, today, as_of), factors, settings, today)
+
+
 def recalculate(
     session: Session, object_id: int, trigger: ScoreTrigger = ScoreTrigger.event, now: datetime | None = None
 ) -> RecalcResult | None:
@@ -140,21 +183,7 @@ def recalculate(
     # Taken after the lock: a calculation that waited for another one must not look older than its result.
     now = now or datetime.now(UTC)
     settings = load_settings(session)
-    factors = [
-        engine.FactorWeight(code=factor.code, weight=factor.weight)
-        for factor in session.scalars(
-            select(RiskFactor).where(RiskFactor.is_active.is_(True)).order_by(RiskFactor.sort_order, RiskFactor.code)
-        )
-    ]
-    territory = session.get(Territory, obj.territory_id)
-    if territory is None:
-        raise ValueError(f"object {obj.id} has no territory")
-    evaluation = engine.evaluate(
-        load_scoring_input(session, obj, settings, now),
-        factors,
-        settings,
-        signals.local_today(territory.timezone, now),
-    )
+    evaluation = evaluate_object(session, obj, settings, active_factor_weights(session), now)
 
     risk_score = RiskScore(
         object_id=obj.id,
@@ -206,15 +235,20 @@ def notify_red_zone(session: Session, object_id: int) -> RedZoneNotice | None:
     obj = session.get(ConstructionObject, object_id)
     if obj is None or obj.zone is not Zone.red or obj.score is None:
         return None
+    # Replayed history (SPEC 10.5) is stored after the real scores but dated before them: it is not a streak.
+    calculated = RiskScore.trigger != ScoreTrigger.replay
     last_non_red = (
         select(func.max(RiskScore.id))
-        .where(RiskScore.object_id == obj.id, RiskScore.zone != Zone.red)
+        .where(RiskScore.object_id == obj.id, RiskScore.zone != Zone.red, calculated)
         .scalar_subquery()
     )
     # The first red score of the current streak identifies this entry into the red zone.
     entry_score_id = session.scalar(
         select(func.min(RiskScore.id)).where(
-            RiskScore.object_id == obj.id, RiskScore.zone == Zone.red, RiskScore.id > func.coalesce(last_non_red, 0)
+            RiskScore.object_id == obj.id,
+            RiskScore.zone == Zone.red,
+            RiskScore.id > func.coalesce(last_non_red, 0),
+            calculated,
         )
     )
     already = set(

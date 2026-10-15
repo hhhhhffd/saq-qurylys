@@ -1,17 +1,24 @@
 from collections import Counter
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Query
 from sqlalchemy import select
 
 from app.deps import ScopeDep, SessionDep, StaffUser
+from app.errors import api_error
 from app.models import ConstructionObject, Territory
 from app.models.enums import Zone
-from app.modules.dashboard.schemas import Dashboard, DashboardCounts
+from app.modules.dashboard import service
+from app.modules.dashboard.schemas import Dashboard, DashboardCounts, Timeline, TimelineStep
 from app.modules.objects.router import to_row
 from app.modules.objects.service import object_rows_stmt
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
+
+DEFAULT_TIMELINE_WEEKS = 26
+MAX_TIMELINE_FRAMES = 120
+TIMELINE_STEPS = {TimelineStep.week: timedelta(weeks=1), TimelineStep.day: timedelta(days=1)}
 
 
 @router.get("", response_model=Dashboard)
@@ -45,3 +52,31 @@ def dashboard(
         last_updated_at=max(scored_at, default=None),
         objects=[to_row(obj, developer_name, district_name) for obj, developer_name, district_name in rows],
     )
+
+
+def _utc(value: datetime) -> datetime:
+    return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
+
+
+@router.get("/timeline", response_model=Timeline)
+def timeline(
+    session: SessionDep,
+    user: StaffUser,
+    scope: ScopeDep,
+    start: Annotated[datetime | None, Query(alias="from")] = None,
+    end: Annotated[datetime | None, Query(alias="to")] = None,
+    step: Annotated[TimelineStep, Query()] = TimelineStep.week,
+) -> Timeline:
+    """Zones of the objects in scope at past moments (the "time machine" of the map): one frame per step, the
+    last one at `to`. Each object has in a frame the latest score it had by then, replayed history included
+    (SPEC 10.5). Naive datetimes are UTC; by default the last 26 weeks up to now."""
+    end = _utc(end) if end else datetime.now(UTC)
+    start = _utc(start) if start else end - timedelta(weeks=DEFAULT_TIMELINE_WEEKS)
+    if start > end:
+        raise api_error(422, "timeline_range_invalid", "Начало периода позже его конца")
+    delta = TIMELINE_STEPS[step]
+    if (end - start) // delta + 1 > MAX_TIMELINE_FRAMES:
+        raise api_error(
+            422, "timeline_too_long", f"Период содержит больше {MAX_TIMELINE_FRAMES} срезов, выберите период короче"
+        )
+    return service.build_timeline(session, scope, service.frame_times(start, end, delta))
