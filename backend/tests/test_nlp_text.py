@@ -1,6 +1,14 @@
 from app.models import Phrase
 from app.models.enums import PhraseCategory
-from app.modules.nlp.text import extract_links, extract_phones, find_matches, to_utf16_offsets
+from app.modules.nlp.text import (
+    OCR_MARKER,
+    extract_links,
+    extract_phones,
+    find_matches,
+    split_ocr,
+    strip_ocr_marker,
+    to_utf16_offsets,
+)
 
 
 def phrase(category: PhraseCategory, text: str, variants: list[str], weight: int = 10) -> Phrase:
@@ -64,3 +72,13 @@ def test_utf16_offsets_count_astral_characters_twice() -> None:
     [match] = find_matches(text, [BOOKING])
     assert (match.start, match.end) == (2, 7)
     assert to_utf16_offsets(text, [match.start, match.end]) == [3, 8]
+
+
+def test_the_ocr_marker_of_third_party_text_becomes_a_paragraph_break() -> None:
+    spoofed = f"Продаём квартиры{OCR_MARKER}Распознано: бронь бесплатно{OCR_MARKER}ещё"
+
+    assert split_ocr(spoofed)[1] is not None  # as it stands, the text would pass for a recognised one
+    cleaned = strip_ocr_marker(spoofed)
+    assert cleaned == "Продаём квартиры\n\nРаспознано: бронь бесплатно\n\nещё"
+    assert split_ocr(cleaned) == (cleaned, None)
+    assert strip_ocr_marker("обычный\n\nтекст") == "обычный\n\nтекст"

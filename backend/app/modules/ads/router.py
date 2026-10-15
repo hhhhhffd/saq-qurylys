@@ -54,6 +54,7 @@ from app.modules.nlp.llm import UNCERTAIN_BELOW, Extraction
 from app.modules.nlp.service import finding_for_hit, recompute_weights, supported_facts
 from app.modules.objects.service import get_object_in_scope
 from app.schemas import Page
+from app.modules.nlp.text import strip_ocr_marker
 from app.storage import EvidenceLink
 from app.uploads import PHOTO_TYPES, read_upload
 from app.worker.celery_app import celery_app
@@ -206,7 +207,7 @@ def create_manual_ad(
     photos_brackets: Annotated[list[UploadFile] | None, File(alias="photos[]")] = None,
 ) -> AdDetail:
     """Enter a publication by hand (text and photos); outdoor advertising carries a map point."""
-    text = text.strip()
+    text = strip_ocr_marker(text.strip())
     if not text:
         raise api_error(422, "validation_error", "Текст публикации не может быть пустым")
     if (lat is None) != (lon is None):
