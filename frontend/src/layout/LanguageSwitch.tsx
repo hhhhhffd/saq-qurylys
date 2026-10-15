@@ -3,13 +3,12 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { setLanguage } from '@/i18n';
 import type { Locale } from '@/api/types';
 
-export function LanguageSwitch({ className }: { className?: string }) {
+export function LanguageSwitch() {
   const { t, i18n } = useTranslation();
   return (
     <ToggleGroup
       type="single"
       size="sm"
-      className={className}
       aria-label={t('header.language')}
       value={i18n.language === 'kk' ? 'kk' : 'ru'}
       onValueChange={(value) => value && setLanguage(value as Locale)}

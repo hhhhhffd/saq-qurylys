@@ -12,7 +12,6 @@ import { TextInput } from '@/components/form/TextInput';
 import GlitchText from '@/components/fx/GlitchText';
 import { Button } from '@/components/ui/button';
 import { LanguageSwitch } from '@/layout/LanguageSwitch';
-import { cn } from '@/lib/utils';
 
 export function LoginPage() {
   const { t } = useTranslation();
@@ -21,8 +20,6 @@ export function LoginPage() {
   const location = useLocation();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  // One pink outline at a time: around the language switch while it is pointed at or focused, otherwise around the form.
-  const [active, setActive] = useState<'form' | 'language'>('form');
 
   // The schema is built with `t`, so its messages are translated; zod reports them as the field errors.
   const schema = useMemo(
@@ -53,21 +50,14 @@ export function LoginPage() {
   return (
     <div className="relative grid min-h-dvh place-items-center bg-bg px-(--gutter) py-6">
       <div className="absolute top-4 right-(--gutter)">
-        <div onPointerEnter={() => setActive('language')} onFocus={() => setActive('language')}>
-          <LanguageSwitch className={cn('transition-colors', active === 'language' && 'border-primary/40')} />
-        </div>
+        <LanguageSwitch />
       </div>
       <div className="flex w-full flex-col items-center gap-8">
         <GlitchText className="font-heading text-3xl font-bold sm:text-5xl" bursts>
           SAQ QURYLYS
         </GlitchText>
         <form
-          className={cn(
-            'w-full max-w-[400px] overflow-hidden rounded-lg border bg-surface transition-colors',
-            active === 'form' ? 'border-primary/40' : 'border-border',
-          )}
-          onPointerEnter={() => setActive('form')}
-          onFocus={() => setActive('form')}
+          className="w-full max-w-[400px] overflow-hidden rounded-lg border border-primary/60 bg-surface"
           onSubmit={submit}
           noValidate
         >
