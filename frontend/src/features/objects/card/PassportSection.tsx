@@ -1,15 +1,15 @@
 import { useState } from 'react';
-import { Button } from '@mantine/core';
 import { IconPencil } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import type { ObjectDetail } from '@/api/types';
 import { useAuth } from '@/auth/useAuth';
 import { KeyValue } from '@/components/KeyValue';
 import { Panel } from '@/components/Panel';
+import { Button } from '@/components/ui/button';
 import { useEnum } from '@/i18n/useEnum';
 import { useFormat } from '@/i18n/useFormat';
 import { DeveloperFormModal } from '../forms/DeveloperFormModal';
-import classes from './Section.module.css';
+import { subTitleClass } from './styles';
 
 function joinList(items: string[]): string | null {
   return items.length > 0 ? items.join(', ') : null;
@@ -37,7 +37,7 @@ export function PassportSection({ object }: { object: ObjectDetail }) {
           { label: t('card.passport.district'), value: object.district_name },
           {
             label: t('card.passport.coordinates'),
-            value: coordinates && <span className="tnum">{coordinates}</span>,
+            value: coordinates && <span className="tabular-nums">{coordinates}</span>,
           },
           { label: t('card.passport.plannedCompletion'), value: date(object.planned_completion) },
           { label: t('card.passport.forecastCompletion'), value: date(object.forecast_completion) },
@@ -47,18 +47,14 @@ export function PassportSection({ object }: { object: ObjectDetail }) {
         ]}
       />
 
-      <section className={classes.divider} aria-labelledby="passport-developer">
-        <div className={classes.subHeader}>
-          <h4 id="passport-developer" className={classes.subTitle}>
+      <section className="mt-4 border-t border-border pt-3" aria-labelledby="passport-developer">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
+          <h4 id="passport-developer" className={subTitleClass}>
             {t('card.passport.developer.title')}
           </h4>
           {canEditRegistry && developer && (
-            <Button
-              variant="subtle"
-              size="compact-sm"
-              leftSection={<IconPencil size={14} />}
-              onClick={() => setEditingDeveloper(true)}
-            >
+            <Button variant="ghost" size="sm" onClick={() => setEditingDeveloper(true)}>
+              <IconPencil />
               {t('card.passport.developer.edit')}
             </Button>
           )}
@@ -66,7 +62,7 @@ export function PassportSection({ object }: { object: ObjectDetail }) {
         {developer ? (
           <KeyValue
             items={[
-              { label: t('card.passport.developer.bin'), value: <span className="tnum">{developer.bin}</span> },
+              { label: t('card.passport.developer.bin'), value: <span className="tabular-nums">{developer.bin}</span> },
               { label: t('card.passport.developer.name'), value: developer.name },
               { label: t('card.passport.developer.director'), value: developer.director },
               { label: t('card.passport.developer.authorizedCompany'), value: developer.authorized_company },
@@ -75,7 +71,7 @@ export function PassportSection({ object }: { object: ObjectDetail }) {
             ]}
           />
         ) : (
-          <p className={classes.muted}>{t('card.passport.developer.none')}</p>
+          <p className="text-text-3">{t('card.passport.developer.none')}</p>
         )}
       </section>
 

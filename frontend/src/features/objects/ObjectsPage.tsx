@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Button, SegmentedControl, TextInput, VisuallyHidden } from '@mantine/core';
 import { useDebouncedCallback } from '@/lib/hooks';
 import { IconChevronRight, IconPlus, IconSearch, IconUpload } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
@@ -12,6 +11,9 @@ import { DataTable } from '@/components/DataTable';
 import { DemoBadge } from '@/components/DemoBadge';
 import { ErrorBlock } from '@/components/QueryState';
 import { PageHeader } from '@/components/PageHeader';
+import { Button } from '@/components/ui/button';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { ZoneBadge, ZoneDot } from '@/components/Zone';
 import { ZoneDisclaimer } from '@/components/ZoneDisclaimer';
 import { useEnum, useKeyStatusLabel } from '@/i18n/useEnum';
@@ -19,7 +21,6 @@ import { ImportCsvModal } from './forms/ImportCsvModal';
 import { ObjectFormModal } from './forms/ObjectFormModal';
 import { ZONES, isZone, parseId, patchParams } from './list/filters';
 import { TerritoryFilter } from './list/TerritoryFilter';
-import classes from './ObjectsPage.module.css';
 
 const PAGE_SIZE = 25;
 const SEARCH_DEBOUNCE_MS = 300;
@@ -72,12 +73,12 @@ export function ObjectsPage() {
   const columns = col.columns([
     col.accessor('code', {
       header: t('list.columns.code'),
-      cell: (info) => <span className="tnum">{info.getValue()}</span>,
+      cell: (info) => <span className="whitespace-nowrap tabular-nums">{info.getValue()}</span>,
     }),
     col.accessor('name', {
       header: t('list.columns.name'),
       cell: (info) => (
-        <span className={classes.nameCell}>
+        <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
           <Link to={`/objects/${info.row.original.id}`} onClick={(event) => event.stopPropagation()}>
             {info.getValue()}
           </Link>
@@ -95,7 +96,7 @@ export function ObjectsPage() {
     }),
     col.accessor('score', {
       header: t('list.columns.score'),
-      cell: (info) => <span className="tnum">{info.getValue() ?? common('noValue')}</span>,
+      cell: (info) => <span className="tabular-nums">{info.getValue() ?? common('noValue')}</span>,
     }),
     col.accessor('zone', {
       header: t('list.columns.zone'),
@@ -108,8 +109,8 @@ export function ObjectsPage() {
     }),
     col.display({
       id: 'open',
-      header: () => <VisuallyHidden>{common('open')}</VisuallyHidden>,
-      cell: () => <IconChevronRight size={16} className="faint" aria-hidden />,
+      header: () => <span className="sr-only">{common('open')}</span>,
+      cell: () => <IconChevronRight size={16} className="text-text-3" aria-hidden />,
     }),
   ]);
 
@@ -120,45 +121,47 @@ export function ObjectsPage() {
         actions={
           canEditRegistry && (
             <>
-              <Button variant="default" leftSection={<IconUpload size={16} />} onClick={() => setImportOpen(true)}>
+              <Button variant="secondary" onClick={() => setImportOpen(true)}>
+                <IconUpload />
                 {t('list.importCsv')}
               </Button>
-              <Button leftSection={<IconPlus size={16} />} onClick={() => setCreateOpen(true)}>
+              <Button onClick={() => setCreateOpen(true)}>
+                <IconPlus />
                 {t('list.create')}
               </Button>
             </>
           )
         }
       />
-      <div className={classes.filters}>
-        <TextInput
-          className={classes.search}
-          aria-label={t('list.search')}
-          placeholder={t('list.search')}
-          leftSection={<IconSearch size={16} />}
-          value={searchText}
-          onChange={(event) => {
-            setSearchText(event.currentTarget.value);
-            writeQuery(event.currentTarget.value);
-          }}
-        />
-        <SegmentedControl
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <InputGroup className="max-w-90 min-w-48 flex-1 basis-60">
+          <InputGroupAddon>
+            <IconSearch />
+          </InputGroupAddon>
+          <InputGroupInput
+            aria-label={t('list.search')}
+            placeholder={t('list.search')}
+            value={searchText}
+            onChange={(event) => {
+              setSearchText(event.currentTarget.value);
+              writeQuery(event.currentTarget.value);
+            }}
+          />
+        </InputGroup>
+        <ToggleGroup
+          type="single"
           aria-label={t('list.zoneFilter')}
           value={zone ?? 'all'}
-          onChange={(value) => setFilters({ zone: isZone(value) ? value : null })}
-          data={[
-            { value: 'all', label: common('all') },
-            ...ZONES.map((item) => ({
-              value: item,
-              label: (
-                <span className={classes.zoneOption}>
-                  <ZoneDot zone={item} />
-                  {e('zone', item)}
-                </span>
-              ),
-            })),
-          ]}
-        />
+          onValueChange={(value) => value && setFilters({ zone: isZone(value) ? value : null })}
+        >
+          <ToggleGroupItem value="all">{common('all')}</ToggleGroupItem>
+          {ZONES.map((item) => (
+            <ToggleGroupItem key={item} value={item}>
+              <ZoneDot zone={item} size={8} />
+              {e('zone', item)}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
         <TerritoryFilter
           territoryId={territoryId}
           districtId={districtId}
@@ -171,7 +174,7 @@ export function ObjectsPage() {
         />
         {hasFilters && (
           <Button
-            variant="subtle"
+            variant="ghost"
             onClick={() => {
               writeQuery.cancel();
               setParams(new URLSearchParams());
@@ -199,12 +202,12 @@ export function ObjectsPage() {
             <>
               {t('list.empty')}
               <br />
-              <span className="faint">{t('list.emptyHint')}</span>
+              <span className="text-text-3">{t('list.emptyHint')}</span>
             </>
           }
         />
       )}
-      <ZoneDisclaimer className={classes.disclaimer} />
+      <ZoneDisclaimer className="mt-3.5" />
       {canEditRegistry && (
         <>
           <ObjectFormModal opened={createOpen} onClose={() => setCreateOpen(false)} />

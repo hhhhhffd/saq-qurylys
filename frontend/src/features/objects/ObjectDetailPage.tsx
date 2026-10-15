@@ -1,8 +1,8 @@
-import { Button } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router';
 import { useObject } from '@/api/hooks/objects';
 import { ApiError } from '@/api/client';
+import { Button } from '@/components/ui/button';
 import { EmptyState, QueryBoundary } from '@/components/QueryState';
 import { ObjectCard } from './card/ObjectCard';
 
@@ -11,8 +11,8 @@ function ObjectNotFound() {
   return (
     <EmptyState
       action={
-        <Button component={Link} to="/objects" variant="default" size="xs">
-          {t('card.notFound.back')}
+        <Button asChild variant="secondary" size="sm">
+          <Link to="/objects">{t('card.notFound.back')}</Link>
         </Button>
       }
     >

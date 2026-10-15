@@ -1,10 +1,13 @@
 import { useState } from 'react';
-import { Button, FileInput, Group, Modal, ScrollArea, SimpleGrid, Stack, Table, Text } from '@mantine/core';
 import { useTranslation } from 'react-i18next';
 import { useImportComplaints, useImportObjects } from '@/api/hooks/objects';
 import type { ImportResult } from '@/api/types';
 import { Chip } from '@/components/Chip';
-import classes from './forms.module.css';
+import { FileInput } from '@/components/form/FileInput';
+import { Button } from '@/components/ui/button';
+import { DialogFooter } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { FormDialog, FormFooter } from './fields';
 import { MAX_FILE_MB, fileTooLarge } from './utils';
 
 export interface ImportCsvModalProps {
@@ -23,10 +26,9 @@ const COMPLAINT_OPTIONAL_COLUMNS =
 export function ImportCsvModal({ opened, onClose, kind }: ImportCsvModalProps) {
   const { t } = useTranslation('objectForms');
   return (
-    <Modal opened={opened} onClose={onClose} title={t(`import.title.${kind}`)} size="lg" closeOnClickOutside={false}>
-      {/* The form mounts together with the modal body, so every opening starts from an empty state. */}
+    <FormDialog opened={opened} onClose={onClose} title={t(`import.title.${kind}`)}>
       <ImportForm kind={kind} onClose={onClose} />
-    </Modal>
+    </FormDialog>
   );
 }
 
@@ -54,6 +56,7 @@ function ImportForm({ kind, onClose }: Omit<ImportCsvModalProps, 'opened'>) {
 
   return (
     <form
+      noValidate
       onSubmit={(event) => {
         event.preventDefault();
         if (file && !fileError) mutation.mutate(file);
@@ -75,19 +78,17 @@ function ImportForm({ kind, onClose }: Omit<ImportCsvModalProps, 'opened'>) {
         placeholder={tc('selectFile')}
         accept=".csv,text/csv"
         clearable
-        withAsterisk
+        required
         value={file}
         onChange={setFile}
         error={fileError}
       />
-      <Group justify="flex-end" mt="lg">
-        <Button variant="default" onClick={onClose} disabled={mutation.isPending}>
-          {tc('cancel')}
-        </Button>
-        <Button type="submit" loading={mutation.isPending} disabled={!file || fileError !== null}>
-          {t('import.submit')}
-        </Button>
-      </Group>
+      <FormFooter
+        loading={mutation.isPending}
+        onCancel={onClose}
+        submitLabel={t('import.submit')}
+        submitDisabled={!file || fileError !== null}
+      />
     </form>
   );
 }
@@ -113,59 +114,57 @@ function ImportOutcome({ result, onClose, onAnother }: ImportOutcomeProps) {
     verdict = { tone: 'red', label: t('import.verdict.failed'), text: t('import.verdictText.failed') };
   }
 
+  const stats = [
+    { value: result.created, label: t('import.created') },
+    { value: result.updated, label: t('import.updated') },
+    { value: failed, label: t('import.failed') },
+  ];
+
   return (
-    <Stack gap="md">
-      <Group gap="sm" align="center">
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Chip tone={verdict.tone}>{verdict.label}</Chip>
-        <Text size="sm" c="dimmed" style={{ flex: 1, minWidth: 200 }}>
-          {verdict.text}
-        </Text>
-      </Group>
-      <SimpleGrid cols={3}>
-        <div className={classes.stat}>
-          <span className={classes.statValue}>{result.created}</span>
-          <span className={classes.statLabel}>{t('import.created')}</span>
-        </div>
-        <div className={classes.stat}>
-          <span className={classes.statValue}>{result.updated}</span>
-          <span className={classes.statLabel}>{t('import.updated')}</span>
-        </div>
-        <div className={classes.stat}>
-          <span className={classes.statValue}>{failed}</span>
-          <span className={classes.statLabel}>{t('import.failed')}</span>
-        </div>
-      </SimpleGrid>
+        <p className="min-w-48 flex-1 text-sm text-text-2">{verdict.text}</p>
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        {stats.map((stat) => (
+          <div key={stat.label} className="flex flex-col gap-0.5 rounded border border-border bg-surface px-3 py-2.5">
+            <span className="font-heading text-2xl leading-tight font-bold tabular-nums">{stat.value}</span>
+            <span className="text-xs text-text-2">{stat.label}</span>
+          </div>
+        ))}
+      </div>
       {failed > 0 && (
         <div>
-          <Text size="sm" fw={600} mb={6}>
-            {t('import.errorsTitle')}
-          </Text>
-          <ScrollArea.Autosize mah={260} className={classes.resultErrors}>
-            <Table stickyHeader>
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th w={90}>{t('import.row')}</Table.Th>
-                  <Table.Th>{t('import.message')}</Table.Th>
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
+          <p className="mb-1.5 text-sm font-semibold">{t('import.errorsTitle')}</p>
+          <div className="max-h-65 overflow-auto rounded border border-border bg-surface">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="sticky top-0 w-22 bg-surface">{t('import.row')}</TableHead>
+                  <TableHead className="sticky top-0 bg-surface">{t('import.message')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {result.errors.map((error, index) => (
-                  <Table.Tr key={`${error.row}-${index}`}>
-                    <Table.Td>{error.row}</Table.Td>
-                    <Table.Td>{error.message}</Table.Td>
-                  </Table.Tr>
+                  <TableRow key={`${error.row}-${index}`}>
+                    <TableCell className="tabular-nums">{error.row}</TableCell>
+                    <TableCell className="h-auto whitespace-normal">{error.message}</TableCell>
+                  </TableRow>
                 ))}
-              </Table.Tbody>
+              </TableBody>
             </Table>
-          </ScrollArea.Autosize>
+          </div>
         </div>
       )}
-      <Group justify="flex-end">
-        <Button variant="default" onClick={onAnother}>
+      <DialogFooter>
+        <Button type="button" variant="secondary" onClick={onAnother}>
           {t('import.another')}
         </Button>
-        <Button onClick={onClose}>{tc('close')}</Button>
-      </Group>
-    </Stack>
+        <Button type="button" onClick={onClose}>
+          {tc('close')}
+        </Button>
+      </DialogFooter>
+    </div>
   );
 }
