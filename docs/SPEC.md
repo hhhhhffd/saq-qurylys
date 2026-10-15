@@ -254,7 +254,7 @@ Auth
 
 ## 9. Конфигурация (`.env`)
 
-`DATABASE_URL`, `REDIS_URL`, `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET_EVIDENCE`, `EVIDENCE_LOCK_MODE`, `EVIDENCE_RETENTION_DAYS`, `TSA_URL`, `JWT_SECRET`, `JWT_TTL_MINUTES`, `LLM_ENABLED`, `OLLAMA_URL`, `OLLAMA_MODEL=qwen3.5:9b-q6k`, `LLM_TIMEOUT_S`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, `CORS_ORIGINS`, `INITIAL_ADMIN_USERNAME`, `INITIAL_ADMIN_PASSWORD`, `HOMEPORTAL_SYNC_ENABLED`; фаза 2: `COLLECT_TELEGRAM_ENABLED`, `COLLECT_OLX_ENABLED`, `COLLECT_KRISHA_ENABLED`, `INSTAGRAM_GRAPH_TOKEN`, `INSTAGRAM_GRAPH_USER_ID`, `INSTAGRAM_GRAPH_API_VERSION`, `COLLECT_REQUEST_DELAY_S`, `COLLECT_MAX_PAGES`, `COLLECT_USER_AGENT`, `OCR_ENABLED`, `OCR_LANGUAGES`, `TELEGRAM_BOT_TOKEN`, `BOT_REPORTS_PER_HOUR`. Секреты — только в `.env` (в git не попадает), в репозитории только `.env.example`.
+`DATABASE_URL`, `REDIS_URL`, `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET_EVIDENCE`, `EVIDENCE_LOCK_MODE`, `EVIDENCE_RETENTION_DAYS`, `TSA_URL`, `JWT_SECRET`, `JWT_TTL_MINUTES`, `LLM_ENABLED`, `OLLAMA_URL`, `OLLAMA_MODEL=qwen3.5:9b-q6k`, `LLM_TIMEOUT_S`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, `CORS_ORIGINS`, `INITIAL_ADMIN_USERNAME`, `INITIAL_ADMIN_PASSWORD`, `HOMEPORTAL_SYNC_ENABLED`; фаза 2: `COLLECT_TELEGRAM_ENABLED`, `COLLECT_OLX_ENABLED`, `COLLECT_KRISHA_ENABLED`, `INSTAGRAM_GRAPH_TOKEN`, `INSTAGRAM_GRAPH_USER_ID`, `INSTAGRAM_GRAPH_API_VERSION`, `COLLECT_REQUEST_DELAY_S`, `COLLECT_MAX_PAGES`, `COLLECT_USER_AGENT`, `OCR_ENABLED`, `OCR_LANGUAGES`, `TELEGRAM_BOT_TOKEN`, `BOT_REPORTS_PER_HOUR`, `TELEGRAM_API_ID`, `TELEGRAM_API_HASH`, `USERBOT_SESSION`, `USERBOT_JOIN_DELAY_S`, `USERBOT_BACKFILL_LIMIT`. Секреты — только в `.env` (в git не попадает), в репозитории только `.env.example`.
 
 ## 10. Фаза 2: сбор, OCR, бот, связи, история
 
@@ -338,3 +338,16 @@ Auth
   - изменилась зона;
   - карточка создана или направлена.
 - Пилюля вверху экрана. Пока вкладка видима, она опрашивает ленту раз в 4 с, раскрывается при новом событии, а по щелчку ведёт к объекту или публикации.
+
+### 10.8 Telegram-юзербот
+
+- Отдельный сервис `userbot` (профиль compose `userbot`) на Telethon: пользовательский аккаунт Telegram (MTProto) читает публичные каналы и группы. Включается, когда заданы `TELEGRAM_API_ID`, `TELEGRAM_API_HASH` и `COLLECT_TELEGRAM_ENABLED`. Тогда сборщик `t.me/s` не регистрируется: Telegram обслуживает юзербот, в том числе группы без веб-просмотра.
+- Вступление — действие человека: юзербот вступает только в источники Telegram, которые сотрудник добавил в «Источниках» и не отключил. Закрытые чаты и приглашения не поддерживаются, нужно публичное имя. Между вступлениями пауза `USERBOT_JOIN_DELAY_S`, на `FloodWait` юзербот ждёт указанное время.
+- Раз в 5 минут юзербот обновляет список источников и словарь, дочитывает сообщения новее `last_collected_at` (первый раз не больше `USERBOT_BACKFILL_LIMIT`, в пределах окна объявлений) и записывает итог на источник так же, как сборщики (`last_error`, уведомление `collector_failed`). Новые сообщения и правки приходят сразу.
+- Что сохраняется:
+  - канал — каждая публикация, автор — название канала, ссылка `https://t.me/<канал>/<номер>` фиксируется браузером;
+  - группа — только сообщение с попаданием в словарь; автор и ссылка не сохраняются (публичная страница сообщения показывает участника), фиксация не ставится;
+  - личные переписки и малые группы не читаются.
+- Текст — подпись к фото включительно; фото (JPEG, PNG, WebP до 10 МБ) сохраняются как evidence и идут на OCR. Идентификатор публикации тот же, что у `t.me/s` (`<канал>/<номер>`), поэтому дубликатов нет.
+- Публикации `origin=collector` не влияют на балл, пока человек не подтвердит связь (10.0).
+- Вход: `docker compose --profile userbot run --rm userbot python -m app.userbot login`. Юзербот показывает QR-код в терминале: Telegram → Настройки → Устройства → Подключить устройство. При включённой двухэтапной проверке запрашивается облачный пароль. Сессия лежит в томе `userbotdata` (`/data/userbot`), в git не попадает. Нужен отдельный номер, не личный.
