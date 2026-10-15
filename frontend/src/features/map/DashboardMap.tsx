@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   GeoJSONSource,
   Map as MapLibreMap,
@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import type { DistrictCollection, ObjectRow } from '@/api/types';
 import { ZONE_HEX } from '@/components/zoneColor';
 import type { LatLon } from '@/lib/geo';
+import { markerColor, markerFeatures, paintMarkers, type Rgba } from './markers';
 import {
   CITY_ZOOM,
   FALLBACK_STYLE,
@@ -30,9 +31,7 @@ const CIRCLE_LAYER = 'objects-circle';
 const HIT_LAYER = 'objects-hit';
 const NO_OBJECT = -1;
 const FIT_ANIMATION_MS = 600;
-
-// Overlapping markers: the riskier zone is drawn on top.
-const ZONE_RANK = { none: 0, green: 1, yellow: 2, red: 3 } as const;
+const FIT_PADDING = 48;
 
 type CirclePaint = NonNullable<Extract<AddLayerObject, { type: 'circle' }>['paint']>;
 
@@ -45,35 +44,12 @@ const zoneColorExpression: CirclePaint['circle-color'] = [
   ZONE_HEX.yellow,
   'red',
   ZONE_HEX.red,
+  'ghost',
+  markerColor('ghost'),
   ZONE_HEX.none,
 ];
 
 const EMPTY_COLLECTION = { type: 'FeatureCollection' as const, features: [] };
-
-function toObjectCollection(objects: ObjectRow[]) {
-  const features = objects.flatMap((row) =>
-    row.lat === null || row.lon === null
-      ? []
-      : [
-          {
-            type: 'Feature' as const,
-            geometry: { type: 'Point' as const, coordinates: [row.lon, row.lat] },
-            properties: {
-              id: row.id,
-              code: row.code,
-              name: row.name,
-              score: row.score,
-              zone: row.zone ?? 'none',
-              is_demo: row.is_demo,
-              rank: ZONE_RANK[row.zone ?? 'none'],
-              lon: row.lon,
-              lat: row.lat,
-            },
-          },
-        ],
-  );
-  return { type: 'FeatureCollection' as const, features };
-}
 
 function objectsBounds(objects: ObjectRow[]): [number, number, number, number] | null {
   let west = Infinity;
@@ -127,7 +103,8 @@ function addObjectLayers(map: MapLibreMap) {
     layout: { 'circle-sort-key': ['get', 'rank'] },
     paint: {
       'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 3.5, 8, 5.5, 12, 8, 16, 11],
-      'circle-color': zoneColorExpression,
+      // The colors are set per marker (paintMarkers), so a change of zone can fade.
+      'circle-color': ['get', 'color'],
       'circle-stroke-color': readToken('--surface-raised'),
       'circle-stroke-width': 1.5,
     },
@@ -155,6 +132,12 @@ interface Props {
   /** object highlighted from outside (hovered list row) */
   highlightedId: number | null;
   onOpen: (id: number) => void;
+  /** the objects are shown as they were at a past moment: those without a score then are faint ghosts */
+  historical?: boolean;
+  /** space at the bottom of the map taken by `children`, kept clear of markers when the map fits them */
+  bottomInset?: number;
+  /** drawn over the map */
+  children?: ReactNode;
 }
 
 export function DashboardMap(props: Props) {
@@ -165,18 +148,30 @@ export function DashboardMap(props: Props) {
         <p className={classes.unavailable} role="status">
           {t('map.unavailable')}
         </p>
+        {props.children}
       </div>
     );
   }
   return <MapCanvas {...props} />;
 }
 
-function MapCanvas({ objects, districts, fallbackCenter, highlightedId, onOpen }: Props) {
+function MapCanvas({
+  objects,
+  districts,
+  fallbackCenter,
+  highlightedId,
+  onOpen,
+  historical = false,
+  bottomInset = 0,
+  children,
+}: Props) {
   const { t } = useTranslation('map');
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const hoveredIdRef = useRef<number | null>(null);
   const hasFittedRef = useRef(false);
+  /** colors the markers have on screen, for the fade between two states of the map */
+  const drawnColorsRef = useRef(new Map<number, Rgba>());
   const latestRef = useRef({ onOpen, highlightedId });
   /** Incremented each time a style (re)loads: sources and layers must then be filled again. */
   const [styleVersion, setStyleVersion] = useState(0);
@@ -279,11 +274,11 @@ function MapCanvas({ objects, districts, fallbackCenter, highlightedId, onOpen }
     };
   }, [t]);
 
-  const objectCollection = useMemo(() => toObjectCollection(objects), [objects]);
   useEffect(() => {
     const source = mapRef.current?.getSource(OBJECTS_SOURCE);
-    if (source instanceof GeoJSONSource) void source.setData(objectCollection);
-  }, [objectCollection, styleVersion]);
+    if (!(source instanceof GeoJSONSource)) return;
+    return paintMarkers(source, markerFeatures(objects, historical), drawnColorsRef.current, historical && !prefersReducedMotion());
+  }, [objects, historical, styleVersion]);
 
   const districtCollection = useMemo(
     () => ({
@@ -318,18 +313,19 @@ function MapCanvas({ objects, districts, fallbackCenter, highlightedId, onOpen }
           [west, south],
           [east, north],
         ],
-        { padding: 48, maxZoom: 15, duration },
+        { padding: { top: FIT_PADDING, left: FIT_PADDING, right: FIT_PADDING, bottom: FIT_PADDING + bottomInset }, maxZoom: 15, duration },
       );
     } else if (centerLat !== null && centerLon !== null) {
       map.easeTo({ center: [centerLon, centerLat], zoom: CITY_ZOOM, duration });
     } else {
       map.easeTo({ center: KAZAKHSTAN_VIEW.center, zoom: KAZAKHSTAN_VIEW.zoom, duration });
     }
-  }, [west, south, east, north, centerLat, centerLon, styleVersion]);
+  }, [west, south, east, north, centerLat, centerLon, bottomInset, styleVersion]);
 
   return (
     <div className={classes.frame} role="region" aria-label={t('map.label')}>
       <div ref={containerRef} className={classes.canvas} />
+      {children}
     </div>
   );
 }

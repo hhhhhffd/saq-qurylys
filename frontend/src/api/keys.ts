@@ -8,6 +8,7 @@ export const qk = {
   settings: ['settings'] as const,
   holidays: ['holidays'] as const,
   dashboard: (params: object) => ['dashboard', params] as const,
+  timeline: ['dashboard', 'timeline'] as const,
   objects: ['objects'] as const,
   objectList: (params: ObjectListParams) => ['objects', 'list', params] as const,
   object: (id: number) => ['objects', 'detail', id] as const,
