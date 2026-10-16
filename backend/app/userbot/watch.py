@@ -103,6 +103,12 @@ class Watcher:
             if isinstance(chat, Channel) and chat.username:
                 self._chats[chat.username.lower()] = chat
                 joined.add(chat.username.lower())
+        # Public chats the account was joined to by hand: staff can add them as sources.
+        unwatched = sorted(joined - {handle.lstrip("@").lower() for _, handle, _ in accounts})
+        if unwatched:
+            logger.info(
+                "Public chats of the account that are not sources: %s", ", ".join(f"@{name}" for name in unwatched)
+            )
         watched: dict[int, Watched] = {}
         wait_s = 0
         for account_id, handle, last_collected_at in accounts:
