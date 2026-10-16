@@ -263,6 +263,9 @@ python3 scripts/verify_case_scenarios.py   # на запущенном стек�
 - Справочники: производственный календарь РК 2026 (Минтруда РК), приблизительные районы Усть-Каменогорска
   (© участники OpenStreetMap, ODbL).
 - Подложка карты: OpenFreeMap / OpenStreetMap (ODbL).
+- Открытый набор «Объекты с долевым участием в жилищном строительстве» (Казреестр, Ashyq Data, Smart Data Ukimet,
+  CC BY 3.0 NZ), выгрузка от 2026-10-12: разовый ручной импорт `python -m app.modules.registry_sync.ashyq`, файл
+  в репозиторий не входит. Подробности — в [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md), раздел (h).
 - Как получить каждый тип входных данных без API — [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md).
 
 ## Сторонние компоненты и использование AI-инструментов

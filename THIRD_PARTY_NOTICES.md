@@ -193,3 +193,10 @@ The base map is rendered from OpenFreeMap vector tiles (https://openfreemap.org)
   License (ODbL)
 
 The attribution "OpenFreeMap (c) OpenMapTiles Data from OpenStreetMap" must stay visible on the map.
+
+## Ashyq Data: Kazreestr open dataset
+
+Dataset «Объекты с долевым участием в жилищном строительстве» (Казреестр), publisher Smart Data Ukimet, updated
+2026-10-12: https://ashyq.data.gov.kz/dataset/magda-ds-b80110e9-218a-42ba-b8c8-01fa5e4c82c8. Licence: CC BY 3.0 NZ
+(https://creativecommons.org/licenses/by/3.0/nz/). The file is not stored in the repository; permit numbers from it are
+imported into the database by `app.modules.registry_sync.ashyq` and the source is named in each document note.
