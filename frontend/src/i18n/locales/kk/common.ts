@@ -35,6 +35,7 @@ const common: typeof ru = {
     map: 'Карта',
     objects: 'Объектілер',
     ads: 'Жарнама',
+    sources: 'Дереккөздер',
     graph: 'Байланыстар',
     signals: 'Сигналдар',
     admin: 'Әкімшілік',

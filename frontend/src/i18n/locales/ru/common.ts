@@ -32,6 +32,7 @@ const common = {
     map: 'Карта',
     objects: 'Объекты',
     ads: 'Реклама',
+    sources: 'Источники',
     graph: 'Связи',
     signals: 'Сигналы',
     admin: 'Администрирование',

@@ -18,7 +18,7 @@ for (const [role, label] of [
 
       const nav = page.getByRole('navigation', { name: t('header.menu') });
       await expect(nav.getByRole('link', { name: t('nav.signals') })).toBeVisible();
-      for (const hidden of ['map', 'objects', 'ads', 'graph', 'admin']) {
+      for (const hidden of ['map', 'objects', 'ads', 'sources', 'graph', 'admin']) {
         await expect(nav.getByRole('link', { name: t(`nav.${hidden}`) })).toHaveCount(0);
       }
       await expect(page.getByText(t('activity:idle'), { exact: true })).toHaveCount(0);

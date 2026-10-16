@@ -1,6 +1,14 @@
 import { Suspense } from 'react';
 import { NavLink, Outlet } from 'react-router';
-import { IconBuildingSkyscraper, IconMap2, IconSend, IconSettings, IconSpeakerphone, IconTopologyStar3 } from '@tabler/icons-react';
+import {
+  IconBuildingSkyscraper,
+  IconMap2,
+  IconRss,
+  IconSend,
+  IconSettings,
+  IconSpeakerphone,
+  IconTopologyStar3,
+} from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/auth/useAuth';
 import { LoadingBlock } from '@/components/QueryState';
@@ -16,7 +24,7 @@ const tabClass =
 
 export function AppLayout() {
   const { t } = useTranslation();
-  const { canSeeRegistry, isAdmin } = useAuth();
+  const { canSeeRegistry, canEditRegistry, isAdmin } = useAuth();
 
   const tabs = [
     ...(canSeeRegistry
@@ -24,6 +32,7 @@ export function AppLayout() {
           { to: '/map', label: t('nav.map'), icon: <IconMap2 /> },
           { to: '/objects', label: t('nav.objects'), icon: <IconBuildingSkyscraper /> },
           { to: '/ads', label: t('nav.ads'), icon: <IconSpeakerphone /> },
+          ...(canEditRegistry ? [{ to: '/sources', label: t('nav.sources'), icon: <IconRss /> }] : []),
           { to: '/graph', label: t('nav.graph'), icon: <IconTopologyStar3 /> },
         ]
       : []),
