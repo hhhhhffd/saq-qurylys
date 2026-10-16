@@ -28,9 +28,11 @@ def client_of(settings: Settings) -> TelegramClient:
 
 
 def show_qr(qr: QRLogin) -> None:
-    code = qrcode.QRCode()
+    code = qrcode.QRCode(border=2)
     code.add_data(qr.url)
-    code.print_ascii(invert=True)
+    # Two full blocks per module keep the squares even in any font; light modules are drawn, for a dark terminal.
+    for row in code.get_matrix():
+        print("".join("  " if dark else "██" for dark in row))
     print("Telegram → Настройки → Устройства → Подключить устройство → отсканируйте код выше.")
 
 
