@@ -24,6 +24,7 @@ os.environ["JWT_SECRET"] = "test-secret-test-secret-test-secret-0123456789"
 os.environ["EVENTS_ENABLED"] = "false"
 os.environ["LLM_ENABLED"] = "false"
 # The developer's .env may switch real collectors on; tests register their own and never reach the network.
+os.environ["HOMEPORTAL_SYNC_ENABLED"] = "false"
 os.environ["COLLECT_TELEGRAM_ENABLED"] = "false"
 os.environ["COLLECT_OLX_ENABLED"] = "false"
 os.environ["COLLECT_KRISHA_ENABLED"] = "false"
