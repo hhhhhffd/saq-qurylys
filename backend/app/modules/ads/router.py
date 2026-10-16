@@ -565,6 +565,8 @@ def collect_source_account(
 ) -> CollectQueued:
     """Collect the account's new posts now; the worker runs the same collection as the scheduled one."""
     account = _get_account(session, scope, account_id)
+    if account.platform is Platform.telegram and get_settings().userbot_configured:
+        raise api_error(409, "collected_by_userbot", "Telegram собирает userbot: новые сообщения приходят сами")
     if not account_enabled(account, get_settings()):
         raise api_error(409, "collector_disabled", "Сборщик этого источника выключен: он включается в .env сервера")
     try:

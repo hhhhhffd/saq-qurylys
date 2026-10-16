@@ -167,7 +167,7 @@ python3 scripts/verify_case_scenarios.py               # проверка сце
 **Telegram-юзербот (необязательно).** Читает публичные каналы и группы из «Источников» от имени пользовательского
 аккаунта. Возьмите отдельный номер, не личный. На https://my.telegram.org войдите этим номером, откройте «API
 development tools» и создайте приложение. Впишите `TELEGRAM_API_ID` и `TELEGRAM_API_HASH` в `.env`, включите
-`COLLECT_TELEGRAM_ENABLED=true`. Один раз войдите по QR-коду:
+`COLLECT_TELEGRAM_ENABLED=true`. Один раз войдите по QR-коду (сервис `userbot` перед этим остановите):
 `docker compose --profile userbot run --rm userbot python -m app.userbot login` (Telegram → Настройки → Устройства →
 Подключить устройство; при двухэтапной проверке спросит облачный пароль). Затем
 `docker compose --profile userbot up -d userbot`. Правила — [docs/SPEC.md](docs/SPEC.md), раздел 10.8.

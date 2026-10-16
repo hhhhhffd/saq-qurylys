@@ -160,6 +160,8 @@ services:
   userbot:
     <<: *backend
     profiles: ["userbot"]
+    # Not authorized yet: it must not restart for ever; stop it before the login (one session, one process).
+    restart: on-failure:3
     build:
       context: ./backend
       target: api

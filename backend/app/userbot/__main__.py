@@ -21,7 +21,10 @@ NOT_CONFIGURED = (
 
 
 def client_of(settings: Settings) -> TelegramClient:
-    return TelegramClient(settings.userbot_session, settings.telegram_api_id, settings.telegram_api_hash)
+    client = TelegramClient(settings.userbot_session, settings.telegram_api_id, settings.telegram_api_hash)
+    # The session file would keep the id, name, username and phone of every member whose message was seen.
+    client.session.save_entities = False
+    return client
 
 
 def show_qr(qr: QRLogin) -> None:

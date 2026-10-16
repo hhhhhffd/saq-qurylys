@@ -118,6 +118,24 @@ def test_collect_now_is_refused_while_the_collector_is_off(
     assert db.scalars(select(AuditLog).where(AuditLog.action == "source_account.collect")).all() == []
 
 
+def test_collect_now_of_telegram_is_refused_while_the_userbot_serves_it(
+    client: TestClient,
+    db: Session,
+    world: World,
+    sent_tasks: list[tuple[str, tuple[object, ...]]],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    switch_on(monkeypatch, "collect_telegram_enabled")
+    monkeypatch.setattr(get_settings(), "telegram_api_id", 12345)
+    monkeypatch.setattr(get_settings(), "telegram_api_hash", "hash")
+    account = add_account(db, world, Platform.telegram, "alatau_demo")
+
+    response = client.post(f"{ACCOUNTS}/{account.id}/collect", headers=auth(world.users["mio_ust"]))
+
+    assert response.status_code == 409 and response.json()["detail"]["code"] == "collected_by_userbot"
+    assert sent_tasks == []
+
+
 def test_collect_now_is_refused_while_the_account_is_being_collected(
     client: TestClient,
     db: Session,

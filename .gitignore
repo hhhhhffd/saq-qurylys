@@ -13,3 +13,5 @@ test-results/
 playwright-report/
 *.log
 .playwright-mcp/
+*.session
+*.session-journal

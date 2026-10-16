@@ -1,6 +1,8 @@
 """The Telegram userbot without Telegram: which messages are kept, how they are stored, and the rules around it."""
 
 from datetime import UTC, datetime
+from types import SimpleNamespace
+from typing import Any, cast
 
 import httpx
 import pytest
@@ -15,6 +17,7 @@ from app.config import Settings
 from app.models import AdPost, Evidence, Phrase, SourceAccount
 from app.models.enums import AdOrigin, CaptureStatus, EvidenceKind, OcrStatus, PhraseCategory, Platform
 from app.userbot import service
+from app.userbot.watch import albums_of
 from tests.conftest import PNG_BYTES, World
 from tests.test_collectors import settings_with
 
@@ -137,3 +140,14 @@ def test_empty_api_id_in_the_environment_means_unset(monkeypatch: pytest.MonkeyP
     settings = Settings()
 
     assert settings.telegram_api_id == 0 and settings.userbot_configured is False
+
+
+def test_album_messages_are_grouped_and_single_ones_stay_alone() -> None:
+    def message(message_id: int, grouped_id: int | None) -> Any:
+        return SimpleNamespace(id=message_id, grouped_id=grouped_id)
+
+    messages = [message(5, 77), message(4, None), message(3, 77), message(2, 78), message(1, None)]
+
+    groups = albums_of(cast(Any, messages))
+
+    assert [[m.id for m in group] for group in groups] == [[5, 3], [4], [2], [1]]
