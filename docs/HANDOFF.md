@@ -85,9 +85,10 @@ UX — 10, оригинальность — 5. Обязательны: тест-
 
 ## Нюансы окружения
 
-- Разработка шла в WSL2 + Docker Desktop. Ollama внутри WSL недоступна по `host.docker.internal` (ведёт в Windows):
-  в `.env` указывать `OLLAMA_URL=http://<IP WSL>:11434` (`hostname -I`), Ollama запускать как
-  `OLLAMA_HOST=0.0.0.0:11434 ollama serve`, модель `qwen3.5:9b-q6k`. После перезагрузки ПК Ollama поднимать вручную.
+- Разработка шла в WSL2 + Docker Desktop. Ollama внутри WSL недоступна по `host.docker.internal` (ведёт в Windows),
+  поэтому с 16.10.2026 Ollama — сервис стека: `docker compose --profile llm-gpu up -d ollama`, модели из
+  `OLLAMA_MODELS_DIR`, в `.env` `OLLAMA_URL=http://ollama:11434` и `ASSISTANT_BASE_URL=http://ollama:11434/v1`.
+  Порт 11434 опубликован на localhost, поэтому `ollama serve` на хосте одновременно не запускать.
 - Юзерботу нужен **свой** отдельный номер Telegram и свои `TELEGRAM_API_ID`/`TELEGRAM_API_HASH`
   (https://my.telegram.org), затем вход по QR — см. README. Сессия прежнего владельца не передаётся.
 - Боту граждан нужен свой токен от @BotFather в `TELEGRAM_BOT_TOKEN`.

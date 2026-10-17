@@ -161,10 +161,14 @@ python3 scripts/verify_case_scenarios.py               # проверка сце
 | `demo_gask` | то же | получатель ГАСК |
 | `demo_police` | то же | правоохранительный орган |
 
-**ИИ-шаг (необязательно).** Запустите Ollama с моделью `qwen3.5:9b-q6k` (`ollama pull qwen3.5:9b-q6k`,
-`OLLAMA_HOST=0.0.0.0:11434 ollama serve`), в `.env` поставьте `LLM_ENABLED=true` и `OLLAMA_URL`. Из контейнера по
-умолчанию это `http://host.docker.internal:11434`. Если Ollama работает внутри WSL, а Docker — Docker Desktop,
-укажите IP WSL: `hostname -I`. Затем выполните `docker compose up -d api worker`.
+**ИИ-шаг и помощник «Спросить ИИ» (необязательно).** Проще всего — Ollama в составе стека на GPU NVIDIA:
+`docker compose --profile llm-gpu up -d ollama`, затем `docker compose exec ollama ollama pull qwen3.5:9b-q6k`
+(или укажите в `OLLAMA_MODELS_DIR` папку с уже скачанными моделями). В `.env`: `OLLAMA_URL=http://ollama:11434`,
+`LLM_ENABLED=true` для анализа рекламы, `ASSISTANT_ENABLED=true` и `ASSISTANT_BASE_URL=http://ollama:11434/v1` для
+помощника, затем `docker compose up -d api worker`. Ollama на хосте (`ollama serve`) тоже подходит:
+`OLLAMA_URL=http://host.docker.internal:11434`; при Docker Desktop и Ollama внутри WSL этот адрес ведёт в Windows,
+тогда нужен IP WSL (`hostname -I`), меняющийся после перезагрузки. Помощник может работать и через Gemini или Groq,
+см. [docs/ASSISTANT.md](docs/ASSISTANT.md).
 
 **Telegram-бот (необязательно).** Создайте бота у @BotFather, впишите токен в `TELEGRAM_BOT_TOKEN` в `.env` и
 выполните `docker compose --profile bot up -d bot`. Подробности — [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
