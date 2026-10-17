@@ -4,12 +4,13 @@ import re
 from datetime import date, timedelta
 from typing import Any
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app import storage
-from app.models import AuditLog, ConstructionObject, Developer, Inspection
+from app.models import AuditLog, ConstructionObject, Developer, Evidence, Inspection
 from app.models.enums import AdStatus, CheckStatus, DocType, EvidenceKind, ScoreTrigger
 from app.modules.objects import dossier
 from app.modules.risk import service as risk
@@ -102,6 +103,18 @@ def test_inventory_lists_sha256_and_embeds_images(db: Session, world: World, buc
     assert "Документ: Разрешение на привлечение денег дольщиков (ДСУ) ДСУ-1" in text
     assert "Публикация: Instagram" in text
     assert html.count("data:image/png;base64,") == 2
+
+
+def test_total_image_budget_lists_the_rest_without_embedding(
+    db: Session, world: World, bucket: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    obj, _ = build_object(db, world, bucket)
+    first = db.scalars(select(Evidence).where(Evidence.document_id.is_not(None))).one()
+    monkeypatch.setattr(dossier, "MAX_EMBEDDED_TOTAL_BYTES", first.size_bytes + 1)
+    html, texts = render(db, world, obj)
+
+    assert html.count("data:image/") == 1
+    assert "превышен общий объём вложений" in " ".join(texts)
 
 
 def test_every_page_has_disclaimer_and_page_numbers(db: Session, world: World, bucket: str) -> None:

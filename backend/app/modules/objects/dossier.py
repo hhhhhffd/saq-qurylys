@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import InstrumentedAttribute, Session
 
 from app.models import (
@@ -25,12 +25,21 @@ from app.models.enums import AdStatus
 from app.modules.risk.engine import FACTOR_LABELS
 from app.modules.risk.queries import AD_TIMESTAMP, latest_score_stmt
 from app.modules.signals.labels import get_labels
-from app.modules.signals.pdf import _embedded_image, _env, _local, render_document
+from app.modules.signals.pdf import (
+    EMBEDDED_IMAGE_TYPES,
+    MAX_EMBEDDED_BYTES,
+    _embedded_image,
+    _env,
+    _local,
+    render_document,
+)
 from app.modules.signals.service import breakdown_parts
 
 MAX_ADS = 50
 MAX_AD_TEXT = 300
 MAX_EMBEDDED_IMAGES = 30
+# Total size of the embedded images: one request must not pull hundreds of megabytes out of storage.
+MAX_EMBEDDED_TOTAL_BYTES = 60 * 1024 * 1024
 MAX_WHY_FACTORS = 3
 
 
@@ -62,13 +71,16 @@ def build_context(session: Session, obj: ConstructionObject, user: AppUser, loca
         (p["district"], district.name if district else None),
         (p["cadastral_number"], obj.cadastral_number),
         (p["land_purpose"], obj.land_purpose),
-        (p["construction_status"], d["construction_status"][obj.construction_status.value]),
+        (
+            p["construction_status"],
+            d["construction_status"].get(obj.construction_status.value, obj.construction_status.value),
+        ),
         (p["planned_completion"], day(obj.planned_completion)),
         (p["forecast_completion"], day(obj.forecast_completion)),
         (p["stalled_since"], day(obj.stalled_since)),
         (p["readiness_actual"], obj.readiness_actual_pct),
         (p["readiness_claimed"], obj.readiness_claimed_pct),
-        (p["key_status"], d["key_status"][obj.key_status.value] if obj.key_status else None),
+        (p["key_status"], d["key_status"].get(obj.key_status.value, obj.key_status.value) if obj.key_status else None),
         (p["prior_violations"], obj.prior_violations),
         (p["developer"], developer.name if developer else None),
         (p["bin"], developer.bin if developer else None),
@@ -90,7 +102,7 @@ def build_context(session: Session, obj: ConstructionObject, user: AppUser, loca
     triggered = sorted((item for item in factors if item["triggered"]), key=lambda item: -abs(item["weight"]))
     risk = {
         "zone": obj.zone.value if obj.zone else None,
-        "zone_label": labels["zone"][obj.zone.value] if obj.zone else empty,
+        "zone_label": labels["zone"].get(obj.zone.value, obj.zone.value) if obj.zone else empty,
         "score": obj.score,
         "has_score": latest is not None,
         "why": [factor_name(item) for item in triggered[:MAX_WHY_FACTORS]],
@@ -99,7 +111,7 @@ def build_context(session: Session, obj: ConstructionObject, user: AppUser, loca
             for item in factors
         ],
         "needs_check": [labels["needs_check_flag"].get(flag["code"], flag["code"]) for flag in needs_check],
-        "legal_basis": labels["legal_basis"][basis_status] if basis_status else None,
+        "legal_basis": labels["legal_basis"].get(basis_status, basis_status) if basis_status else None,
     }
 
     documents = session.scalars(select(Document).where(Document.object_id == obj.id).order_by(Document.id)).all()
@@ -152,16 +164,42 @@ def build_context(session: Session, obj: ConstructionObject, user: AppUser, loca
         ),
         *((Evidence.signal_card_id, card.id, f"{inv['owner_signal']}: {card.number}") for card in cards),
     ]
+    owner_columns = (Evidence.document_id, Evidence.ad_post_id, Evidence.inspection_id, Evidence.signal_card_id)
+    by_owner: dict[tuple[str, int], list[Evidence]] = {}
+    if owners:
+        evidence_rows = session.scalars(
+            select(Evidence)
+            .where(
+                or_(
+                    *(
+                        column.in_([owner_id for owner_column, owner_id, _ in owners if owner_column is column])
+                        for column in owner_columns
+                    )
+                )
+            )
+            .order_by(Evidence.captured_at, Evidence.id)
+        )
+        for row in evidence_rows:
+            for column in owner_columns:
+                owner_id = getattr(row, column.key)
+                if owner_id is not None:
+                    by_owner.setdefault((column.key, owner_id), []).append(row)
     attachments: list[dict[str, Any]] = []
     embedded = 0
+    embedded_bytes = 0
     for column, owner_id, owner_title in owners:
-        for row in session.scalars(
-            select(Evidence).where(column == owner_id).order_by(Evidence.captured_at, Evidence.id)
-        ):
+        for row in by_owner.get((column.key, owner_id), []):
             image, note = None, None
             if embedded < MAX_EMBEDDED_IMAGES:
-                image, note = _embedded_image(row, labels)
-                embedded += image is not None
+                is_image = row.content_type in EMBEDDED_IMAGE_TYPES and row.size_bytes <= MAX_EMBEDDED_BYTES
+                # The budget is checked on the recorded size, before anything is downloaded.
+                if is_image and embedded_bytes + row.size_bytes > MAX_EMBEDDED_TOTAL_BYTES:
+                    note = inv["over_budget"]
+                else:
+                    image, note = _embedded_image(row, labels)
+                    if image is not None:
+                        embedded += 1
+                        embedded_bytes += row.size_bytes
             attachments.append(
                 {
                     "number": len(attachments) + 1,
@@ -245,7 +283,7 @@ def build_context(session: Session, obj: ConstructionObject, user: AppUser, loca
         "cards": [
             {
                 "number": card.number,
-                "status": labels["status"][card.status.value],
+                "status": labels["status"].get(card.status.value, card.status.value),
                 "recipient": labels["recipient"].get(card.recipient.value, "") if card.recipient else "",
                 "sent_at": day(card.sent_at),
                 "due_date": day(card.due_date),
