@@ -39,7 +39,7 @@ def test_create_lists_and_notification(client: TestClient, db: Session, world: W
     object_list = client.get(f"{API}/objects/{obj.id}/assignments", headers=auth(world.users["mio_ust"]))
     assert [row["id"] for row in object_list.json()] == [body["id"]]
 
-    note = db.scalars(select(Notification).where(Notification.entity_id == body["id"])).one()
+    note = db.scalars(select(Notification).where(Notification.entity_id == obj.id)).one()
     assert note.kind is NotificationKind.assignment_new
     assert note.user_id == world.users["mio_region"].id
 

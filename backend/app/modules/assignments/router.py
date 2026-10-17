@@ -88,9 +88,9 @@ def _notify(session: Session, assignee: AppUser, assignment: Assignment, object_
         session,
         [assignee],
         NotificationKind.assignment_new,
-        "assignment",
-        assignment.id,
-        {"object_id": assignment.object_id, "object_name": object_name, "due_date": assignment.due_date.isoformat()},
+        "construction_object",
+        assignment.object_id,
+        {"assignment_id": assignment.id, "object_name": object_name, "due_date": assignment.due_date.isoformat()},
     )
 
 
