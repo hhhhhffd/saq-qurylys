@@ -100,6 +100,7 @@ const common = {
     userMenu: 'Меню пользователя',
     menu: 'Разделы',
     utilities: 'Действия и настройки',
+    askAi: 'Спросить ИИ',
   },
   demo: {
     badge: 'ДЕМО',

@@ -298,7 +298,23 @@ interface MockState {
   object: ObjectDetail;
   ads: AdDetail[];
   failReturnedCount?: number;
+  /** `/assistant/config` answers 404 when false (the module is off) */
+  assistantEnabled?: boolean;
+  /** SSE bodies of the next `/assistant/chat` requests, in order; the default reply afterwards */
+  assistantReplies?: string[];
+  /** `/assistant/chat` never answers, so the Stop button can be tested */
+  assistantHangs?: boolean;
 }
+
+const sse = (events: object[]) => events.map((event) => `data: ${JSON.stringify(event)}\n\n`).join('');
+
+const assistantReply = sse([
+  { type: 'sources', sources: [{ id: 'zones', title: 'Зоны риска', page: '/work' }, { id: 'terms', title: 'Термины', page: null }] },
+  { type: 'tool', name: 'search_objects', label: 'Ищу объекты: Северный' },
+  { type: 'delta', text: 'Объект [ЖК Северный бриз](/objects/7) в **жёлтой** зоне.\n\n- пункт один\n' },
+  { type: 'delta', text: '- пункт два\n\nСм. [документацию](https://example.invalid/doc).' },
+  { type: 'done' },
+]);
 
 interface Harness {
   state: MockState;
@@ -384,6 +400,15 @@ async function installMocks(page: Page, role: Role, overrides: Partial<MockState
         yellow_interval_days: 30,
         recipient_emails: { mio: [], gask: [], law_enforcement: [] },
       });
+    }
+    if (method === 'GET' && path === '/assistant/config') {
+      return state.assistantEnabled === false
+        ? json(route, { detail: { code: 'not_found', message: 'Assistant is off' } }, 404)
+        : json(route, { enabled: true, model: 'test' });
+    }
+    if (method === 'POST' && path === '/assistant/chat') {
+      if (state.assistantHangs) return new Promise<void>(() => undefined);
+      return route.fulfill({ status: 200, contentType: 'text/event-stream', body: state.assistantReplies?.shift() ?? assistantReply });
     }
     if (method === 'GET' && path === '/vision/config') {
       return json(route, {
@@ -1255,4 +1280,176 @@ test('a sent card addressed to MIO is shown as an operator response task', async
   await screenshot(page, 'work-mio-sent-to-mio');
   expect(harness.mutations).toEqual([]);
   expectCleanBrowser(harness);
+});
+
+test.describe('Ask AI panel', () => {
+  const panelName = 'Спросить ИИ';
+
+  test('opens from the header with page starters, takes focus and returns it on Escape', async ({ page }) => {
+    const harness = await installMocks(page, 'mio_officer');
+    await page.goto('/objects/7');
+    const opener = page.getByRole('button', { name: panelName });
+    await opener.click();
+    const panel = page.getByRole('complementary', { name: panelName });
+    await expect(panel).toBeVisible();
+    await expect(panel.getByRole('heading', { level: 2, name: /^(Доброе утро|Добрый день|Добрый вечер)\.$/ })).toBeVisible();
+    await expect(panel.getByText('Чем займёмся?')).toBeVisible();
+    await expect(panel.getByRole('button', { name: /Почему у объекта такая зона\?/ })).toBeVisible();
+    await expect(panel.getByRole('button', { name: /Какие документы проверить\?/ })).toBeVisible();
+    await expect(panel.getByText('Объект № 7')).toBeVisible();
+    await expect(panel.getByText('ИИ может ошибаться. Проверяйте данные в карточках.')).toBeVisible();
+    await expect(panel.getByRole('textbox', { name: 'Сообщение ассистенту' })).toBeFocused();
+    await screenshot(page, 'assistant-empty-desktop');
+
+    await page.keyboard.press('Escape');
+    await expect(panel).toBeHidden();
+    await expect(opener).toBeFocused();
+    expectCleanBrowser(harness);
+  });
+
+  test('a starter sends the page entity and language; the markdown answer links navigate without reload', async ({ page }) => {
+    const harness = await installMocks(page, 'mio_officer');
+    await page.goto('/objects/7');
+    await page.getByRole('button', { name: panelName }).click();
+    const panel = page.getByRole('complementary', { name: panelName });
+    await panel.getByRole('button', { name: /Почему у объекта такая зона\?/ }).click();
+
+    await expect(panel.getByText('жёлтой', { exact: true })).toBeVisible();
+    expect(harness.mutations.find((item) => item.path === '/assistant/chat')?.body).toEqual({
+      messages: [{ role: 'user', content: 'Почему у объекта такая зона?' }],
+      page: { path: '/objects/7', entity: { type: 'object', id: 7 } },
+      language: 'ru',
+    });
+    await expect(panel.getByText('Ищу объекты: Северный')).toBeVisible();
+    await expect(panel.getByRole('listitem').filter({ hasText: 'пункт два' })).toBeVisible();
+    const external = panel.getByRole('link', { name: 'документацию' });
+    await expect(external).toHaveAttribute('target', '_blank');
+    await expect(external).toHaveAttribute('rel', 'noopener noreferrer');
+
+    const sourcesToggle = panel.getByRole('button', { name: 'Источники (2)' });
+    await expect(sourcesToggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(panel.getByRole('link', { name: 'Зоны риска' })).toHaveCount(0);
+    await sourcesToggle.click();
+    await expect(panel.getByRole('link', { name: 'Зоны риска' })).toHaveAttribute('href', '/work');
+    await expect(panel.getByText('Термины', { exact: true })).toBeVisible();
+    await screenshot(page, 'assistant-answer-desktop');
+
+    await page.goto('/work');
+    await expect(panel).toBeVisible();
+    await page.evaluate(() => { (window as unknown as { noReload: boolean }).noReload = true; });
+    await panel.getByRole('link', { name: 'ЖК Северный бриз' }).click();
+    await expect(page).toHaveURL(/\/objects\/7$/);
+    expect(await page.evaluate(() => (window as unknown as { noReload?: boolean }).noReload)).toBe(true);
+    expectCleanBrowser(harness);
+  });
+
+  test('keeps the conversation after reload, lists it and starts a new one', async ({ page }) => {
+    await installMocks(page, 'mio_officer');
+    await page.goto('/work');
+    await page.getByRole('button', { name: panelName }).click();
+    const panel = page.getByRole('complementary', { name: panelName });
+    await panel.getByRole('button', { name: /С чего начать день\?/ }).click();
+    await expect(panel.getByText('жёлтой', { exact: true })).toBeVisible();
+
+    await page.reload();
+    await expect(panel).toBeVisible();
+    await expect(panel.getByText('жёлтой', { exact: true })).toBeVisible();
+    await panel.getByRole('button', { name: 'Диалоги' }).click();
+    await expect(page.getByRole('list', { name: 'Диалоги' }).getByRole('button', { name: 'С чего начать день?', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Новый диалог' }).first().click();
+    await expect(panel.getByRole('button', { name: /С чего начать день\?/ })).toBeVisible();
+    await expect(panel.getByText('жёлтой', { exact: true })).toHaveCount(0);
+
+    await panel.getByRole('button', { name: 'Диалоги' }).click();
+    await page.getByRole('button', { name: 'С чего начать день?', exact: true }).click();
+    await expect(panel.getByText('жёлтой', { exact: true })).toBeVisible();
+    await panel.getByRole('button', { name: 'Диалоги' }).click();
+    await page.getByRole('button', { name: 'Удалить диалог: С чего начать день?' }).click();
+    await expect(page.getByRole('button', { name: 'Удалить диалог: С чего начать день?' })).toHaveCount(0);
+    await expect(panel.getByRole('heading', { level: 2 })).toBeVisible();
+  });
+
+  test('Enter sends, Shift+Enter adds a line, the page chip can be removed for one message', async ({ page }) => {
+    const harness = await installMocks(page, 'mio_officer');
+    await page.goto('/ads?ad=11');
+    await page.getByRole('button', { name: panelName }).click();
+    const panel = page.getByRole('complementary', { name: panelName });
+    await expect(panel.getByText('Объявление № 11')).toBeVisible();
+    await expect(panel.getByRole('button', { name: /Как подтвердить находки ИИ\?/ })).toBeVisible();
+    const composer = panel.getByRole('textbox', { name: 'Сообщение ассистенту' });
+    await composer.fill('первая');
+    await composer.press('Shift+Enter');
+    await composer.pressSequentially('вторая');
+    expect(harness.mutations).toEqual([]);
+    await panel.getByRole('button', { name: 'Не передавать страницу в этом сообщении' }).click();
+    await composer.press('Enter');
+    await expect(panel.getByText('жёлтой', { exact: true })).toBeVisible();
+    expect(harness.mutations.find((item) => item.path === '/assistant/chat')?.body).toEqual({
+      messages: [{ role: 'user', content: 'первая\nвторая' }],
+      language: 'ru',
+    });
+    await expect(panel.getByText('Объявление № 11')).toBeVisible();
+  });
+
+  test('an error event shows inline and Retry asks again', async ({ page }) => {
+    const failed = sse([{ type: 'delta', text: 'Начало' }, { type: 'error', code: 'llm_unavailable', message: 'down' }]);
+    const harness = await installMocks(page, 'mio_officer', { assistantReplies: [failed] });
+    await page.goto('/work');
+    await page.getByRole('button', { name: panelName }).click();
+    const panel = page.getByRole('complementary', { name: panelName });
+    await panel.getByRole('button', { name: /С чего начать день\?/ }).click();
+    await expect(panel.getByRole('alert')).toContainText('Языковая модель сейчас недоступна');
+    await panel.getByRole('button', { name: 'Повторить' }).click();
+    await expect(panel.getByText('жёлтой', { exact: true })).toBeVisible();
+    await expect(panel.getByRole('alert')).toHaveCount(0);
+    const chats = harness.mutations.filter((item) => item.path === '/assistant/chat');
+    expect(chats).toHaveLength(2);
+    expect(chats[1]?.body).toEqual(chats[0]?.body);
+  });
+
+  test('Stop aborts the stream and keeps the answer marked as stopped', async ({ page }) => {
+    const harness = await installMocks(page, 'mio_officer', { assistantHangs: true });
+    await page.goto('/signals');
+    await page.getByRole('button', { name: panelName }).click();
+    const panel = page.getByRole('complementary', { name: panelName });
+    await panel.getByRole('button', { name: /Как отправить карточку в ГАСК\?/ }).click();
+    await panel.getByRole('button', { name: 'Остановить' }).click();
+    await expect(panel.getByText('Остановлено', { exact: true })).toBeVisible();
+    await expect(panel.getByRole('button', { name: 'Отправить' })).toBeVisible();
+    expect(harness.unexpected).toEqual([]);
+    expect(harness.pageErrors).toEqual([]);
+  });
+
+  test('is absent when the module is off', async ({ page }) => {
+    const harness = await installMocks(page, 'mio_officer', { assistantEnabled: false });
+    await page.goto('/work');
+    await expect(page.getByRole('group', { name: 'Действия и настройки' })).toBeVisible();
+    await expect(page.getByRole('button', { name: panelName })).toHaveCount(0);
+    await expect(page.getByRole('complementary', { name: panelName })).toHaveCount(0);
+    expect(harness.unexpected).toEqual([]);
+    expect(harness.pageErrors).toEqual([]);
+  });
+
+  test('covers the screen on a phone and closes back to the header button', async ({ page }) => {
+    const harness = await installMocks(page, 'mio_officer');
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/work');
+    const opener = page.getByRole('button', { name: panelName });
+    await opener.click();
+    const panel = page.getByRole('complementary', { name: panelName });
+    await expect(panel).toBeVisible();
+    expect(await panel.boundingBox()).toMatchObject({ x: 0, y: 0, width: 390, height: 844 });
+    await screenshot(page, 'assistant-empty-mobile');
+    await panel.getByRole('button', { name: /С чего начать день\?/ }).click();
+    await expect(panel.getByText('жёлтой', { exact: true })).toBeVisible();
+    await screenshot(page, 'assistant-answer-mobile');
+    await panel.getByRole('link', { name: 'ЖК Северный бриз' }).click();
+    await expect(page).toHaveURL(/\/objects\/7$/);
+    await expect(panel).toBeHidden();
+    await opener.click();
+    await panel.getByRole('button', { name: 'Закрыть' }).click();
+    await expect(panel).toBeHidden();
+    await expect(opener).toBeFocused();
+    expectCleanBrowser(harness);
+  });
 });
