@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+<meta charset="utf-8">
+<title>{{ t.title }} {{ period }}</title>
+<style>
+  @page {
+    size: A4;
+    margin: 22mm 15mm 20mm 15mm;
+    @top-center { content: element(page-header); width: 100%; }
+    @bottom-right { content: "{{ page }} " counter(page) " {{ page_of }} " counter(pages); font-size: 8pt; color: #555; }
+  }
+  html { font-family: "DejaVu Sans", "Liberation Sans", sans-serif; font-size: 10.5pt; color: #1c1c1e; line-height: 1.4; }
+  #page-header { position: running(page-header); font-size: 8pt; color: #555; border-bottom: 0.5pt solid #999; padding-bottom: 2mm; }
+  #page-header .brand { font-weight: bold; color: #1c1c1e; }
+  h1 { font-size: 17pt; margin: 0 0 3mm; }
+  h2 { font-size: 12.5pt; margin: 7mm 0 2.5mm; padding-bottom: 1mm; border-bottom: 0.5pt solid #bbb; break-after: avoid; }
+  h3 { font-size: 11pt; margin: 4mm 0 2mm; break-after: avoid; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; vertical-align: top; padding: 1.5mm 2mm; border: 0.5pt solid #ccc; overflow-wrap: break-word; }
+  th { background: #f0f0f2; font-weight: bold; }
+  table.kv th { width: 62%; }
+  tr { break-inside: avoid; }
+  thead { display: table-header-group; }
+  th.num, td.num { text-align: right; white-space: nowrap; }
+  .muted { color: #666; }
+  .summary { margin: 0; padding-left: 5mm; }
+  .summary li { margin-bottom: 1.5mm; }
+  .zone { display: inline-block; padding: 0.3mm 2.5mm; border-radius: 2mm; font-weight: bold; color: #fff; }
+  .zone-red { background: #b3261e; }
+  .zone-yellow { background: #8a6d00; }
+  .zone-green { background: #2e6b3a; }
+  .zone-none { background: #666; }
+  .note { font-size: 8.5pt; color: #555; margin-top: 8mm; }
+</style>
+</head>
+<body>
+<div id="page-header"><span class="brand">{{ product }}</span> &middot; {{ t.title }} {{ period }}</div>
+
+<h1>{{ t.title }} {{ period }}</h1>
+<table class="kv">
+  <tr><th>{{ t.territory }}</th><td>{{ territory }}</td></tr>
+  <tr><th>{{ t.formed_by }}</th><td>{{ formed_by }}</td></tr>
+  <tr><th>{{ t.formed_on }}</th><td>{{ formed_on }}</td></tr>
+</table>
+
+<h2>{{ t.sections.summary }}</h2>
+<ul class="summary">
+  {% for sentence in summary %}<li>{{ sentence }}</li>{% endfor %}
+</ul>
+
+<h2>{{ t.sections.zones }}</h2>
+<table>
+  <thead><tr>
+    <th>{{ t.zones_table.zone }}</th>
+    <th class="num">{{ t.zones_table.start }}</th>
+    <th class="num">{{ t.zones_table.end }}</th>
+    <th class="num">{{ t.zones_table.now }}</th>
+    <th class="num">{{ t.zones_table.change }}</th>
+  </tr></thead>
+  {% for row in zones %}
+  <tr>
+    <td><span class="zone zone-{{ row.code }}">{{ row.label }}</span></td>
+    <td class="num">{{ row.start }}</td><td class="num">{{ row.end }}</td><td class="num">{{ row.now }}</td><td class="num">{{ row.change }}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+<h2>{{ t.sections.changes }}</h2>
+{% if changes %}
+<table>
+  <thead><tr><th>{{ t.changes_table.object }}</th><th>{{ t.changes_table.code }}</th><th>{{ t.changes_table.from }}</th><th>{{ t.changes_table.to }}</th></tr></thead>
+  {% for row in changes %}
+  <tr>
+    <td>{{ row.name }}</td><td>{{ row.code }}</td>
+    <td><span class="zone zone-{{ row.from_code }}">{{ row.from }}</span></td>
+    <td><span class="zone zone-{{ row.to_code }}">{{ row.to }}</span></td>
+  </tr>
+  {% endfor %}
+</table>
+{% if changes_total > changes|length %}<p class="muted">{{ t.changes_table.more.format(shown=changes|length, total=changes_total) }}</p>{% endif %}
+{% else %}<p>{{ t.changes_table.empty }}</p>{% endif %}
+
+<h2>{{ t.sections.signals }}</h2>
+<table>
+  <thead><tr><th>{{ t.signals_table.indicator }}</th><th class="num">{{ t.signals_table.count }}</th></tr></thead>
+  {% for label, value in signals %}<tr><td>{{ label }}</td><td class="num">{{ value }}</td></tr>{% endfor %}
+</table>
+<h3>{{ t.sections.overdue }}</h3>
+{% if overdue %}
+<table>
+  <thead><tr>
+    <th>{{ t.signals_table.number }}</th><th>{{ t.signals_table.object }}</th><th>{{ t.signals_table.recipient }}</th>
+    <th>{{ t.signals_table.due_date }}</th><th class="num">{{ t.signals_table.days_overdue }}</th>
+  </tr></thead>
+  {% for row in overdue %}
+  <tr><td>{{ row.number }}</td><td>{{ row.object }}</td><td>{{ row.recipient }}</td><td>{{ row.due_date }}</td><td class="num">{{ row.days }}</td></tr>
+  {% endfor %}
+</table>
+{% if overdue_total > overdue|length %}<p class="muted">{{ t.signals_table.more.format(shown=overdue|length, total=overdue_total) }}</p>{% endif %}
+{% else %}<p>{{ t.signals_table.empty }}</p>{% endif %}
+
+<h2>{{ t.sections.ads }}</h2>
+<table class="kv">
+  <tr><th>{{ t.ads_table.total }}</th><td class="num">{{ ads_total }}</td></tr>
+  <tr><th>{{ t.ads_table.removed }}</th><td class="num">{{ ads_removed }}</td></tr>
+</table>
+{% if ads_by_platform %}
+<h3>{{ t.ads_table.platform }}</h3>
+<table>
+  <thead><tr><th>{{ t.ads_table.platform }}</th><th class="num">{{ t.ads_table.count }}</th></tr></thead>
+  {% for name, count in ads_by_platform %}<tr><td>{{ name }}</td><td class="num">{{ count }}</td></tr>{% endfor %}
+</table>
+{% else %}<p>{{ t.ads_table.empty }}</p>{% endif %}
+
+<h2>{{ t.sections.complaints }}</h2>
+<table class="kv">
+  <tr><th>{{ t.complaints_table.total }}</th><td class="num">{{ complaints_total }}</td></tr>
+  <tr><th>{{ t.complaints_table.collective }}</th><td class="num">{{ complaints_collective }}</td></tr>
+</table>
+
+<h2>{{ t.sections.inspections }}</h2>
+<table class="kv">
+  <tr><th>{{ t.inspections_table.total }}</th><td class="num">{{ inspections_total }}</td></tr>
+</table>
+
+<p class="note">{{ t.note }}</p>
+</body>
+</html>

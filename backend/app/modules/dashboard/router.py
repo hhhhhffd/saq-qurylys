@@ -1,15 +1,16 @@
 from collections import Counter
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request, Response
 from sqlalchemy import select
 
+from app import audit
 from app.deps import ScopeDep, SessionDep, StaffUser
 from app.errors import api_error
 from app.models import ConstructionObject, Territory
 from app.models.enums import Zone
-from app.modules.dashboard import service
+from app.modules.dashboard import report, service
 from app.modules.dashboard.schemas import Dashboard, DashboardCounts, Timeline, TimelineStep
 from app.modules.objects.router import to_row
 from app.modules.objects.service import object_rows_stmt
@@ -80,3 +81,40 @@ def timeline(
             422, "timeline_too_long", f"Период содержит больше {MAX_TIMELINE_FRAMES} срезов, выберите период короче"
         )
     return service.build_timeline(session, scope, service.frame_times(start, end, delta))
+
+
+@router.get("/report.pdf")
+def management_report(
+    session: SessionDep,
+    user: StaffUser,
+    scope: ScopeDep,
+    request: Request,
+    start: Annotated[date, Query(alias="from")],
+    end: Annotated[date, Query(alias="to")],
+    territory_id: Annotated[int | None, Query()] = None,
+) -> Response:
+    """PDF report for heads of departments: figures for the period over the user's territory (or one territory
+    of it) in plain words."""
+    if start > end:
+        raise api_error(422, "report_range_invalid", "Начало периода позже его конца")
+    if (end - start).days + 1 > report.MAX_PERIOD_DAYS:
+        raise api_error(422, "report_too_long", f"Период доклада не может быть длиннее {report.MAX_PERIOD_DAYS} дней")
+    if territory_id is not None and not scope.contains(territory_id):
+        raise api_error(403, "territory_forbidden", "Территория вне вашей зоны ответственности")
+    document = report.render_pdf(session, user, scope, report.Period(start, end), territory_id)
+    audit.record(
+        session,
+        user,
+        "report.generate",
+        "report",
+        None,
+        None,
+        {"from": start.isoformat(), "to": end.isoformat(), "territory_id": territory_id},
+        request,
+    )
+    session.commit()
+    return Response(
+        content=document,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="doklad-{start}-{end}.pdf"', "Cache-Control": "no-store"},
+    )
