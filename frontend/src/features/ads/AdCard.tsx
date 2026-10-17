@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useReducedMotion } from '@/lib/hooks';
 import { IconAlertTriangle, IconCheck, IconExternalLink, IconMapPin } from '@tabler/icons-react';
+import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useAd } from '@/api/hooks/ads';
 import type { AdRow, AdStatus } from '@/api/types';
@@ -115,6 +116,12 @@ export function AdCard({ ad, highlighted = false, focusHitId = null }: Props) {
           </span>
         </span>
       </div>
+
+      {detail?.vision_source && (
+        <Link to={`/vision/${detail.vision_source.session_id}`} className="text-sm font-semibold text-link hover:underline">
+          {t('card.visionSource')}
+        </Link>
+      )}
 
       {(url !== '' || view.capture_status === 'pending') && (
         <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 text-sm">

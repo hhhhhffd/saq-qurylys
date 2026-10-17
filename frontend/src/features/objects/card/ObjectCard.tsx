@@ -8,6 +8,7 @@ import { ObjectHeader } from './ObjectHeader';
 import { PassportSection } from './PassportSection';
 import { RiskPanel } from './RiskPanel';
 import { ScoreHistory } from './ScoreHistory';
+import { VisionSection } from './VisionSection';
 
 export function ObjectCard({ object }: { object: ObjectDetail }) {
   return (
@@ -18,6 +19,7 @@ export function ObjectCard({ object }: { object: ObjectDetail }) {
           <PassportSection object={object} />
           <DocumentsSection object={object} />
           <InspectionsSection object={object} />
+          <VisionSection object={object} />
           <ComplaintsSection object={object} />
           <LinkedEntitiesSection object={object} />
         </div>

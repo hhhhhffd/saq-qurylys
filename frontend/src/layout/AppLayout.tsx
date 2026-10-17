@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { NavLink, Outlet } from 'react-router';
 import {
   IconBuildingSkyscraper,
+  IconEye,
   IconMap2,
   IconRss,
   IconSend,
@@ -10,6 +11,7 @@ import {
   IconTopologyStar3,
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
+import { useVisionEnabled } from '@/api/hooks/vision';
 import { useAuth } from '@/auth/useAuth';
 import { LoadingBlock } from '@/components/QueryState';
 import { ActivityIsland } from './ActivityIsland';
@@ -25,6 +27,7 @@ const tabClass =
 export function AppLayout() {
   const { t } = useTranslation();
   const { canSeeRegistry, canEditRegistry, isAdmin } = useAuth();
+  const visionEnabled = useVisionEnabled();
 
   const tabs = [
     ...(canSeeRegistry
@@ -33,6 +36,7 @@ export function AppLayout() {
           { to: '/objects', label: t('nav.objects'), icon: <IconBuildingSkyscraper /> },
           { to: '/ads', label: t('nav.ads'), icon: <IconSpeakerphone /> },
           ...(canEditRegistry ? [{ to: '/sources', label: t('nav.sources'), icon: <IconRss /> }] : []),
+          ...(visionEnabled ? [{ to: '/vision', label: t('nav.vision'), icon: <IconEye /> }] : []),
           { to: '/graph', label: t('nav.graph'), icon: <IconTopologyStar3 /> },
         ]
       : []),
