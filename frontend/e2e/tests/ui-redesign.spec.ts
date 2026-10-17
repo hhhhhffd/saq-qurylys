@@ -566,7 +566,6 @@ test('work opens as the operator task queue, links the real next item and suppor
   await expect(page).toHaveURL(/\/work$/);
   await expect(page.getByRole('heading', { level: 1, name: 'Задачи' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Доработать карточку SIG-2026-0043' })).toHaveAttribute('href', '/signals/43');
-  await expect(page.getByRole('heading', { name: 'Путь работы' })).toBeVisible();
   await screenshot(page, 'work-mio-ru');
 
   await page.getByText('ҚАЗ', { exact: true }).click();

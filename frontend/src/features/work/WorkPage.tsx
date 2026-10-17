@@ -1,4 +1,4 @@
-import { IconArrowRight, IconChevronRight } from '@tabler/icons-react';
+import { IconChevronRight } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { useDashboard } from '@/api/hooks/objects';
@@ -132,35 +132,6 @@ export function WorkPage() {
       </header>
 
       {canEditRegistry && <MyAssignments />}
-
-      <section className="border-y border-border py-3" aria-labelledby="work-journey-title">
-        <h2 id="work-journey-title" className="mb-2 text-sm font-semibold">
-          {t('work.journeyTitle')}
-        </h2>
-        <ol className="m-0 flex list-none flex-wrap items-center gap-1 p-0 text-sm" aria-label={t('work.journeyAria')}>
-          <li>
-            <Link to="/ads" className="inline-flex min-h-11 items-center rounded px-2 text-text-2 hover:bg-hover hover:text-text">
-              {t('work.journeyAd')}
-            </Link>
-          </li>
-          <li aria-hidden="true"><IconArrowRight className="size-4 text-text-3" /></li>
-          <li>
-            <Link to="/objects" className="inline-flex min-h-11 items-center rounded px-2 text-text-2 hover:bg-hover hover:text-text">
-              {t('work.journeyObject')}
-            </Link>
-          </li>
-          <li aria-hidden="true"><IconArrowRight className="size-4 text-text-3" /></li>
-          <li>
-            <Link to="/signals" className="inline-flex min-h-11 items-center rounded px-2 text-text-2 hover:bg-hover hover:text-text">
-              {t('work.journeyCard')}
-            </Link>
-          </li>
-          <li aria-hidden="true"><IconArrowRight className="size-4 text-text-3" /></li>
-          <li className="px-2 text-text-2">{t('work.journeyResponse')}</li>
-          <li aria-hidden="true"><IconArrowRight className="size-4 text-text-3" /></li>
-          <li className="px-2 text-text-2">{t('work.journeyFinish')}</li>
-        </ol>
-      </section>
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,0.38fr)]">
         <section aria-labelledby="work-queues-title" className="min-w-0 space-y-3">
