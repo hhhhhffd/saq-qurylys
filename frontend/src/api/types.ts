@@ -1190,3 +1190,36 @@ export interface VisionFindingInput {
   status: FindingStatus;
   note?: string | null;
 }
+
+// ---------------------------------------------------------------- global search
+
+export interface SearchObjectHit {
+  id: number;
+  name: string;
+  code: string;
+  address: string | null;
+  zone: Zone | null;
+  developer_name: string | null;
+  match: string;
+}
+
+export interface SearchDeveloperHit {
+  id: number;
+  name: string;
+  bin: string;
+  /** First object of the developer inside the user's territory; null when there is none (nothing to open). */
+  object_id: number | null;
+}
+
+export interface SearchSignalHit {
+  id: number;
+  number: string;
+  object_name: string;
+  status: SignalStatus;
+}
+
+export interface SearchResults {
+  objects: SearchObjectHit[];
+  developers: SearchDeveloperHit[];
+  signals: SearchSignalHit[];
+}

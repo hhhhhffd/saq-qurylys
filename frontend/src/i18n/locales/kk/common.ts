@@ -213,6 +213,28 @@ const common: typeof ru = {
     chooseFiles: 'Файлдарды таңдаңыз',
   },
   lastUpdated: 'Жаңартылды: {{value}}',
+  globalSearch: {
+    placeholder: 'Іздеу: ТК, мекенжай, БСН, кадастр, карточка',
+    label: 'Жалпы іздеу',
+    objects: 'Объектілер',
+    developers: 'Құрылысшылар',
+    signals: 'Сигналдық карточкалар',
+    nothingFound: 'Ештеңе табылмады',
+    loading: 'Іздеу…',
+    error: 'Іздеу орындалмады',
+    noObjects: 'Аумағыңызда объектілер жоқ',
+    minLength: 'Кемінде 2 таңба енгізіңіз',
+    matchedBy: 'Сәйкестік: {{field}}',
+    fields: {
+      name: 'атауы',
+      code: 'коды',
+      address: 'мекенжайы',
+      cadastral_number: 'кадастрлық №',
+      alias: 'басқа атауы',
+      developer: 'құрылысшы',
+      developer_bin: 'құрылысшының БСН',
+    },
+  },
 };
 
 export default common;

@@ -14,6 +14,7 @@ export const qk = {
   object: (id: number) => ['objects', 'detail', id] as const,
   scoreHistory: (id: number) => ['objects', 'detail', id, 'score-history'] as const,
   developers: ['developers'] as const,
+  search: (query: string) => ['search', query] as const,
   ads: ['ads'] as const,
   adList: (params: AdListParams) => ['ads', 'list', params] as const,
   ad: (id: number) => ['ads', 'detail', id] as const,

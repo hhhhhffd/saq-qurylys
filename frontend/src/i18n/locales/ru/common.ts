@@ -210,6 +210,28 @@ const common = {
     chooseFiles: 'Выберите файлы',
   },
   lastUpdated: 'Обновлено {{value}}',
+  globalSearch: {
+    placeholder: 'Поиск: ЖК, адрес, БИН, кадастр, карточка',
+    label: 'Глобальный поиск',
+    objects: 'Объекты',
+    developers: 'Застройщики',
+    signals: 'Сигнальные карточки',
+    nothingFound: 'Ничего не найдено',
+    loading: 'Поиск…',
+    error: 'Не удалось выполнить поиск',
+    noObjects: 'Нет объектов в вашей территории',
+    minLength: 'Введите не менее 2 символов',
+    matchedBy: 'Совпадение: {{field}}',
+    fields: {
+      name: 'название',
+      code: 'код',
+      address: 'адрес',
+      cadastral_number: 'кадастровый №',
+      alias: 'другое название',
+      developer: 'застройщик',
+      developer_bin: 'БИН застройщика',
+    },
+  },
 };
 
 export default common;

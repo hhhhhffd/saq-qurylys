@@ -34,6 +34,7 @@ import { Button } from '@/components/ui/button';
 import { AssistantPanel } from '@/features/assistant/AssistantPanel';
 import { usePanelState } from '@/features/assistant/usePanelState';
 import { ActivityIsland } from './ActivityIsland';
+import { GlobalSearch } from './GlobalSearch';
 import { LanguageSwitch } from './LanguageSwitch';
 import { NotificationsBell } from './NotificationsBell';
 import { UserMenu } from './UserMenu';
@@ -157,6 +158,8 @@ export function AppLayout() {
               </DropdownMenu>
             )}
           </nav>
+
+          <GlobalSearch />
 
           <div role="group" aria-label={t('header.utilities')} className="ml-auto flex flex-none flex-wrap items-center justify-end gap-1">
             {assistantEnabled && (
