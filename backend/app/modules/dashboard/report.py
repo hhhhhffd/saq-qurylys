@@ -5,10 +5,10 @@ from datetime import UTC, date, datetime, time, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import Select, func, select
+from sqlalchemy import Date, Select, func, select
 from sqlalchemy.orm import Session
 
-from app.models import AdPost, AppUser, Complaint, ConstructionObject, Inspection, Territory
+from app.models import AdPost, AppUser, Complaint, ConstructionObject, Inspection, SignalCard, Territory
 from app.models.enums import AdStatus, SignalStatus, Zone
 from app.modules.dashboard.service import build_timeline
 from app.modules.risk.queries import AD_TIMESTAMP
@@ -141,41 +141,46 @@ def build_context(
         for obj, a, b in changes[:MAX_LISTED]
     ]
 
-    cards = session.execute(card_stmt(user, scope)).all()
-    created = sum(period.start_at <= card.created_at < period.end_at for card, *_ in cards)
-    sent = sum(card.sent_at is not None and period.start_at <= card.sent_at < period.end_at for card, *_ in cards)
-    responded = sum(
-        card.response_at is not None and period.start_at <= card.response_at < period.end_at for card, *_ in cards
+    cards = card_stmt(user, scope)
+    created, sent, responded = session.execute(
+        cards.with_only_columns(
+            func.count().filter(_in_period(SignalCard.created_at, period)),
+            func.count().filter(_in_period(SignalCard.sent_at, period)),
+            func.count().filter(_in_period(SignalCard.response_at, period)),
+        ).order_by(None)
+    ).one()
+    # Overdue is judged by the local date of the object's territory.
+    overdue_cards = cards.where(
+        SignalCard.status == SignalStatus.sent,
+        SignalCard.due_date < func.timezone(Territory.timezone, now).cast(Date),
     )
-    overdue = sorted(
-        (
-            (card, object_name, card.due_date, local_today(timezone, now))
-            for card, object_name, _, timezone, _ in cards
-            if card.status is SignalStatus.sent
-            and card.due_date is not None
-            and card.due_date < local_today(timezone, now)
-        ),
-        key=lambda row: (row[2], row[0].number),
-    )
+    overdue_total = session.scalar(overdue_cards.with_only_columns(func.count()).order_by(None)) or 0
+    overdue = session.execute(overdue_cards.order_by(SignalCard.due_date, SignalCard.number).limit(MAX_LISTED)).all()
     overdue_rows = [
         {
             "number": card.number,
             "object": object_name,
-            "recipient": labels["recipient"][card.recipient.value] if card.recipient else "",
-            "due_date": due_date.strftime("%d.%m.%Y"),
-            "days": (today - due_date).days,
+            "recipient": labels["recipient"].get(card.recipient.value, card.recipient.value) if card.recipient else "",
+            "due_date": card.due_date.strftime("%d.%m.%Y"),
+            "days": (local_today(timezone, now) - card.due_date).days,
         }
-        for card, object_name, due_date, today in overdue[:MAX_LISTED]
+        for card, object_name, _, timezone, _ in overdue
+        if card.due_date is not None  # always true: the query selects cards with a due date
     ]
 
     ads = session.execute(
         scope.restrict(
-            select(AdPost.platform, AdPost.status).where(_in_period(AD_TIMESTAMP, period)), AdPost.territory_id
+            select(AdPost.platform, AdPost.status).where(
+                _in_period(AD_TIMESTAMP, period),
+                # A link nobody confirmed is not counted (as in the dossier and the signal card sections).
+                AdPost.status != AdStatus.verification,
+            ),
+            AdPost.territory_id,
         )
     ).all()
     by_platform: dict[str, int] = {}
     for platform, _ in ads:
-        name = labels["platform"][platform.value]
+        name = labels["platform"].get(platform.value, platform.value)
         by_platform[name] = by_platform.get(name, 0) + 1
 
     # Complaints and inspections have no territory of their own: it is the object's.
@@ -204,7 +209,7 @@ def build_context(
         (s["red"] if red_start != red_now else s["red_same"]).format(red=red_now, red_start=red_start),
         s["changed"].format(changed=len(changes)),
         s["signals"].format(created=created, sent=sent, responded=responded),
-        s["overdue"].format(overdue=len(overdue)) if overdue else s["no_overdue"],
+        s["overdue"].format(overdue=overdue_total) if overdue_total else s["no_overdue"],
         s["ads"].format(ads=len(ads), complaints=len(complaints), inspections=inspections),
     ]
     return {
@@ -225,10 +230,10 @@ def build_context(
             (t["signals_table"]["created"], created),
             (t["signals_table"]["sent"], sent),
             (t["signals_table"]["responded"], responded),
-            (t["signals_table"]["overdue"], len(overdue)),
+            (t["signals_table"]["overdue"], overdue_total),
         ],
         "overdue": overdue_rows,
-        "overdue_total": len(overdue),
+        "overdue_total": overdue_total,
         "ads_total": len(ads),
         "ads_removed": sum(status is AdStatus.removed_saved for _, status in ads),
         "ads_by_platform": sorted(by_platform.items(), key=lambda item: (-item[1], item[0])),

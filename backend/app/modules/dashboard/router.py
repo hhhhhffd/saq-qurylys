@@ -101,6 +101,8 @@ def management_report(
         raise api_error(422, "report_too_long", f"Период доклада не может быть длиннее {report.MAX_PERIOD_DAYS} дней")
     if territory_id is not None and not scope.contains(territory_id):
         raise api_error(403, "territory_forbidden", "Территория вне вашей зоны ответственности")
+    if territory_id is not None and session.get(Territory, territory_id) is None:
+        raise api_error(404, "territory_not_found", "Территория не найдена")
     document = report.render_pdf(session, user, scope, report.Period(start, end), territory_id)
     audit.record(
         session,

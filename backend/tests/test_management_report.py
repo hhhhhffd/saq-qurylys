@@ -94,6 +94,7 @@ def fill_world(db: Session, world: World) -> None:
     for obj, when, status, platform in (
         (grew, inside, AdStatus.captured, Platform.instagram),
         (grew, inside, AdStatus.removed_saved, Platform.telegram),
+        (grew, inside, AdStatus.verification, Platform.instagram),
         (stable, outside, AdStatus.captured, Platform.instagram),
         (foreign, inside, AdStatus.captured, Platform.instagram),
     ):
@@ -192,3 +193,9 @@ def test_validation_and_access(client: TestClient, db: Session, world: World) ->
     for role in ("gask", "law"):
         assert client.get(URL, params=PARAMS, headers=auth(world.users[role])).status_code == 403
     assert client.get(URL, params=PARAMS).status_code == 401
+
+
+def test_unknown_territory_is_404(client: TestClient, db: Session, world: World) -> None:
+    response = client.get(URL, params={**PARAMS, "territory_id": 999_999}, headers=auth(world.users["admin"]))
+    assert response.status_code == 404
+    assert response.json()["detail"]["code"] == "territory_not_found"
