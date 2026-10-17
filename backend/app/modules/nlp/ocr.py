@@ -3,6 +3,7 @@
 import io
 import logging
 import re
+from dataclasses import dataclass
 
 import pytesseract
 from minio.error import S3Error
@@ -44,6 +45,54 @@ def _prepare(data: bytes) -> Image.Image:
     if image.width < UPSCALE_BELOW_WIDTH_PX:
         image = image.resize((image.width * UPSCALE_FACTOR, image.height * UPSCALE_FACTOR), Image.Resampling.LANCZOS)
     return image
+
+
+@dataclass(frozen=True)
+class OcrResult:
+    text: str
+    # Mean confidence of the recognised words as a fraction (0..1); None when no word was recognised.
+    confidence: float | None
+    engine: str
+
+
+def _engine_name() -> str:
+    try:
+        version = str(pytesseract.get_tesseract_version())
+    except (OSError, pytesseract.TesseractError):
+        # Only a label of the result: the version lookup must not fail a recognition that has succeeded.
+        version = "unknown"
+    return f"tesseract {version} {get_settings().ocr_languages}"
+
+
+def ocr_image(data: bytes) -> OcrResult:
+    """Recognise the text of one picture (a cut-out region): cleaned text and Tesseract's own confidence.
+
+    One Tesseract call: the text is rebuilt from the word table, lines in reading order, blocks and paragraphs
+    separated by a blank line. Raises OSError for a broken image and Tesseract's errors (missing binary, timeout).
+    """
+    settings = get_settings()
+    table = pytesseract.image_to_data(
+        _prepare(data), lang=settings.ocr_languages, timeout=TESSERACT_TIMEOUT_S, output_type=pytesseract.Output.DICT
+    )
+    lines: dict[tuple[int, int, int], list[str]] = {}
+    confidences: list[float] = []
+    for block, paragraph, line, word, conf in zip(
+        table["block_num"], table["par_num"], table["line_num"], table["text"], table["conf"], strict=True
+    ):
+        word = str(word).strip()
+        if not word or float(conf) < 0:
+            continue
+        lines.setdefault((block, paragraph, line), []).append(word)
+        confidences.append(float(conf))
+    parts: list[str] = []
+    previous: tuple[int, int] | None = None
+    for (block, paragraph, _line), words in lines.items():
+        if previous is not None and previous != (block, paragraph):
+            parts.append("")
+        parts.append(" ".join(words))
+        previous = (block, paragraph)
+    confidence = sum(confidences) / len(confidences) / 100 if confidences else None
+    return OcrResult(text=clean_text("\n".join(parts)), confidence=confidence, engine=_engine_name())
 
 
 def _load(evidence: Evidence) -> bytes:
