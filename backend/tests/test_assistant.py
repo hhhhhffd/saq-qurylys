@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.main import app
 from app.models import AdPost, AppUser, SignalCard
-from app.models.enums import Platform, Recipient, SignalOrigin, SignalStatus
+from app.models.enums import Platform, Recipient, SignalOrigin, SignalStatus, Zone
 from app.modules.assistant import knowledge, tools
 from app.modules.assistant.router import get_llm_client, get_session_factory
 from app.scope import build_scope
@@ -58,6 +58,14 @@ def test_search_objects_is_limited_to_the_scope(world: World, db: Session) -> No
     assert result["objects"][0]["url"].startswith("/objects/")
     both = run(db, world.users["admin"], "search_objects", {"query": "Нурлы"})
     assert len(both["objects"]) == 2
+
+
+def test_search_objects_by_zone_without_a_query(world: World, db: Session) -> None:
+    make_object(db, world.ust, "ЖК Красный", score=70, zone=Zone.red)
+    make_object(db, world.ust, "ЖК Зелёный", score=5, zone=Zone.green)
+    result = run(db, world.users["mio_ust"], "search_objects", {"zone": "red"})
+    assert [item["name"] for item in result["objects"]] == ["ЖК Красный"]
+    assert tools.label("search_objects", {"zone": "red"}, "ru") == "Ищу объекты"
 
 
 def test_get_object_outside_the_scope_is_not_found(world: World, db: Session) -> None:
@@ -112,7 +120,7 @@ def test_search_ads_and_summary(world: World, db: Session) -> None:
 def test_label_in_both_languages() -> None:
     assert tools.label("search_objects", {"query": "Нурлы"}, "ru") == "Ищу объекты: Нурлы"
     assert "Нурлы" in tools.label("search_objects", {"query": "Нурлы"}, "kk")
-    assert tools.label("search_objects", {}, "ru") == "Ищу объекты: "
+    assert tools.label("search_objects", {}, "ru") == "Ищу объекты"
 
 
 # ---------------------------------------------------------------- chat
@@ -301,3 +309,9 @@ def test_chat_rejects_invalid_body(world: World, client: TestClient, body: dict[
 def test_endpoints_require_authentication(client: TestClient) -> None:
     assert client.get("/api/v1/assistant/config").status_code == 401
     assert client.post(CHAT, json=QUESTION).status_code == 401
+
+
+def test_zone_reasons_are_put_into_words() -> None:
+    assert tools._zone_reason("score_0_24") == "Балл в диапазоне 0–24"
+    assert tools._zone_reason("score_60_without_r1_r2").startswith("Балл 60+")
+    assert "R1 и R2" in tools._zone_reason("r1_and_r2")

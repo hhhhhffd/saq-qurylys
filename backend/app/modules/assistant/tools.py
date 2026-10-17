@@ -4,6 +4,7 @@ Every executor takes (session, user, scope, args) and returns a small JSON-seria
 rights of the HTTP API: the registry, publications and the summary are for staff, cards follow `card_stmt`, and
 the territory scope is always applied. An object or card out of scope is reported as `not_found`."""
 
+import re
 from collections import Counter, defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -20,6 +21,7 @@ from app.modules.nlp.text import strip_ocr_marker
 from app.modules.objects.router import build_detail
 from app.modules.objects.service import get_object_in_scope, object_rows_stmt
 from app.modules.signals import service as signals_service
+from app.modules.signals.labels import RU as SIGNAL_LABELS
 from app.scope import TerritoryScope
 
 STAFF_ROLES = frozenset({Role.admin, Role.mio_officer})
@@ -80,6 +82,21 @@ def _enum[E: (Zone, SignalStatus, AdStatus)](args: Args, name: str, enum: type[E
         raise ToolArgError(f"Параметр {name}: допустимы {allowed}") from None
 
 
+_SCORE_RANGE = re.compile(r"score_(\d+)_(\d+)")
+_SCORE_WITHOUT_R1_R2 = re.compile(r"score_(\d+)_without_r1_r2")
+
+
+def _zone_reason(code: str) -> str:
+    """Words for a code of `risk.engine.decide_zone`: the model would otherwise repeat the raw code."""
+    if code == "r1_and_r2":
+        return "Порог красной зоны достигнут, сработали R1 и R2"
+    if match := _SCORE_WITHOUT_R1_R2.fullmatch(code):
+        return f"Балл {match[1]}+, но R1 и R2 вместе не сработали: красной зоны нет"
+    if match := _SCORE_RANGE.fullmatch(code):
+        return f"Балл в диапазоне {match[1]}–{match[2]}"
+    return code
+
+
 def _like(value: str) -> str:
     return "%" + value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
 
@@ -98,7 +115,7 @@ def search_guide(session: Session, user: AppUser, scope: TerritoryScope, args: A
 
 
 def search_objects(session: Session, user: AppUser, scope: TerritoryScope, args: Args) -> dict[str, Any]:
-    query = _text(args, "query", required=True)
+    query = _text(args, "query")
     zone = _enum(args, "zone", Zone)
     stmt = object_rows_stmt(scope, zone=zone, q=query)
     rows = session.execute(
@@ -154,11 +171,12 @@ def get_object(session: Session, user: AppUser, scope: TerritoryScope, args: Arg
     }
     if detail.latest_score is not None:
         factors, needs_check, legal_basis = signals_service.breakdown_parts(detail.latest_score.breakdown)
-        result["zone_reasons"] = detail.latest_score.zone_reasons
+        result["zone_reasons"] = [_zone_reason(code) for code in detail.latest_score.zone_reasons]
         result["risk_factors"] = [
             {"label": factor["label"], "weight": factor["weight"]} for factor in factors if factor["triggered"]
         ]
-        result["needs_check"] = [item["code"] for item in needs_check]
+        flags = SIGNAL_LABELS["needs_check_flag"]
+        result["needs_check"] = [flags.get(item["code"], item["code"]) for item in needs_check]
         result["legal_basis_status"] = legal_basis
         result["scored_at"] = detail.latest_score.calculated_at
     return result
@@ -303,12 +321,13 @@ TOOLS: dict[str, Tool] = {
         Tool(
             "search_objects",
             "Поиск объектов строительства в реестре по названию, коду, адресу, кадастровому номеру или "
-            "застройщику. Возвращает до 10 объектов, самые опасные первыми.",
+            "застройщику. Без query — все объекты (например, все объекты красной зоны с zone=red). "
+            "Возвращает до 10 объектов, самые опасные первыми.",
             {
                 "query": _string("Часть названия, кода, адреса или имени застройщика"),
                 "zone": {"type": "string", "enum": [zone.value for zone in Zone], "description": "Фильтр по зоне"},
             },
-            ("query",),
+            (),
             True,
             search_objects,
             {"ru": "Ищу объекты: {query}", "kk": "Нысандарды іздеймін: {query}"},
@@ -383,7 +402,8 @@ def label(name: str, args: Args, language: str) -> str:
     if tool is None:
         return name
     values = defaultdict(str, {key: _clip(str(value), 60) or "" for key, value in args.items()})
-    return tool.labels.get(language, tool.labels["ru"]).format_map(values)
+    # A label whose only argument is absent ("Ищу объекты: ") loses the dangling colon.
+    return tool.labels.get(language, tool.labels["ru"]).format_map(values).rstrip(": ")
 
 
 def run_tool(name: str, args: object, session: Session, user: AppUser, scope: TerritoryScope) -> dict[str, Any]:
