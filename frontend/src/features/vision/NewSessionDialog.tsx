@@ -1,11 +1,12 @@
 import { useMemo } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { z } from 'zod';
 import { useCreateVisionSession } from '@/api/hooks/vision';
 import type { VisionSource } from '@/api/types';
+import { useAuth } from '@/auth/useAuth';
 import { DateTimeInput } from '@/components/form/DateTimeInput';
 import { SelectInput } from '@/components/form/SelectInput';
 import { TextArea } from '@/components/form/TextArea';
@@ -14,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { DialogFooter } from '@/components/ui/dialog';
 import { FormDialog } from '@/features/objects/forms/fields';
 import { useEnumOptions } from '@/i18n/useEnum';
+import { useCities } from '@/lib/territories';
 import { SOURCES, isSource } from './constants';
 
 interface Props {
@@ -29,31 +31,45 @@ export function NewSessionDialog({ opened, onClose, defaultObjectId = null }: Pr
   const options = useEnumOptions();
   const navigate = useNavigate();
   const create = useCreateVisionSession();
+  const { user } = useAuth();
+  const { cities } = useCities();
+  // the server falls back to the user's own territory; without one it needs a city when no object is chosen
+  const needsTerritory = user !== null && user.territory_id === null;
 
   const schema = useMemo(
     () =>
-      z.object({
-        object_id: z.number().nullable(),
-        source: z.custom<VisionSource>(),
-        captured_at: z.string().nullable(),
-        note: z.string().trim(),
-      }),
-    [],
+      z
+        .object({
+          object_id: z.number().nullable(),
+          territory_id: z.string().nullable(),
+          source: z.custom<VisionSource>(),
+          captured_at: z.string().nullable(),
+          note: z.string().trim(),
+        })
+        .refine((values) => !needsTerritory || values.object_id !== null || values.territory_id !== null, {
+          path: ['territory_id'],
+          message: tc('required'),
+        }),
+    [needsTerritory, tc],
   );
   const { control, register, handleSubmit } = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
       object_id: defaultObjectId,
+      territory_id: null as string | null,
       source: 'drone' as VisionSource,
       captured_at: null as string | null,
       note: '',
     },
   });
 
+  const objectId = useWatch({ control, name: 'object_id' });
+
   const submit = handleSubmit((values) =>
     create.mutate(
       {
         object_id: values.object_id,
+        territory_id: needsTerritory && values.object_id === null ? Number(values.territory_id) : undefined,
         source: values.source,
         captured_at: values.captured_at ? new Date(values.captured_at).toISOString() : null,
         note: values.note || null,
@@ -83,6 +99,26 @@ export function NewSessionDialog({ opened, onClose, defaultObjectId = null }: Pr
             />
           )}
         />
+        {needsTerritory && objectId === null && (
+          <Controller
+            control={control}
+            name="territory_id"
+            render={({ field, fieldState }) => (
+              <SelectInput
+                label={t('new.territory')}
+                description={t('new.territoryHint')}
+                placeholder={t('new.territoryPlaceholder')}
+                data={cities.map((city) => ({ value: String(city.id), label: city.name }))}
+                searchable
+                required
+                nothingFound={tc('states.empty')}
+                value={field.value}
+                onChange={field.onChange}
+                error={fieldState.error?.message}
+              />
+            )}
+          />
+        )}
         <div className="grid items-start gap-3 sm:grid-cols-2">
           <Controller
             control={control}

@@ -13,6 +13,7 @@ export function AssetsPanel({ assets }: { assets: VisionAsset[] }) {
   const { t: tc } = useTranslation();
   const e = useEnum();
   const retry = useRetryAsset();
+  const nameOf = (asset: VisionAsset) => asset.original_name ?? t('assets.unnamed', { id: asset.id });
 
   return (
     <Panel title={t('assets.title')} flush>
@@ -28,7 +29,7 @@ export function AssetsPanel({ assets }: { assets: VisionAsset[] }) {
                   {asset.kind === 'video' ? <IconMovie size={16} /> : <IconPhoto size={16} />}
                 </span>
                 <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
-                  {asset.original_name}{' '}
+                  {nameOf(asset)}{' '}
                   <span className="text-text-3 tabular-nums">
                     {formatSize(asset.size_bytes)}
                     {asset.duration_ms !== null && ` · ${formatTimestamp(asset.duration_ms)}`}
@@ -39,7 +40,7 @@ export function AssetsPanel({ assets }: { assets: VisionAsset[] }) {
                   <span
                     className="h-1.5 w-28 overflow-hidden rounded-full bg-surface-sunken"
                     role="progressbar"
-                    aria-label={asset.original_name}
+                    aria-label={nameOf(asset)}
                     aria-valuemin={0}
                     aria-valuemax={100}
                     aria-valuenow={asset.progress}

@@ -1057,7 +1057,7 @@ export interface VisionConfig {
 export interface VisionSessionListItem {
   id: number;
   object: { id: number; code: string; name: string } | null;
-  territory_id: number | null;
+  territory_id: number;
   source: VisionSource;
   captured_at: string | null;
   status: VisionSessionStatus;
@@ -1078,7 +1078,7 @@ export interface VisionAsset {
   id: number;
   session_id: number;
   kind: 'photo' | 'video';
-  original_name: string;
+  original_name: string | null;
   content_type: string;
   size_bytes: number;
   sha256: string;

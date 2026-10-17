@@ -30,6 +30,9 @@ const vision: typeof ru = {
     capturedAt: 'Түсірілген күні мен уақыты',
     capturedAtPlaceholder: 'КК.АА.ЖЖЖЖ СС:ММ',
     note: 'Ескертпе',
+    territory: 'Қала',
+    territoryHint: 'Тіркелгіңізде қала жоқ: объект көрсетілмесе, қаланы таңдаңыз.',
+    territoryPlaceholder: 'Таңдалмаған',
     submit: 'Құру',
   },
   session: {
@@ -78,6 +81,7 @@ const vision: typeof ru = {
     title: 'Файлдар',
     empty: 'Әзірге файл жоқ.',
     frames: '{{count}} кадр',
+    unnamed: '№{{id}} файл',
   },
   frames: {
     title: 'Кадрлар',
@@ -92,6 +96,7 @@ const vision: typeof ru = {
   },
   viewer: {
     title: 'Кадр {{label}}',
+    frameNumber: '№{{id}}',
     original: 'Түпнұсқа кадр көрсетілген.',
     prev: 'Алдыңғы кадр',
     next: 'Келесі кадр',
@@ -117,6 +122,7 @@ const vision: typeof ru = {
     show: 'Кадрда көрсету',
     comment: 'Пікір',
     commentPlaceholder: '«Қолданылмайды» үшін міндетті',
+    changeStatus: 'Шешімнен кейінгі баға',
     notApplicableHint: '«Қолданылмайды» және пікір мәтінді қажет етеді.',
     history: 'Шешімдер тарихы',
     actions: {
@@ -145,6 +151,7 @@ const vision: typeof ru = {
     objectPlaceholder: 'Таңдалмаған',
     create: 'Сыртқы жарнама құру',
     needsConfirm: 'Алдымен тұжырымды растаңыз.',
+    notApplicable: 'Тұжырым «Қолданылмайды» деп белгіленген: одан сыртқы жарнама құруға болмайды.',
     open: '«Жарнама» бөліміндегі №{{id}} жарияланым',
   },
   card: {

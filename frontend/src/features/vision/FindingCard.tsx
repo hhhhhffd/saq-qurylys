@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useReviewFinding } from '@/api/hooks/vision';
-import type { FindingReviewAction, VisionConfig, VisionFinding, VisionSessionDetail } from '@/api/types';
+import type { FindingReviewAction, FindingStatus, VisionConfig, VisionFinding, VisionSessionDetail } from '@/api/types';
 import { Chip } from '@/components/Chip';
+import { SelectInput } from '@/components/form/SelectInput';
 import { TextInput } from '@/components/form/TextInput';
 import { Button } from '@/components/ui/button';
-import { useEnum } from '@/i18n/useEnum';
+import { useEnum, useEnumOptions } from '@/i18n/useEnum';
 import { useFormat } from '@/i18n/useFormat';
-import { FINDING_STATUS_TONE, REVIEW_STATE_TONE } from './constants';
+import { FINDING_STATUSES, FINDING_STATUS_TONE, REVIEW_STATE_TONE, isFindingStatus } from './constants';
 import { FindingCrop } from './FindingCrop';
 import { OutdoorAdBox } from './OutdoorAdBox';
 
@@ -28,13 +29,19 @@ const DECISIONS: { action: FindingReviewAction; variant: 'default' | 'secondary'
 export function FindingCard({ finding, session, config, onShow }: Props) {
   const { t } = useTranslation('vision');
   const e = useEnum();
+  const options = useEnumOptions();
   const f = useFormat();
   const review = useReviewFinding();
   const [comment, setComment] = useState('');
+  // the status is sent with the decision only when the reviewer changed it
+  const [status, setStatus] = useState<FindingStatus>(finding.status);
   const trimmed = comment.trim();
 
   const send = (action: FindingReviewAction) =>
-    review.mutate({ id: finding.id, action, comment: trimmed || undefined }, { onSuccess: () => setComment('') });
+    review.mutate(
+      { id: finding.id, action, comment: trimmed || undefined, status: status !== finding.status ? status : undefined },
+      { onSuccess: () => setComment('') },
+    );
 
   return (
     <article
@@ -79,6 +86,12 @@ export function FindingCard({ finding, session, config, onShow }: Props) {
           placeholder={t('finding.commentPlaceholder')}
           value={comment}
           onChange={(event) => setComment(event.target.value)}
+        />
+        <SelectInput
+          label={t('finding.changeStatus')}
+          data={options('vision_finding_status', FINDING_STATUSES)}
+          value={status}
+          onChange={(value) => isFindingStatus(value) && setStatus(value)}
         />
         <div className="flex flex-wrap gap-2">
           {DECISIONS.map(({ action, variant }) => (

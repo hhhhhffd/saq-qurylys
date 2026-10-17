@@ -27,6 +27,9 @@ const vision = {
     capturedAt: 'Дата и время съёмки',
     capturedAtPlaceholder: 'ДД.ММ.ГГГГ ЧЧ:ММ',
     note: 'Заметка',
+    territory: 'Город',
+    territoryHint: 'У вашей учётной записи нет города: выберите его, если ЖК не указан.',
+    territoryPlaceholder: 'Не выбран',
     submit: 'Создать',
   },
   session: {
@@ -75,6 +78,7 @@ const vision = {
     title: 'Файлы',
     empty: 'Файлов пока нет.',
     frames: '{{count}} кадр.',
+    unnamed: 'Файл №{{id}}',
   },
   frames: {
     title: 'Кадры',
@@ -89,6 +93,7 @@ const vision = {
   },
   viewer: {
     title: 'Кадр {{label}}',
+    frameNumber: '№{{id}}',
     original: 'Показан оригинальный кадр.',
     prev: 'Предыдущий кадр',
     next: 'Следующий кадр',
@@ -114,6 +119,7 @@ const vision = {
     show: 'Показать на кадре',
     comment: 'Комментарий',
     commentPlaceholder: 'Обязателен для «Не применимо»',
+    changeStatus: 'Оценка после решения',
     notApplicableHint: '«Не применимо» и комментарий требуют текста.',
     history: 'История решений',
     actions: {
@@ -142,6 +148,7 @@ const vision = {
     objectPlaceholder: 'Не выбран',
     create: 'Создать наружную рекламу',
     needsConfirm: 'Сначала подтвердите находку.',
+    notApplicable: 'Находка помечена «Не применимо»: наружную рекламу из неё создать нельзя.',
     open: 'Публикация №{{id}} в разделе «Реклама»',
   },
   card: {

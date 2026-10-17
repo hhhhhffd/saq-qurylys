@@ -4,6 +4,7 @@ import { api, apiBlob, ApiError } from '../client';
 import { qk } from '../keys';
 import type {
   FindingReviewAction,
+  FindingStatus,
   Paged,
   VisionAsset,
   VisionConfig,
@@ -149,8 +150,8 @@ export function useCreateFinding(sessionId: number) {
 export function useReviewFinding() {
   const invalidate = useInvalidateVision();
   return useMutation({
-    mutationFn: ({ id, action, comment }: { id: number; action: FindingReviewAction; comment?: string }) =>
-      api<VisionFinding>(`/vision/findings/${id}/review`, { method: 'POST', body: { action, comment } }),
+    mutationFn: ({ id, action, comment, status }: { id: number; action: FindingReviewAction; comment?: string; status?: FindingStatus }) =>
+      api<VisionFinding>(`/vision/findings/${id}/review`, { method: 'POST', body: { action, comment, status } }),
     onSuccess: invalidate,
     meta: { success: 'saved' },
   });

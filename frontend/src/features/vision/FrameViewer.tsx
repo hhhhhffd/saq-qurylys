@@ -34,6 +34,9 @@ export function FrameViewer({ session, frameId, frames, focusFindingId, onFrameC
   const createFinding = useCreateFinding(session.id);
   const overlayRef = useRef<HTMLDivElement>(null);
   const [drawing, setDrawing] = useState(false);
+  // the boxes are fractions of the rendered image, so nothing can be drawn before it has its size
+  const [loadedFrameId, setLoadedFrameId] = useState<number | null>(null);
+  const ready = loadedFrameId === frameId;
   const [anchor, setAnchor] = useState<{ x: number; y: number } | null>(null);
   const [draft, setDraft] = useState<VisionBbox | null>(null);
   const [category, setCategory] = useState<FindingCategory>('outdoor_ad');
@@ -42,7 +45,8 @@ export function FrameViewer({ session, frameId, frames, focusFindingId, onFrameC
 
   const index = frames.findIndex((frame) => frame.id === frameId);
   const frame = index >= 0 ? frames[index] : null;
-  const label = frame?.timestamp_ms != null ? formatTimestamp(frame.timestamp_ms) : t('frames.photo');
+  // a frame outside the gallery page on screen (opened from a finding) has no metadata here: name it by its number
+  const label = !frame ? t('viewer.frameNumber', { id: frameId }) : frame.timestamp_ms != null ? formatTimestamp(frame.timestamp_ms) : t('frames.photo');
   const findings = session.findings.filter((finding) => finding.frame_id === frameId && finding.bbox);
 
   const reset = () => {
@@ -72,18 +76,18 @@ export function FrameViewer({ session, frameId, frames, focusFindingId, onFrameC
 
   const onPointerDown = (event: PointerEvent) => {
     const start = point(event);
-    if (!drawing || !start) return;
+    if (!ready || !drawing || !start) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     setAnchor(start);
     setDraft(null);
   };
   const onPointerMove = (event: PointerEvent) => {
     const current = point(event);
-    if (anchor && current) setDraft(rectBetween(anchor, current));
+    if (ready && anchor && current) setDraft(rectBetween(anchor, current));
   };
   const onPointerUp = (event: PointerEvent) => {
     const end = point(event);
-    if (anchor && end) {
+    if (ready && anchor && end) {
       const box = rectBetween(anchor, end);
       setDraft(box.w >= MIN_SIDE && box.h >= MIN_SIDE ? box : null);
     }
@@ -127,6 +131,7 @@ export function FrameViewer({ session, frameId, frames, focusFindingId, onFrameC
             variant={drawing ? 'default' : 'secondary'}
             size="sm"
             aria-pressed={drawing}
+            disabled={!ready}
             onClick={() => {
               setDrawing(!drawing);
               reset();
@@ -138,11 +143,18 @@ export function FrameViewer({ session, frameId, frames, focusFindingId, onFrameC
           <span className="text-xs text-text-3">{drawing ? t('viewer.drawHint') : t('viewer.original')}</span>
         </div>
         <div className="flex max-h-[62vh] justify-center overflow-auto rounded bg-surface-sunken">
-          <div className="relative inline-block max-w-full self-start" data-testid="vision-frame-canvas">
-            <FrameImage frameId={frameId} variant="original" alt={t('viewer.imageAlt', { label })} className="max-h-[60vh] max-w-full min-h-24 min-w-24" />
+          {/* the wrapper shrink-wraps the image (block, no object-fit), so the overlay covers exactly the rendered pixels */}
+          <div className={cn('relative inline-block max-w-full self-start', !ready && 'min-h-24 min-w-24')} data-testid="vision-frame-canvas">
+            <FrameImage
+              frameId={frameId}
+              variant="original"
+              alt={t('viewer.imageAlt', { label })}
+              className="h-auto max-h-[60vh] w-auto max-w-full"
+              onLoad={() => setLoadedFrameId(frameId)}
+            />
             <div
               ref={overlayRef}
-              className={cn('absolute inset-0 touch-none select-none', drawing && 'cursor-crosshair')}
+              className={cn('absolute inset-0 touch-none select-none', drawing && ready && 'cursor-crosshair')}
               onPointerDown={onPointerDown}
               onPointerMove={onPointerMove}
               onPointerUp={onPointerUp}

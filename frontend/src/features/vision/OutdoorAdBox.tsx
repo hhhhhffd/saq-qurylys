@@ -26,6 +26,7 @@ export function OutdoorAdBox({ finding, session, config }: Props) {
   const text = draft ?? finding.confirmed_text ?? finding.ocr_text ?? '';
   const pending = finding.ocr_status === 'pending';
   const confirmed = finding.review_state === 'confirmed';
+  const notApplicable = finding.status === 'not_applicable';
   const canOcr = config.ocr_enabled && finding.bbox !== null && finding.frame_id !== null;
 
   return (
@@ -79,13 +80,17 @@ export function OutdoorAdBox({ finding, session, config }: Props) {
           <div className="flex flex-wrap items-center gap-2">
             <Button
               size="sm"
-              disabled={!confirmed || text.trim() === ''}
+              disabled={!confirmed || notApplicable || text.trim() === ''}
               loading={publish.isPending}
               onClick={() => publish.mutate({ id: finding.id, text: text.trim(), object_id: objectId })}
             >
               {t('publish.create')}
             </Button>
-            {!confirmed && <span className="text-xs text-text-3">{t('publish.needsConfirm')}</span>}
+            {notApplicable ? (
+              <span className="text-xs text-text-3">{t('publish.notApplicable')}</span>
+            ) : (
+              !confirmed && <span className="text-xs text-text-3">{t('publish.needsConfirm')}</span>
+            )}
           </div>
         </>
       )}
