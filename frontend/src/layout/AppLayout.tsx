@@ -20,6 +20,7 @@ import { useTranslation } from 'react-i18next';
 import { useAssistantEnabled } from '@/api/hooks/assistant';
 import { useVisionEnabled } from '@/api/hooks/vision';
 import { useAuth } from '@/auth/useAuth';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { LoadingBlock } from '@/components/QueryState';
 import { useLargeFont } from '@/lib/preferences';
 import { cn } from '@/lib/utils';
@@ -217,11 +218,14 @@ export function AppLayout() {
       {/* The docked panel starts below the header, so only the content makes room for it and the header keeps its full width. */}
       <div className={cn(assistantOpen && 'min-[62em]:pr-(--assistant-w)')}>
         <main className="mx-auto max-w-(--page-max) px-(--gutter) pt-6 pb-14">
-          <Suspense fallback={<LoadingBlock />}>
-            <div className="animate-in duration-200 fade-in-0 slide-in-from-bottom-1">
-              <Outlet />
-            </div>
-          </Suspense>
+          {/* The header stays usable when a page fails; moving to another page clears the error. */}
+          <ErrorBoundary resetKey={location.pathname}>
+            <Suspense fallback={<LoadingBlock />}>
+              <div className="animate-in duration-200 fade-in-0 slide-in-from-bottom-1">
+                <Outlet />
+              </div>
+            </Suspense>
+          </ErrorBoundary>
         </main>
       </div>
       {assistantEnabled && (
