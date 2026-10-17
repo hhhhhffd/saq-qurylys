@@ -7,6 +7,7 @@ import type { SignalRow, SignalStatus } from '@/api/types';
 import { useAuth } from '@/auth/useAuth';
 import { EmptyState, ErrorBlock, LoadingBlock } from '@/components/QueryState';
 import { ReportCard } from './ReportCard';
+import { MyAssignments } from './MyAssignments';
 
 type QueueStatus = Exclude<SignalStatus, 'closed'>;
 type SignalQuery = ReturnType<typeof useSignals>;
@@ -53,7 +54,7 @@ function SignalLink({ row, language }: { row: SignalRow; language: string }) {
 
 export function WorkPage() {
   const { t, i18n } = useTranslation();
-  const { isAdmin } = useAuth();
+  const { isAdmin, canEditRegistry } = useAuth();
   const returned = useSignals({ status: 'returned', limit: 3 });
   const requiresConfirmation = useSignals({ status: 'requires_confirmation', limit: 3 });
   const responded = useSignals({ status: 'responded', limit: 3 });
@@ -129,6 +130,8 @@ export function WorkPage() {
           </Link>
         )}
       </header>
+
+      {canEditRegistry && <MyAssignments />}
 
       <section className="border-y border-border py-3" aria-labelledby="work-journey-title">
         <h2 id="work-journey-title" className="mb-2 text-sm font-semibold">

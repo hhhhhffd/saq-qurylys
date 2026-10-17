@@ -23,6 +23,9 @@ const SignalDetailPage = lazy(() =>
 );
 const VisionPage = lazy(() => import('@/features/vision/VisionPage').then((m) => ({ default: m.VisionPage })));
 const SessionPage = lazy(() => import('@/features/vision/SessionPage').then((m) => ({ default: m.SessionPage })));
+const ControlPage = lazy(() =>
+  import('@/features/assignments/ControlPage').then((m) => ({ default: m.ControlPage })),
+);
 const AdminPage = lazy(() => import('@/features/admin/AdminPage').then((m) => ({ default: m.AdminPage })));
 
 // Dev-only visual reference of the theme; the dynamic import is dropped from production builds.
@@ -60,6 +63,14 @@ export function App() {
           element={
             <RequireCapability capability="canSeeRegistry">
               <WorkPage />
+            </RequireCapability>
+          }
+        />
+        <Route
+          path="control"
+          element={
+            <RequireCapability capability="canEditRegistry">
+              <ControlPage />
             </RequireCapability>
           }
         />

@@ -10,6 +10,7 @@ import {
   IconRss,
   IconSend,
   IconSettings,
+  IconUserCheck,
   IconSparkles,
   IconTextSize,
   IconSpeakerphone,
@@ -62,6 +63,7 @@ export function AppLayout() {
   };
 
   const toolItems = [
+    { to: '/control', label: t('nav.control'), icon: <IconUserCheck />, visible: canEditRegistry },
     { to: '/map', label: t('nav.map'), icon: <IconMap2 />, visible: canSeeRegistry },
     { to: '/graph', label: t('nav.graph'), icon: <IconTopologyStar3 />, visible: canSeeRegistry },
     { to: '/sources', label: t('nav.sources'), icon: <IconRss />, visible: canEditRegistry },

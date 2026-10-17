@@ -20,6 +20,7 @@ export const namespaces = [
   'sources',
   'assistant',
   'vision',
+  'assignments',
 ] as const;
 
 export function getStoredLanguage(): Locale | null {

@@ -172,6 +172,7 @@ const enums = {
     capture_failed: 'Не удалось зафиксировать публикацию',
     citizen_report: 'Новое сообщение гражданина',
     collector_failed: 'Сбор публикаций с источника не удался',
+    assignment_new: 'Вам поручена проверка объекта',
     pdf_archive_failed: 'Не удалось сохранить архивную копию PDF карточки',
   },
   holiday_kind: { holiday: 'Праздничный день', workday: 'Рабочий день (перенос)' },

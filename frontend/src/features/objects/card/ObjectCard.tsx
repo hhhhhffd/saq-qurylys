@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import type { ObjectDetail } from '@/api/types';
 import { Button } from '@/components/ui/button';
+import { AssignmentsSection } from './AssignmentsSection';
 import { BreakdownList } from './BreakdownList';
 import { ComplaintsSection } from './ComplaintsSection';
 import { DocumentsSection } from './DocumentsSection';
@@ -34,6 +35,7 @@ export function ObjectCard({ object }: { object: ObjectDetail }) {
       </div>
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className="flex min-w-0 flex-col gap-4">
+          <AssignmentsSection object={object} />
           <DocumentsSection object={object} />
           <InspectionsSection object={object} />
           <VisionSection object={object} />

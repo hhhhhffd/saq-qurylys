@@ -31,6 +31,7 @@ const common = {
   selectFile: 'Выберите файл',
   nav: {
     work: 'Задачи',
+    control: 'На контроле',
     map: 'Карта',
     objects: 'Объекты',
     ads: 'Реклама',

@@ -1,4 +1,4 @@
-import type { AdListParams, GraphParams, ObjectListParams, SignalListParams, VisionSessionListParams } from './types';
+import type { AdListParams, AssignmentListParams, GraphParams, ObjectListParams, SignalListParams, VisionSessionListParams } from './types';
 
 export const qk = {
   me: ['me'] as const,
@@ -41,4 +41,8 @@ export const qk = {
   visionFrames: (sessionId: number, page: number) => ['vision', 'session', sessionId, 'frames', page] as const,
   visionBlob: (kind: 'frame' | 'asset', id: number, variant: string) => ['visionBlob', kind, id, variant] as const,
   sourceSuggestions: ['source-suggestions'] as const,
+  assignments: ['assignments'] as const,
+  assignmentList: (params: AssignmentListParams) => ['assignments', 'list', params] as const,
+  objectAssignments: (objectId: number) => ['assignments', 'object', objectId] as const,
+  assignees: (objectId: number) => ['assignments', 'assignees', objectId] as const,
 };

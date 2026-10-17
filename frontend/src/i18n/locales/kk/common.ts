@@ -34,6 +34,7 @@ const common: typeof ru = {
   selectFile: 'Файлды таңдаңыз',
   nav: {
     work: 'Тапсырмалар',
+    control: 'Бақылауда',
     map: 'Карта',
     objects: 'Объектілер',
     ads: 'Жарнама',
