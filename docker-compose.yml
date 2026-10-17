@@ -147,6 +147,41 @@ services:
   # The same worker with CUDA torch for the object detector (needs an NVIDIA GPU and the NVIDIA container runtime):
   #   docker compose --profile vision-gpu up -d --build vision-worker-gpu
   # Run it INSTEAD of vision-worker: both consume the queue `vision`.
+  # Local LLM for the ad analysis (LLM_ENABLED) and the assistant (ASSISTANT_ENABLED), on an NVIDIA GPU:
+  #   docker compose --profile llm-gpu up -d ollama
+  # then OLLAMA_URL=http://ollama:11434 and ASSISTANT_BASE_URL=http://ollama:11434/v1 in .env. OLLAMA_MODELS_DIR
+  # reuses models already pulled on the host; without it they are pulled into the volume `ollamamodels`:
+  #   docker compose exec ollama ollama pull qwen3.5:9b-q6k
+  # The port is published on localhost so host tools keep using http://localhost:11434; stop a host
+  # `ollama serve` first, both cannot hold the port.
+  ollama:
+    image: ollama/ollama:0.34.0
+    profiles: ["llm-gpu"]
+    environment:
+      OLLAMA_MODELS: /models
+      OLLAMA_MAX_LOADED_MODELS: "1"
+      OLLAMA_NUM_PARALLEL: "3"
+      OLLAMA_FLASH_ATTENTION: "true"
+      OLLAMA_KV_CACHE_TYPE: q8_0
+      OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-30m}
+    ports:
+      - "127.0.0.1:11434:11434"
+    volumes:
+      - ${OLLAMA_MODELS_DIR:-ollamamodels}:/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
   vision-worker-gpu:
     <<: *backend
     profiles: ["vision-gpu"]
@@ -242,6 +277,7 @@ services:
 
 volumes:
   pgdata:
+  ollamamodels:
   redisdata:
   miniodata:
   userbotdata:
