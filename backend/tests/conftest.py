@@ -44,6 +44,7 @@ from fastapi.testclient import TestClient
 from minio.deleteobjects import DeleteObject
 from pwdlib import PasswordHash
 from pwdlib.hashers.argon2 import Argon2Hasher
+from redis import Redis
 from sqlalchemy import Engine, create_engine, select, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
@@ -54,7 +55,9 @@ from app.db import get_engine, get_session
 from app.main import app
 from app.models import AppUser, ConstructionObject, District, Territory
 from app.models.enums import Role, TerritoryLevel
+from app.modules.auth import throttle
 from app.security import create_access_token, hash_password
+from tests.support_collect import TEST_REDIS_URL
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 PASSWORD = "Passw0rd-for-tests"
@@ -64,6 +67,17 @@ PASSWORD = "Passw0rd-for-tests"
 def fast_password_hashing() -> None:
     """Argon2 with minimal cost: tests create many users."""
     security._password_hash = PasswordHash((Argon2Hasher(time_cost=1, memory_cost=1024, parallelism=1),))
+
+
+@pytest.fixture(autouse=True)
+def login_counters(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    """Failed-login counters live in the test Redis database and do not carry over between tests."""
+    monkeypatch.setattr(get_settings(), "redis_url", TEST_REDIS_URL)
+    yield
+    with Redis.from_url(TEST_REDIS_URL) as client:
+        keys = list(client.scan_iter(f"{throttle.KEY_PREFIX}*"))
+        if keys:
+            client.delete(*keys)
 
 
 @pytest.fixture(scope="session")

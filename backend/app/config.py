@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     # No default on purpose: the service must not start with a guessable secret.
     jwt_secret: str = Field(min_length=32)
     jwt_ttl_minutes: int = Field(default=480, ge=1)
+    # Failed logins allowed per account and per client IP within the window, then the login waits for its end.
+    login_max_failures_per_user: int = Field(default=5, ge=1)
+    login_max_failures_per_ip: int = Field(default=20, ge=1)
+    login_lockout_minutes: int = Field(default=15, ge=1)
 
     llm_enabled: bool = False
     ollama_url: str = "http://host.docker.internal:11434"
