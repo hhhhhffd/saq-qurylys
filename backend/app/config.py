@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=("../.env", ".env"), extra="ignore")
 
     database_url: str
+    # The owner that runs the migrations. Empty: the migrations run as DATABASE_URL. When it names another role
+    # than DATABASE_URL, the migrations create that application role and grant it limited rights (app/db_role.py).
+    migration_database_url: str = ""
     redis_url: str = "redis://localhost:6379/0"
 
     # S3 / MinIO. S3_ENDPOINT is a URL such as http://minio:9000.
@@ -127,6 +130,10 @@ class Settings(BaseSettings):
     @classmethod
     def _empty_api_id_is_unset(cls, value: object) -> object:
         return 0 if isinstance(value, str) and not value.strip() else value
+
+    @property
+    def migration_url(self) -> str:
+        return self.migration_database_url or self.database_url
 
     @property
     def userbot_configured(self) -> bool:

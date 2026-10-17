@@ -12,6 +12,7 @@ from pathlib import Path
 # Environment must be set before `app` is imported: settings are read once and cached.
 os.environ.setdefault("TEST_DATABASE_URL", "postgresql+psycopg://saq:saq_dev_password@localhost:5433/saq_test")
 os.environ["DATABASE_URL"] = os.environ["TEST_DATABASE_URL"]
+os.environ["MIGRATION_DATABASE_URL"] = ""
 os.environ.setdefault("S3_ENDPOINT", "http://localhost:9000")
 os.environ.setdefault("S3_ACCESS_KEY", "saq-minio-dev")
 os.environ.setdefault("S3_SECRET_KEY", "saq-minio-dev-secret")
@@ -25,6 +26,8 @@ os.environ["EVIDENCE_RETENTION_DAYS"] = "1"
 os.environ["TSA_URL"] = ""
 os.environ["JWT_SECRET"] = "test-secret-test-secret-test-secret-0123456789"
 os.environ["EVENTS_ENABLED"] = "false"
+# The development Redis (database 0) serves the running stack; tests use database 15 (tests/support_collect.py).
+os.environ["REDIS_URL"] = "redis://localhost:6379/15"
 os.environ["LLM_ENABLED"] = "false"
 # The developer's .env may switch real collectors on; tests register their own and never reach the network.
 os.environ["HOMEPORTAL_SYNC_ENABLED"] = "false"
@@ -70,9 +73,8 @@ def fast_password_hashing() -> None:
 
 
 @pytest.fixture(autouse=True)
-def login_counters(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    """Failed-login counters live in the test Redis database and do not carry over between tests."""
-    monkeypatch.setattr(get_settings(), "redis_url", TEST_REDIS_URL)
+def login_counters() -> Iterator[None]:
+    """Failed-login counters (in the test Redis database, REDIS_URL above) do not carry over between tests."""
     yield
     with Redis.from_url(TEST_REDIS_URL) as client:
         keys = list(client.scan_iter(f"{throttle.KEY_PREFIX}*"))

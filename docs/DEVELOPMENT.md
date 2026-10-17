@@ -6,13 +6,28 @@
 
 | Service | Host port | Notes |
 |---|---|---|
-| api | 8000 | OpenAPI at `/docs`; runs `alembic upgrade head` on start |
+| migrate | — | One-shot `alembic upgrade head` as the DB owner; creates the application role `APP_DB_USER` and its grants |
+| api | 8000 | OpenAPI at `/docs`; starts after `migrate` succeeded |
 | frontend | 8080 | nginx, proxies `/api` to `api:8000` |
 | db | 5433 | PostgreSQL 16 + PostGIS (`POSTGRES_*` in `.env`) |
 | redis | 6379 | Celery broker |
 | minio | 9000 / 9001 | S3 API / console. The evidence bucket is created with Object Lock by the backend at startup |
 
 `JWT_SECRET` is required (at least 32 characters; `openssl rand -hex 32`). The API refuses to start without it.
+
+## Security settings
+
+- **Database role.** Compose services connect as `APP_DB_USER` (`APP_DB_PASSWORD` is required in `.env`), not as the
+  owner `POSTGRES_USER`. After every migration `migrate` creates the role or resets its password and grants it
+  SELECT/INSERT/UPDATE/DELETE on all tables except UPDATE/DELETE/TRUNCATE on the append-only ones (every table with
+  the `forbid_modification()` trigger). The role cannot drop or disable triggers (`backend/app/db_role.py`). On the
+  host the same happens when `MIGRATION_DATABASE_URL` (owner) is set and `DATABASE_URL` names another role.
+- **Login.** After `LOGIN_MAX_FAILURES_PER_USER` failures for one username, or `LOGIN_MAX_FAILURES_PER_IP` from one
+  address, the login answers 429 with `Retry-After` until `LOGIN_LOCKOUT_MINUTES` pass. Counters are in Redis (keys
+  `auth:login:*`, HMAC of the name/address); without Redis the login answers 503. Every failure is in `audit_log`
+  (`auth.login_failed`).
+- **Tokens.** A token carries `app_user.token_version`. Logout (`POST /auth/logout`), a new password or deactivation
+  raise it, which revokes all tokens of the user on every device.
 
 ## Backend on the host
 

@@ -6,6 +6,7 @@ from sqlalchemy.engine import Connection
 
 import app.models  # noqa: F401  (registers all tables on Base.metadata)
 from app.config import get_settings
+from app.db_role import app_role_credentials, ensure_app_role
 from app.models.base import Base
 
 config = context.config
@@ -23,7 +24,7 @@ def include_object(obj: object, name: str | None, type_: str, reflected: bool, c
 
 def run_migrations_offline() -> None:
     context.configure(
-        url=get_settings().database_url,
+        url=get_settings().migration_url,
         target_metadata=target_metadata,
         literal_binds=True,
         include_object=include_object,
@@ -33,13 +34,17 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection: Connection) -> None:
+    settings = get_settings()
+    app_role = app_role_credentials(settings.database_url, settings.migration_url)
     context.configure(connection=connection, target_metadata=target_metadata, include_object=include_object)
     with context.begin_transaction():
         context.run_migrations()
+        if app_role is not None:
+            ensure_app_role(connection, *app_role)
 
 
 def run_migrations_online() -> None:
-    engine = create_engine(get_settings().database_url, poolclass=pool.NullPool)
+    engine = create_engine(get_settings().migration_url, poolclass=pool.NullPool)
     with engine.connect() as connection:
         do_run_migrations(connection)
 

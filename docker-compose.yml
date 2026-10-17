@@ -1,7 +1,9 @@
 name: saq-qurylys
 
+# The services connect as the application role (no UPDATE/DELETE on the append-only tables, cannot touch the
+# triggers); only the one-shot `migrate` service connects as the owner and creates that role (backend/app/db_role.py).
 x-backend-env: &backend-env
-  DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+  DATABASE_URL: postgresql+psycopg://${APP_DB_USER:-saq_app}:${APP_DB_PASSWORD:?set APP_DB_PASSWORD in .env}@db:5432/${POSTGRES_DB}
   REDIS_URL: redis://redis:6379/0
   S3_ENDPOINT: http://minio:9000
 
@@ -68,21 +70,39 @@ services:
       retries: 20
     restart: unless-stopped
 
+  migrate:
+    <<: *backend
+    environment:
+      <<: *backend-env
+      MIGRATION_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    build:
+      context: ./backend
+      target: api
+    command: ["alembic", "upgrade", "head"]
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+
   api:
     <<: *backend
     build:
       context: ./backend
       target: api
     command:
-      - sh
-      - -c
-      - >-
-        alembic upgrade head &&
-        exec uvicorn app.main:app --host 0.0.0.0 --port 8000
-        --proxy-headers --forwarded-allow-ips='127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16'
+      - uvicorn
+      - app.main:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --proxy-headers
+      - --forwarded-allow-ips=127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
     ports:
       - "127.0.0.1:8000:8000"
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       db:
         condition: service_healthy
       redis:
