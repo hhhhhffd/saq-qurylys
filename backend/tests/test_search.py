@@ -104,3 +104,11 @@ def test_query_too_short_is_rejected(client: TestClient, world: World) -> None:
 def test_like_wildcards_are_literal(client: TestClient, db: Session, world: World) -> None:
     make_object(db, world.ust, "ЖК Обычный")
     assert find(client, world, "mio_ust", "%%")["objects"] == []
+
+
+def test_whitespace_query_is_too_short(client: TestClient, db: Session, world: World) -> None:
+    make_object(db, world.ust, "ЖК Алтын")
+    for q in ("  ", " а "):
+        response = client.get(API, params={"q": q}, headers=auth(world.users["mio_ust"]))
+        assert response.status_code == 422
+        assert response.json()["detail"]["code"] == "query_too_short"

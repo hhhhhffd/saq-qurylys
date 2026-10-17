@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from sqlalchemy import func, select
 
 from app.deps import CurrentUser, ScopeDep, SessionDep
+from app.errors import api_error
 from app.models import ConstructionObject, Developer, SignalCard
 from app.models.enums import Role, SignalStatus, Zone
 from app.modules.developers.service import visible_developers
@@ -71,6 +72,8 @@ def search(
 ) -> SearchResult:
     """One box for the header: objects and developers (staff only) and the signal cards the user may see."""
     needle = q.strip()
+    if len(needle) < 2:
+        raise api_error(422, "query_too_short", "Введите не менее 2 символов")
     objects: list[ObjectHit] = []
     developers: list[DeveloperHit] = []
     if user.role in STAFF_ROLES:

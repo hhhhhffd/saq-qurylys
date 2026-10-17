@@ -173,7 +173,8 @@ def update_assignment(
     scope: ScopeDep,
     request: Request,
 ) -> AssignmentOut:
-    assignment = session.get(Assignment, assignment_id)
+    # The row lock serializes concurrent PATCHes: the second one sees the closed status and gets 409.
+    assignment = session.get(Assignment, assignment_id, with_for_update=True)
     obj = session.get(ConstructionObject, assignment.object_id) if assignment else None
     if assignment is None or obj is None:
         raise api_error(404, "assignment_not_found", "Поручение не найдено")
