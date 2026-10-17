@@ -111,6 +111,7 @@ const common: typeof ru = {
     finding_not_confirmed: 'Алдымен тұжырымды растаңыз',
     finding_not_outdoor_ad: 'Жарнаманы тек «Сыртқы жарнама» тұжырымынан құруға болады',
     detector_disabled: 'Нейрожелілік детектор серверде өшірулі',
+    run_in_progress: 'Талдау әлі жүріп жатыр — аяқталуын күтіңіз',
     ocr_unavailable: 'Мәтінді тану (OCR) қолжетімсіз',
     frame_required: 'Аймақ үшін кадр қажет',
     network_error: 'Сервермен байланыс жоқ',

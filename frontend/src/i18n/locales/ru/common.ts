@@ -108,6 +108,7 @@ const common = {
     finding_not_confirmed: 'Сначала подтвердите находку',
     finding_not_outdoor_ad: 'Рекламу можно создать только из находки «Наружная реклама»',
     detector_disabled: 'Нейросетевой детектор выключен на сервере',
+    run_in_progress: 'Анализ уже выполняется — дождитесь завершения',
     ocr_unavailable: 'Распознавание текста (OCR) недоступно',
     frame_required: 'Для области нужен кадр',
     network_error: 'Нет связи с сервером',
