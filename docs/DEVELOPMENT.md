@@ -43,7 +43,7 @@ pnpm typecheck && pnpm lint && pnpm build
 
 ## Celery contract
 
-Queues: `collect`, `archive`, `nlp`, `score`, `notify`, `default`. Tasks are implemented in each module's
+Queues: `collect`, `archive`, `nlp`, `score`, `notify`, `vision`, `default`. Tasks are implemented in each module's
 `app/modules/<module>/tasks.py` (auto-discovered) under these exact names:
 
 | Task | Queue | Schedule (UTC) |
@@ -58,9 +58,45 @@ Queues: `collect`, `archive`, `nlp`, `score`, `notify`, `default`. Tasks are imp
 | `ads.recheck_due` | collect | every 6 hours |
 | `signals.check_deadlines` | notify | daily 06:00 |
 | `notify.red_zone` | notify | on demand |
+| `vision.extract_frames(job_id)`, `vision.ocr_region(finding_id)`, `vision.detect(run_id)` | vision | on demand (SAQ VISION); consumed only by `vision-worker` |
 
 Call `object_changed(object_id)` **after** committing a change to an object, its documents, complaints,
 inspections or ads. It is a no-op when `EVENTS_ENABLED=false`.
+
+## SAQ VISION (визуальные проверки)
+
+Модуль выключен по умолчанию: `VISION_ENABLED=false` (маршрутов `/api/v1/vision/*` нет). Включение — `VISION_ENABLED=true`
+в `.env` и перезапуск `api`. Видео и OCR выделенной области обрабатывает отдельный воркер очереди `vision`
+(образ `vision` = `worker` + ffmpeg; основной `worker` эту очередь не слушает):
+
+```bash
+docker compose --profile vision up -d --build vision-worker   # параллелизм: VISION_WORKER_CONCURRENCY (по умолчанию 1)
+docker compose logs -f vision-worker
+```
+
+Без воркера фото и ручные находки работают, видео остаётся в `queued` (после запуска воркера — `POST /vision/assets/{id}/retry`).
+Тесты с ffmpeg/Tesseract/torch на хосте пропускаются; в образе: `docker build --target vision -t saq-vision-test backend`, затем
+`docker run --rm --network host -u root -v $PWD/backend:/app:ro -e UV_CACHE_DIR=/tmp/uvcache -e UV_PROJECT_ENVIRONMENT=/opt/venv
+saq-vision-test sh -c "cd /app && uv sync --frozen --extra vision-cpu && pytest -q -p no:cacheprovider tests/test_vision_*.py"`
+(нужны `db`, `minio` из compose на localhost:5433/9000; `uv sync` дозаставляет в `/opt/venv` только dev-пакеты — torch и
+веса уже в образе, тесты с настоящей моделью тогда выполняются, а не пропускаются).
+
+### Детектор объектов (Этап 4, экспериментальный)
+
+Выключен по умолчанию (`VISION_DETECTOR_BACKEND=disabled`). Включение на запущенном стеке: в `.env` поставить
+`VISION_ENABLED=true`, `VISION_DETECTOR_BACKEND=grounding_dino`, затем пересоздать `api` и воркер (образ `vision` собран с
+моделью Grounding DINO tiny, веса запечены в образ, в рантайме без сети):
+
+```bash
+docker compose --profile vision up -d --build --force-recreate api vision-worker      # CPU, ~3 ГБ RAM на задачу
+# или на GPU (NVIDIA Container Toolkit; вместо vision-worker, не вместе):
+docker compose stop vision-worker && docker compose --profile vision-gpu up -d --build --force-recreate api vision-worker-gpu
+```
+
+После этого загрузка фото и успешная обработка видео запускают прогон автоматически; существующую сессию можно
+пересчитать кнопкой/`POST /vision/sessions/{id}/reanalyze`. Результаты — подсказки модели без дообучения
+([SAQ_VISION_EVAL.md](SAQ_VISION_EVAL.md)); решения принимает человек. Память: модель ~0.7 ГБ весов, пик процесса
+воркера на CPU — см. таблицу в EVAL; `VISION_WORKER_CONCURRENCY` > 1 умножает потребление.
 
 ## CSV import
 

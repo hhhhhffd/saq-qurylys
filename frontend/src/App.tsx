@@ -5,6 +5,7 @@ import { AppLayout } from '@/layout/AppLayout';
 import { LoginPage } from '@/features/login/LoginPage';
 import { useTranslation } from 'react-i18next';
 import { EmptyState } from '@/components/QueryState';
+import { VisionGate } from '@/features/vision/VisionGate';
 
 // Screens are code-split; the map brings in maplibre-gl, which is the heaviest dependency.
 const MapPage = lazy(() => import('@/features/map/MapPage').then((m) => ({ default: m.MapPage })));
@@ -14,11 +15,14 @@ const ObjectDetailPage = lazy(() =>
 );
 const AdsPage = lazy(() => import('@/features/ads/AdsPage').then((m) => ({ default: m.AdsPage })));
 const SourcesPage = lazy(() => import('@/features/sources/SourcesPage').then((m) => ({ default: m.SourcesPage })));
+const WorkPage = lazy(() => import('@/features/work/WorkPage').then((m) => ({ default: m.WorkPage })));
 const GraphPage = lazy(() => import('@/features/graph/GraphPage').then((m) => ({ default: m.GraphPage })));
 const SignalsPage = lazy(() => import('@/features/signals/SignalsPage').then((m) => ({ default: m.SignalsPage })));
 const SignalDetailPage = lazy(() =>
   import('@/features/signals/SignalDetailPage').then((m) => ({ default: m.SignalDetailPage })),
 );
+const VisionPage = lazy(() => import('@/features/vision/VisionPage').then((m) => ({ default: m.VisionPage })));
+const SessionPage = lazy(() => import('@/features/vision/SessionPage').then((m) => ({ default: m.SessionPage })));
 const AdminPage = lazy(() => import('@/features/admin/AdminPage').then((m) => ({ default: m.AdminPage })));
 
 // Dev-only visual reference of the theme; the dynamic import is dropped from production builds.
@@ -51,6 +55,14 @@ export function App() {
         }
       >
         <Route index element={<HomeRedirect />} />
+        <Route
+          path="work"
+          element={
+            <RequireCapability capability="canSeeRegistry">
+              <WorkPage />
+            </RequireCapability>
+          }
+        />
         <Route
           path="map"
           element={
@@ -88,6 +100,26 @@ export function App() {
           element={
             <RequireCapability capability="canEditRegistry">
               <SourcesPage />
+            </RequireCapability>
+          }
+        />
+        <Route
+          path="vision"
+          element={
+            <RequireCapability capability="canEditRegistry">
+              <VisionGate>
+                <VisionPage />
+              </VisionGate>
+            </RequireCapability>
+          }
+        />
+        <Route
+          path="vision/:id"
+          element={
+            <RequireCapability capability="canEditRegistry">
+              <VisionGate>
+                <SessionPage />
+              </VisionGate>
             </RequireCapability>
           }
         />

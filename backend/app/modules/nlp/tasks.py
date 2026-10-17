@@ -3,7 +3,7 @@ import logging
 from app.db import get_sessionmaker
 from app.events import object_changed, objects_changed
 from app.models import AdPost
-from app.models.enums import LlmStatus, OcrStatus
+from app.models.enums import AdOrigin, LlmStatus, OcrStatus
 from app.modules.ads.service import refresh_claimed_readiness
 from app.modules.nlp import service
 from app.modules.nlp.ocr import recognise_ad
@@ -19,6 +19,9 @@ def ocr(ad_post_id: int) -> None:
         ad = session.get(AdPost, ad_post_id)
         if ad is None:
             logger.warning("nlp.ocr: ad_post %s does not exist", ad_post_id)
+            return
+        if ad.origin is AdOrigin.vision:
+            # The text was read from the marked area and confirmed by a person; the frame photos must not add to it.
             return
         try:
             recognise_ad(session, ad)

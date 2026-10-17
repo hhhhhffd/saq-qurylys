@@ -68,10 +68,10 @@ export function ResponseModal({ opened, onClose, detail }: Props) {
             {...register('response')}
           />
           <DialogFooter>
-            <Button type="button" variant="secondary" onClick={close} disabled={respond.isPending}>
+            <Button className="min-h-11" type="button" variant="secondary" onClick={close} disabled={respond.isPending}>
               {tc('cancel')}
             </Button>
-            <Button type="submit" loading={respond.isPending}>
+            <Button className="min-h-11" type="submit" loading={respond.isPending}>
               {t('actions.respond')}
             </Button>
           </DialogFooter>

@@ -48,8 +48,8 @@ export function RequireCapability({
   return <>{children}</>;
 }
 
-/** Landing route: registry roles open the map, recipients open their signals. */
+/** Landing route: registry roles open the work overview, recipients open their cards. */
 export function HomeRedirect() {
   const { canSeeRegistry } = useAuth();
-  return <Navigate to={canSeeRegistry ? '/map' : '/signals'} replace />;
+  return <Navigate to={canSeeRegistry ? '/work' : '/signals'} replace />;
 }

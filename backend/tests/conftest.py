@@ -17,6 +17,8 @@ os.environ.setdefault("S3_ACCESS_KEY", "saq-minio-dev")
 os.environ.setdefault("S3_SECRET_KEY", "saq-minio-dev-secret")
 # Parallel test runs (separate worktrees) need their own database and bucket: the bucket is emptied at the end.
 os.environ["S3_BUCKET_EVIDENCE"] = os.environ.get("TEST_S3_BUCKET", "evidence-test")
+os.environ["VISION_ENABLED"] = "true"
+os.environ["S3_BUCKET_VISION"] = os.environ.get("TEST_S3_BUCKET_VISION", "vision-test")
 os.environ["EVIDENCE_LOCK_MODE"] = "GOVERNANCE"
 os.environ["EVIDENCE_RETENTION_DAYS"] = "1"
 os.environ["TSA_URL"] = ""
@@ -78,13 +80,9 @@ def engine() -> Iterator[Engine]:
     admin_engine.dispose()
 
 
-@pytest.fixture(scope="session")
-def bucket() -> Iterator[str]:
-    storage.ensure_bucket()
-    yield get_settings().s3_bucket_evidence
+def _empty_bucket(name: str) -> None:
     # Evidence is locked until retention expires; governance mode can be bypassed to keep MinIO tidy.
     client = storage.get_client()
-    name = get_settings().s3_bucket_evidence
     versions = [
         DeleteObject(item.object_name, item.version_id)
         for item in client.list_objects(name, recursive=True, include_version=True)
@@ -92,6 +90,20 @@ def bucket() -> Iterator[str]:
     ]
     for error in client.remove_objects(name, versions, bypass_governance_mode=True):
         raise RuntimeError(f"could not clean test bucket: {error}")
+
+
+@pytest.fixture(scope="session")
+def bucket() -> Iterator[str]:
+    storage.ensure_bucket()
+    yield get_settings().s3_bucket_evidence
+    _empty_bucket(get_settings().s3_bucket_evidence)
+
+
+@pytest.fixture(scope="session")
+def vision_bucket() -> Iterator[str]:
+    storage.ensure_vision_bucket()
+    yield get_settings().s3_bucket_vision
+    _empty_bucket(get_settings().s3_bucket_vision)
 
 
 @pytest.fixture

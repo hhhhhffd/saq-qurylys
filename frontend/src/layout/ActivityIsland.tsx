@@ -28,13 +28,9 @@ const MAX_WAITING = 5;
 const SCORE_DELAY_MS = 320;
 const SCORE_TWEEN_MS = 760;
 
-/** Sizes in px; the classes of the island repeat the two heights (h-8, h-12). */
-const IDLE_WIDTH = 132;
-const IDLE_HEIGHT = 32;
+/** Sizes in px; the event panel class uses the same 48px height (`h-12`). */
 const OPEN_WIDTH = 400;
 const OPEN_HEIGHT = 48;
-/** With less room than this the idle island shrinks to its dot. */
-const MIN_LABEL_ROOM = 100;
 /** Distance from the screen edge when the open island is as wide as the screen allows. */
 const EDGE_GAP = 16;
 
@@ -187,16 +183,14 @@ function reduce(state: IslandState, action: IslandAction): IslandState {
 
 // ---------------------------------------------------------------- where it goes
 
-/** Where the island goes, in px relative to the header (its positioning context). */
+/** Where an event panel goes, in px relative to its zero-height anchor below the header. */
 interface Geometry {
-  /** vertical middle of the header row the island lives in */
+  /** vertical middle of the event anchor */
   mid: number;
-  idleWidth: number;
   openWidth: number;
-  /** horizontal offsets from the center of the header */
-  idleShift: number;
+  /** horizontal offset from the center of the event anchor */
   openShift: number;
-  /** the open island fits into the header row; otherwise it hangs below the header */
+  /** whether the panel fits inside the anchor; otherwise it opens below the header */
   inBand: boolean;
 }
 
@@ -204,10 +198,8 @@ const clamp = (value: number, min: number, max: number) =>
   min > max ? (min + max) / 2 : Math.min(Math.max(value, min), max);
 
 /**
- * The header leaves the island a slot between the navigation and the tools (between the wordmark and the tools
- * when the header wraps). The island sits at the center of the screen when the slot reaches it and as near as
- * the slot allows otherwise, so it never covers the navigation. An open island that does not fit into the slot
- * hangs below the header instead.
+ * The anchor has no layout height, so event panels never reserve space in the header. Its width bounds the panel
+ * and its height keeps the panel below the header instead of over the navigation or utility controls.
  */
 function useGeometry() {
   const slotRef = useRef<HTMLDivElement>(null);
@@ -215,30 +207,27 @@ function useGeometry() {
 
   useEffect(() => {
     const slot = slotRef.current;
-    const header = slot?.offsetParent;
-    if (!slot || !header) return;
+    const anchor = slot?.offsetParent;
+    if (!slot || !anchor) return;
     const measure = () => {
-      const bounds = header.getBoundingClientRect();
+      const bounds = anchor.getBoundingClientRect();
       const box = slot.getBoundingClientRect();
       const left = box.left - bounds.left;
       const right = box.right - bounds.left;
       const center = bounds.width / 2;
-      const idleWidth = box.width < MIN_LABEL_ROOM ? IDLE_HEIGHT : Math.min(IDLE_WIDTH, box.width);
       const openWidth = Math.min(OPEN_WIDTH, bounds.width - 2 * EDGE_GAP);
       const inBand = box.width >= openWidth && box.height >= OPEN_HEIGHT;
       setGeometry({
         mid: box.top - bounds.top + box.height / 2,
-        idleWidth,
         openWidth,
-        idleShift: clamp(center, left + idleWidth / 2, right - idleWidth / 2) - center,
         openShift: inBand ? clamp(center, left + openWidth / 2, right - openWidth / 2) - center : 0,
         inBand,
       });
     };
-    // Fires once on start, before the first paint, and whenever the header or the room in it changes.
+    // Re-measure when the event anchor changes size or moves with the responsive header.
     const observer = new ResizeObserver(measure);
     observer.observe(slot);
-    observer.observe(header);
+    observer.observe(anchor);
     return () => observer.disconnect();
   }, []);
 
@@ -246,7 +235,6 @@ function useGeometry() {
 }
 
 export function ActivityIsland() {
-  const { t } = useTranslation('activity');
   const { t: tc } = useTranslation();
   const navigate = useNavigate();
   const present = usePresentation();
@@ -259,7 +247,7 @@ export function ActivityIsland() {
   const resumed = useRef(false);
 
   const { slotRef, geometry } = useGeometry();
-  const feed = useActivityFeed((events) => dispatch({ type: 'events', events }));
+  useActivityFeed((events) => dispatch({ type: 'events', events }));
 
   const held = hovered || focused;
   const hasWaiting = waiting.length > 0;
@@ -277,28 +265,27 @@ export function ActivityIsland() {
   const style: CSSProperties | undefined = geometry
     ? ({
         '--mid': `${geometry.mid}px`,
-        '--w-idle': `${geometry.idleWidth}px`,
         '--w-open': `${geometry.openWidth}px`,
-        '--shift-idle': `${geometry.idleShift}px`,
         '--shift-open': `${geometry.openShift}px`,
       } as CSSProperties)
     : undefined;
 
   return (
-    <div ref={slotRef} className="pointer-events-none min-w-0 flex-[1_1_0] self-stretch">
+    <div ref={slotRef} className="pointer-events-none min-w-0">
       <div role="status" aria-live="polite" aria-atomic="true" data-testid="activity-live-region" className="sr-only">
         {open && content ? content.announcement : ''}
       </div>
       {geometry && (
         <div
           className={cn(
-            'group pointer-events-none absolute left-1/2 h-8 w-(--w-idle) rounded-2xl bg-surface-raised shadow-[0_0_0_1px_var(--border-strong),0_6px_18px_rgba(0,0,0,0.35)]',
-            'top-[calc(var(--mid)-16px)] [transform:translateX(calc(-50%_+_var(--shift-idle)))]',
-            'transition-[width,height,top,transform,box-shadow] duration-[400ms] ease-[cubic-bezier(0.32,0.72,0,1)]',
-            'data-[open=true]:pointer-events-auto data-[open=true]:top-[calc(var(--mid)-24px)] data-[open=true]:h-12 data-[open=true]:w-(--w-open) data-[open=true]:rounded-3xl',
+            'group pointer-events-none absolute left-1/2 h-12 w-(--w-open) rounded-3xl bg-transparent opacity-0 shadow-none',
+            'top-[calc(var(--mid)-24px)] [transform:translateX(calc(-50%_+_var(--shift-open)))]',
+            'transition-[opacity,top,transform,box-shadow] duration-[400ms] ease-[cubic-bezier(0.32,0.72,0,1)]',
+            'data-[open=true]:pointer-events-auto data-[open=true]:bg-surface-raised data-[open=true]:opacity-100 data-[open=true]:shadow-glow',
+            'data-[open=true]:top-[calc(var(--mid)-24px)] data-[open=true]:h-12 data-[open=true]:w-(--w-open) data-[open=true]:rounded-3xl',
             'data-[open=true]:[transform:translateX(calc(-50%_+_var(--shift-open)))] data-[open=true]:shadow-glow',
             'data-[open=true]:duration-[580ms] data-[open=true]:ease-[cubic-bezier(0.3,1.35,0.4,1)]',
-            // Not enough room in the header row (narrow screens, long navigation): the open island hangs below the header.
+            // The event panel opens below the header, away from navigation and utility controls.
             'data-[open=true]:data-[place=below]:top-[calc(100%+8px)]',
             // Entering the red zone: a red edge and a soft red glow instead of the pink one, nothing that blinks.
             'data-[alert=true]:shadow-[0_0_0_1px_color-mix(in_srgb,var(--zone-red)_62%,transparent),0_8px_28px_-6px_color-mix(in_srgb,var(--zone-red)_45%,transparent)]',
@@ -307,9 +294,7 @@ export function ActivityIsland() {
           style={style}
           data-open={open}
           data-place={geometry.inBand ? 'band' : 'below'}
-          data-compact={geometry.idleWidth < MIN_LABEL_ROOM}
           data-alert={open && content?.alert === true}
-          data-offline={feed.isError}
           onPointerEnter={() => {
             resumed.current = true;
             setHovered(true);
@@ -323,25 +308,6 @@ export function ActivityIsland() {
         >
           {/* The pill clips its content; the glow of the border (below) bleeds out of it. */}
           <div className="absolute inset-0 overflow-hidden rounded-[inherit]">
-            <span
-              className={cn(
-                'absolute top-0 left-1/2 flex h-8 w-(--w-idle) -translate-x-1/2 items-center justify-center gap-2',
-                'transition-opacity delay-[140ms] duration-[260ms] group-data-[open=true]:opacity-0 group-data-[open=true]:delay-0 group-data-[open=true]:duration-100',
-              )}
-              aria-hidden
-              title={feed.isError ? t('offline') : undefined}
-            >
-              <span
-                className={cn(
-                  'size-1.5 flex-none animate-pulse rounded-full bg-primary shadow-[0_0_8px_var(--accent-glow)] motion-reduce:animate-none',
-                  'group-data-[offline=true]:animate-none group-data-[offline=true]:bg-transparent group-data-[offline=true]:shadow-none group-data-[offline=true]:ring-[1.5px] group-data-[offline=true]:ring-text-3',
-                )}
-              />
-              {/* Too little room for the word: the dot alone. */}
-              <span className="truncate font-heading text-3xs font-semibold tracking-wider text-text-2 uppercase group-data-[compact=true]:hidden">
-                {t('idle')}
-              </span>
-            </span>
             {shown && content && (
               <button
                 type="button"

@@ -200,3 +200,17 @@ Dataset «Объекты с долевым участием в жилищном 
 2026-10-12: https://ashyq.data.gov.kz/dataset/magda-ds-b80110e9-218a-42ba-b8c8-01fa5e4c82c8. Licence: CC BY 3.0 NZ
 (https://creativecommons.org/licenses/by/3.0/nz/). The file is not stored in the repository; permit numbers from it are
 imported into the database by `app.modules.registry_sync.ashyq` and the source is named in each document note.
+
+## SAQ VISION object detector
+
+Used only by the optional `vision` worker images (`docker compose --profile vision`), never by the API.
+
+- Grounding DINO (tiny), model `IDEA-Research/grounding-dino-tiny` (https://huggingface.co/IDEA-Research/grounding-dino-tiny),
+  by IDEA Research; paper: "Grounding DINO: Marrying DINO with Grounded Pre-Training for Open-Set Object Detection"
+  (Liu et al., 2023). Licence: Apache-2.0. The weights are downloaded at image build time and pinned to one revision.
+- Transformers (Hugging Face, https://github.com/huggingface/transformers): Apache-2.0.
+- PyTorch (https://pytorch.org): BSD-3-Clause-style licence. The GPU image also contains NVIDIA CUDA runtime libraries
+  distributed with the PyTorch wheels under the NVIDIA CUDA EULA.
+- Ultralytics YOLO / YOLO-World / YOLOE were not used on purpose: they are AGPL-3.0.
+- The evaluation of the detector (docs/SAQ_VISION_EVAL.md) used a construction-site video from Wikimedia Commons (kept
+  locally as haringey-construction-16.webm), licence CC BY-SA 4.0; the video and frames are not stored in the repository.

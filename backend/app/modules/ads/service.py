@@ -4,17 +4,29 @@ from datetime import UTC, datetime, timedelta
 
 import httpx
 from celery import chain
+from fastapi import Request
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from app import storage
+from app import audit, storage
 from app.collectors import default_client
 from app.collectors import lock as collect_lock
 from app.collectors.base import CollectedPost, CollectorError, get_collector, registered_platforms
 from app.collectors.media import download_photos
 from app.config import get_settings
 from app.errors import api_error
-from app.models import AdPost, AdPostVersion, AppUser, ConstructionObject, Evidence, PhraseHit, SourceAccount
+from app.geo import make_point
+from app.models import (
+    AdPost,
+    AdPostVersion,
+    AppUser,
+    ConstructionObject,
+    Evidence,
+    PhraseHit,
+    SourceAccount,
+    VisionFinding,
+    VisionFrame,
+)
 from app.models.enums import (
     AdOrigin,
     AdVersionSource,
@@ -25,7 +37,7 @@ from app.models.enums import (
     Platform,
     Role,
 )
-from app.modules.ads.schemas import AdDetail, AdRow, AdVersionOut, LinkedObject, PhraseHitOut
+from app.modules.ads.schemas import AdDetail, AdRow, AdVersionOut, LinkedObject, PhraseHitOut, VisionSourceOut
 from app.modules.ads.urls import handle_from_url
 from app.modules.ads.versions import record_version
 from app.modules.evidence.schemas import EvidenceOut
@@ -69,6 +81,15 @@ def build_detail(session: Session, ad: AdPost) -> AdDetail:
     )
     text = ad.text or ""
     extraction = Extraction.model_validate(ad.llm_extraction) if ad.llm_extraction is not None else None
+    vision_row = (
+        session.execute(
+            select(VisionFinding.session_id, VisionFinding.id, VisionFinding.frame_id, VisionFrame.timestamp_ms)
+            .outerjoin(VisionFrame, VisionFrame.id == VisionFinding.frame_id)
+            .where(VisionFinding.ad_post_id == ad.id)
+        ).first()
+        if ad.origin is AdOrigin.vision
+        else None
+    )
     return AdDetail(
         **build_row(ad, obj.name if obj else None).model_dump(),
         phrase_hits=[PhraseHitOut.from_hit(hit, text, finding_for_hit(hit, extraction)) for hit in hits],
@@ -78,7 +99,76 @@ def build_detail(session: Session, ad: AdPost) -> AdDetail:
         versions=[AdVersionOut.model_validate(version) for version in versions],
         original_captured_at=ad.captured_at or ad.created_at,
         original_evidence=next((item for item in evidence if item.kind is EvidenceKind.screenshot_png), None),
+        vision_source=VisionSourceOut(
+            session_id=vision_row[0], finding_id=vision_row[1], frame_id=vision_row[2], timestamp_ms=vision_row[3]
+        )
+        if vision_row is not None
+        else None,
     )
+
+
+def create_manual_ad(
+    session: Session,
+    user: AppUser,
+    request: Request | None,
+    *,
+    platform: Platform,
+    url: str | None,
+    external_id: str | None,
+    text: str,
+    published_at: datetime | None,
+    is_outdoor: bool,
+    lat: float | None,
+    lon: float | None,
+    photos: Sequence[tuple[bytes, str]],
+    ocr_status: OcrStatus | None,
+    fields: dict[str, object],
+    origin: AdOrigin = AdOrigin.manual,
+    audit_action: str = "ad.manual_create",
+) -> AdPost:
+    """Create a publication entered by a person, with its photos as evidence. Flushed and audited, not committed.
+
+    `fields` carries the link and territory (see `_new_ad_fields` in the router). The caller validates the input,
+    commits, and then calls `dispatch_pipeline`.
+    """
+    ad = AdPost(
+        platform=platform,
+        url=url,
+        external_id=external_id,
+        text=text,
+        published_at=published_at,
+        captured_at=datetime.now(UTC),
+        is_outdoor=is_outdoor,
+        location=make_point(lat, lon),
+        ocr_status=ocr_status,
+        origin=origin,
+        **fields,
+    )
+    session.add(ad)
+    session.flush()
+    evidence_ids = [
+        storage.put_evidence(
+            session,
+            data,
+            EvidenceKind.photo,
+            content_type,
+            link=EvidenceLink(ad_post_id=ad.id),
+            created_by=user.id,
+        ).id
+        for data, content_type in photos
+    ]
+    session.refresh(ad)
+    audit.record(
+        session,
+        user,
+        audit_action,
+        "ad_post",
+        ad.id,
+        None,
+        {**audit.snapshot(ad), "evidence_ids": evidence_ids},
+        request,
+    )
+    return ad
 
 
 def dispatch_pipeline(ad_post_id: int, *, capture: bool, requested_by: int | None) -> bool:

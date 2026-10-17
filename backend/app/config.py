@@ -75,6 +75,25 @@ class Settings(BaseSettings):
     ocr_enabled: bool = True
     ocr_languages: str = "rus+kaz+eng"
 
+    # SAQ VISION (docs/SAQ_VISION_ARCHITECTURE.md): off by default; when off, no /api/v1/vision routes exist.
+    vision_enabled: bool = False
+    s3_bucket_vision: str = "vision"
+    vision_max_photo_mb: int = Field(default=25, ge=1)
+    vision_max_video_mb: int = Field(default=1024, ge=1)
+    vision_max_duration_seconds: int = Field(default=1800, ge=1)
+    vision_frame_interval_seconds: float = Field(default=3, gt=0)
+    vision_max_frames: int = Field(default=400, ge=1)
+    # "grounding_dino" runs the open-vocabulary detector (experimental, pretrained, not fine-tuned) in `vision-worker`.
+    vision_detector_backend: Literal["disabled", "grounding_dino"] = "disabled"
+    vision_detector_model: str = "IDEA-Research/grounding-dino-tiny"
+    vision_detector_box_threshold: float = Field(default=0.35, ge=0, le=1)
+    vision_detector_text_threshold: float = Field(default=0.25, ge=0, le=1)
+    # The detector gets a copy of the frame with its longer side at most this many pixels.
+    vision_detector_max_side: int = Field(default=800, ge=64)
+    vision_detector_device: Literal["auto", "cpu", "cuda"] = "auto"
+    # Frames per forward pass; 0 picks 2 on CPU and 8 on a GPU.
+    vision_detector_batch_size: int = Field(default=0, ge=0, le=64)
+
     # Telegram bot for citizens (SPEC 10.4); an empty token keeps it off.
     telegram_bot_token: str = ""
     bot_reports_per_hour: int = Field(default=10, ge=1)

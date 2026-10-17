@@ -7,6 +7,16 @@ from app.models.risk import RiskFactor, RiskFactorChange, RiskScore
 from app.models.signal import SignalCard, SignalCounter
 from app.models.system import AppSetting, AuditLog, Holiday, Notification
 from app.models.territory import AppUser, District, Territory
+from app.models.vision import (
+    VisionAsset,
+    VisionDetection,
+    VisionFinding,
+    VisionFrame,
+    VisionJob,
+    VisionReview,
+    VisionRun,
+    VisionSession,
+)
 
 __all__ = [
     "AdPost",
@@ -35,4 +45,12 @@ __all__ = [
     "SignalCounter",
     "SourceAccount",
     "Territory",
+    "VisionAsset",
+    "VisionDetection",
+    "VisionFinding",
+    "VisionFrame",
+    "VisionJob",
+    "VisionReview",
+    "VisionRun",
+    "VisionSession",
 ]

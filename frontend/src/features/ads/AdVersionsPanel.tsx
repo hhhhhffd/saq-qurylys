@@ -159,98 +159,105 @@ export function AdVersionsPanel({ ad }: Props) {
       : null;
 
   return (
-    <section className="flex min-w-0 flex-col gap-3.5 border-t border-border pt-3" aria-labelledby={headingId}>
-      <h3 id={headingId} className={headingClass}>
-        {t('versions.title')}
-      </h3>
+    <details className="border-t border-border pt-3">
+      <summary className="flex cursor-pointer items-center text-sm font-semibold text-text-2 hover:text-text max-sm:min-h-11">
+        {t('versions.details')}
+      </summary>
+      <section className="mt-3 flex min-w-0 flex-col gap-3.5" aria-labelledby={headingId}>
+        <h3 id={headingId} className={headingClass}>
+          {t('versions.title')}
+        </h3>
 
-      <ol className="m-0 flex list-none flex-col p-0">
-        <TimelineEvent>
-          <div className={eventHeadClass}>
-            <strong>{t('versions.captured')}</strong>
-            <time className="text-text-2 tabular-nums" dateTime={ad.original_captured_at}>
-              {f.dateTime(ad.original_captured_at)}
-            </time>
-          </div>
-          {ad.original_evidence && (
-            <div className={proofClass}>
-              <EvidenceImage
-                id={ad.original_evidence.id}
-                alt={t('versions.screenshot', { date: f.dateTime(ad.original_captured_at) })}
-                size={56}
-              />
-              <div className="flex min-w-0 flex-col items-start gap-1">
-                <Hash label={t('versions.screenshotHash')} value={ad.original_evidence.sha256} />
-                {ad.original_evidence.has_tsa_token && <Chip outline>{t('versions.timestamp')}</Chip>}
-              </div>
-            </div>
-          )}
-        </TimelineEvent>
-
-        {ad.versions.map((version) => (
-          <TimelineEvent key={version.id}>
+        <ol className="m-0 flex list-none flex-col p-0">
+          <TimelineEvent>
             <div className={eventHeadClass}>
-              <strong>{t('versions.changed')}</strong>
-              <time className="text-text-2 tabular-nums" dateTime={version.observed_at}>
-                {f.dateTime(version.observed_at)}
+              <strong>{t('versions.captured')}</strong>
+              <time className="text-text-2 tabular-nums" dateTime={ad.original_captured_at}>
+                {f.dateTime(ad.original_captured_at)}
               </time>
-              <span className="text-text-3">({t(`versions.source.${version.source}`)})</span>
             </div>
-            <div className={proofClass}>
-              {version.evidence_id !== null && (
+            {ad.original_evidence && (
+              <div className={proofClass}>
                 <EvidenceImage
-                  id={version.evidence_id}
-                  alt={t('versions.screenshot', { date: f.dateTime(version.observed_at) })}
+                  id={ad.original_evidence.id}
+                  alt={t('versions.screenshot', { date: f.dateTime(ad.original_captured_at) })}
                   size={56}
                 />
-              )}
-              <div className="flex min-w-0 flex-col items-start gap-1">
-                <Hash label={t('versions.textHash')} value={version.text_sha256} />
+                <div className="flex min-w-0 flex-col items-start gap-1">
+                  <Hash label={t('versions.screenshotHash')} value={ad.original_evidence.sha256} />
+                  {ad.original_evidence.has_tsa_token && <Chip outline>{t('versions.timestamp')}</Chip>}
+                </div>
               </div>
-            </div>
-          </TimelineEvent>
-        ))}
-
-        {removedAt && (
-          <TimelineEvent removed>
-            <div className={eventHeadClass}>
-              <strong>{t('versions.removed')}</strong>
-              <time className="text-text-2 tabular-nums" dateTime={removedAt}>
-                {f.dateTime(removedAt)}
-              </time>
-            </div>
-            {removedAfter && (
-              <p className="m-0 font-semibold text-zone-red-ink">{t('versions.removedAfter', { duration: removedAfter })}</p>
             )}
-            <p className={noteClass}>{t('versions.removedNote')}</p>
           </TimelineEvent>
-        )}
-      </ol>
 
-      {diff && latest && (
-        <div className="flex flex-col gap-2">
-          <h4 className={headingClass}>{t('versions.compare')}</h4>
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,260px),1fr))] gap-2.5">
-            <div className="flex min-w-0 flex-col gap-1.5 rounded border border-border bg-surface-sunken px-3 py-2.5">
-              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
-                <strong>{t('versions.original')}</strong>
-                <span className="text-xs text-text-3 tabular-nums">{f.dateTime(ad.original_captured_at)}</span>
+          {ad.versions.map((version) => (
+            <TimelineEvent key={version.id}>
+              <div className={eventHeadClass}>
+                <strong>{t('versions.changed')}</strong>
+                <time className="text-text-2 tabular-nums" dateTime={version.observed_at}>
+                  {f.dateTime(version.observed_at)}
+                </time>
+                <span className="text-text-3">({t(`versions.source.${version.source}`)})</span>
               </div>
-              <DiffText parts={diff.before} label={t('versions.original')} />
-            </div>
-            <div className="flex min-w-0 flex-col gap-1.5 rounded border border-border bg-surface-sunken px-3 py-2.5">
-              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
-                <strong>{t('versions.current')}</strong>
-                <span className="text-xs text-text-3 tabular-nums">
-                  {t('versions.asOf', { date: f.dateTime(latest.observed_at) })}
-                </span>
+              <div className={proofClass}>
+                {version.evidence_id !== null && (
+                  <EvidenceImage
+                    id={version.evidence_id}
+                    alt={t('versions.screenshot', { date: f.dateTime(version.observed_at) })}
+                    size={56}
+                  />
+                )}
+                <div className="flex min-w-0 flex-col items-start gap-1">
+                  <Hash label={t('versions.textHash')} value={version.text_sha256} />
+                </div>
               </div>
-              <DiffText parts={diff.after} label={t('versions.current')} />
+            </TimelineEvent>
+          ))}
+
+          {removedAt && (
+            <TimelineEvent removed>
+              <div className={eventHeadClass}>
+                <strong>{t('versions.removed')}</strong>
+                <time className="text-text-2 tabular-nums" dateTime={removedAt}>
+                  {f.dateTime(removedAt)}
+                </time>
+              </div>
+              {removedAfter && (
+                <p className="m-0 font-semibold text-zone-red-ink">
+                  {t('versions.removedAfter', { duration: removedAfter })}
+                </p>
+              )}
+              <p className={noteClass}>{t('versions.removedNote')}</p>
+            </TimelineEvent>
+          )}
+        </ol>
+
+        {diff && latest && (
+          <div className="flex flex-col gap-2">
+            <h4 className={headingClass}>{t('versions.compare')}</h4>
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,260px),1fr))] gap-2.5">
+              <div className="flex min-w-0 flex-col gap-1.5 rounded border border-border bg-surface-sunken px-3 py-2.5">
+                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
+                  <strong>{t('versions.original')}</strong>
+                  <span className="text-xs text-text-3 tabular-nums">{f.dateTime(ad.original_captured_at)}</span>
+                </div>
+                <DiffText parts={diff.before} label={t('versions.original')} />
+              </div>
+              <div className="flex min-w-0 flex-col gap-1.5 rounded border border-border bg-surface-sunken px-3 py-2.5">
+                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
+                  <strong>{t('versions.current')}</strong>
+                  <span className="text-xs text-text-3 tabular-nums">
+                    {t('versions.asOf', { date: f.dateTime(latest.observed_at) })}
+                  </span>
+                </div>
+                <DiffText parts={diff.after} label={t('versions.current')} />
+              </div>
             </div>
+            <p className={noteClass}>{t('versions.legend')}</p>
           </div>
-          <p className={noteClass}>{t('versions.legend')}</p>
-        </div>
-      )}
-    </section>
+        )}
+      </section>
+    </details>
   );
 }

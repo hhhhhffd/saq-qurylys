@@ -106,11 +106,11 @@ export function AdsPage() {
         actions={
           canEditRegistry && (
             <>
-              <Button onClick={() => setCaptureOpen(true)}>
+              <Button className="max-sm:min-h-11" onClick={() => setCaptureOpen(true)}>
                 <IconCamera />
                 {t('actions.capture')}
               </Button>
-              <Button variant="secondary" onClick={() => setManualOpen(true)}>
+              <Button className="max-sm:min-h-11" variant="secondary" onClick={() => setManualOpen(true)}>
                 <IconPlus />
                 {t('actions.manual')}
               </Button>
@@ -124,6 +124,7 @@ export function AdsPage() {
           )
         }
       />
+      <p className="mb-4 max-w-4xl text-sm leading-5 text-text-2">{t('feed.workflowHint')}</p>
       <AdFilters
         values={filters}
         onChange={changeFilters}
@@ -159,10 +160,19 @@ export function AdsPage() {
                 <Button variant="secondary" size="xs" onClick={() => changePage(1)}>
                   {t('feed.firstPage')}
                 </Button>
-              ) : canEditRegistry ? (
-                <Button variant="secondary" size="xs" onClick={() => setCaptureOpen(true)}>
-                  {t('actions.capture')}
+              ) : canReset ? (
+                <Button variant="secondary" size="xs" onClick={() => setParams(new URLSearchParams())}>
+                  {t('reset', { ns: 'common' })}
                 </Button>
+              ) : canEditRegistry ? (
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" className="max-sm:min-h-11" onClick={() => setCaptureOpen(true)}>
+                    {t('actions.capture')}
+                  </Button>
+                  <Button className="max-sm:min-h-11" variant="secondary" size="sm" onClick={() => setManualOpen(true)}>
+                    {t('actions.manual')}
+                  </Button>
+                </div>
               ) : undefined
             }
           >

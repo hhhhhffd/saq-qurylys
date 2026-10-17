@@ -21,7 +21,8 @@ for (const [role, label] of [
       for (const hidden of ['map', 'objects', 'ads', 'sources', 'graph', 'admin']) {
         await expect(nav.getByRole('link', { name: t(`nav.${hidden}`) })).toHaveCount(0);
       }
-      await expect(page.getByText(t('activity:idle'), { exact: true })).toHaveCount(0);
+      await expect(page.getByText('Мониторинг', { exact: true })).toBeHidden();
+      await expect(page.getByTestId('activity-live-region')).toHaveCount(0);
 
       for (const path of REGISTRY_PAGES) {
         await page.goto(path);

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useReducedMotion } from '@/lib/hooks';
 import { IconAlertTriangle, IconCheck, IconExternalLink, IconMapPin } from '@tabler/icons-react';
+import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useAd } from '@/api/hooks/ads';
 import type { AdRow, AdStatus } from '@/api/types';
@@ -91,7 +92,9 @@ export function AdCard({ ad, highlighted = false, focusHitId = null }: Props) {
         </div>
         <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5">
           {view.is_demo && <DemoBadge />}
-          <Chip tone={STATUS_TONE[view.status]}>{e('ad_status', view.status)}</Chip>
+          <Chip tone={STATUS_TONE[view.status]}>
+            {view.status === 'verification' ? t('card.linkNeedsReview') : e('ad_status', view.status)}
+          </Chip>
           {/* A removed post whose link is still unconfirmed stays `verification`: the removal is its own fact. */}
           {view.removed_detected_at !== null && view.status !== 'removed_saved' && (
             <Chip tone={STATUS_TONE.removed_saved}>{e('ad_status', 'removed_saved')}</Chip>
@@ -108,13 +111,13 @@ export function AdCard({ ad, highlighted = false, focusHitId = null }: Props) {
           <span className="text-text-3">{t('card.capturedAt')}</span>{' '}
           <span className="tabular-nums">{f.dateTime(view.captured_at)}</span>
         </span>
-        <span>
-          <span className="text-text-3">{t('card.weight')}</span>{' '}
-          <span className="tabular-nums">
-            {t('card.weightValue', { max: view.max_phrase_weight, total: view.total_phrase_weight })}
-          </span>
-        </span>
       </div>
+
+      {detail?.vision_source && (
+        <Link to={`/vision/${detail.vision_source.session_id}`} className="text-sm font-semibold text-link hover:underline">
+          {t('card.visionSource')}
+        </Link>
+      )}
 
       {(url !== '' || view.capture_status === 'pending') && (
         <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 text-sm">
@@ -148,14 +151,21 @@ export function AdCard({ ad, highlighted = false, focusHitId = null }: Props) {
           role="alert"
         >
           <IconAlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-          <span>
+          <span className="flex min-w-0 flex-col gap-1">
             <strong>{e('capture_status', 'failed')}</strong>
-            {view.capture_error ? `: ${view.capture_error}` : ''}
+            <span>{t('card.captureFailedHint')}</span>
+            {view.capture_error && (
+              <details className="text-xs">
+                <summary className="inline-flex cursor-pointer items-center max-sm:min-h-11">{t('card.captureErrorDetails')}</summary>
+                <span className="mt-1 block">{view.capture_error}</span>
+              </details>
+            )}
           </span>
         </div>
       )}
 
       <div className={sectionClass}>
+        <strong className="text-sm">{t('card.publicationText')}</strong>
         {view.text ? (
           <HighlightedText text={view.text} hits={detail?.phrase_hits ?? []} focusHitId={focusHitId} />
         ) : (
@@ -169,10 +179,13 @@ export function AdCard({ ad, highlighted = false, focusHitId = null }: Props) {
                 {e('ocr_status', 'pending')}
               </span>
             ) : (
-              <Chip tone="yellow">
-                <IconAlertTriangle aria-hidden />
-                {e('ocr_status', 'failed')}
-              </Chip>
+              <>
+                <Chip tone="yellow">
+                  <IconAlertTriangle aria-hidden />
+                  {e('ocr_status', 'failed')}
+                </Chip>
+                <span className="text-sm text-text-2">{t('card.ocrFailedHint')}</span>
+              </>
             )}
           </div>
         )}
@@ -188,6 +201,12 @@ export function AdCard({ ad, highlighted = false, focusHitId = null }: Props) {
         {detail && detail.phrase_hits.length > 0 && (
           <PhraseHitList adId={ad.id} hits={detail.phrase_hits} editable={canEditRegistry} focusHitId={focusHitId} />
         )}
+      </div>
+
+      <LlmPanel ad={view} extraction={detail?.llm_extraction ?? null} editable={canEditRegistry} />
+
+      <div className={sectionClass}>
+        <ObjectLink ad={view} linked={detail?.linked_object ?? null} editable={canEditRegistry} />
       </div>
 
       <div className={sectionClass}>
@@ -221,12 +240,7 @@ export function AdCard({ ad, highlighted = false, focusHitId = null }: Props) {
             </div>
           </div>
         )}
-        <ObjectLink ad={view} linked={detail?.linked_object ?? null} editable={canEditRegistry} />
       </div>
-
-      <LlmPanel ad={view} extraction={detail?.llm_extraction ?? null} editable={canEditRegistry} />
-
-      {detail && <AdVersionsPanel ad={detail} />}
 
       {detail && detail.evidence.length > 0 && (
         <div className={sectionClass}>
@@ -234,6 +248,8 @@ export function AdCard({ ad, highlighted = false, focusHitId = null }: Props) {
           <EvidenceThumbs evidence={detail.evidence} size={88} />
         </div>
       )}
+
+      {detail && <AdVersionsPanel ad={detail} />}
     </article>
   );
 }

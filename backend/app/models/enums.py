@@ -151,6 +151,7 @@ class AdOrigin(StrEnum):
     capture = "capture"
     collector = "collector"
     citizen = "citizen"
+    vision = "vision"
 
 
 class AdVersionSource(StrEnum):
@@ -237,3 +238,85 @@ class NotificationKind(StrEnum):
 class HolidayKind(StrEnum):
     holiday = "holiday"
     workday = "workday"
+
+
+class VisionSource(StrEnum):
+    drone = "drone"
+    camera = "camera"
+    phone = "phone"
+    other = "other"
+
+
+class VisionSessionStatus(StrEnum):
+    open = "open"
+    reviewed = "reviewed"
+
+
+class VisionAssetKind(StrEnum):
+    photo = "photo"
+    video = "video"
+
+
+class VisionAssetStatus(StrEnum):
+    queued = "queued"
+    processing = "processing"
+    ready = "ready"
+    failed = "failed"
+
+
+class VisionJobKind(StrEnum):
+    extract_frames = "extract_frames"
+    ocr_region = "ocr_region"
+
+
+class VisionJobStatus(StrEnum):
+    queued = "queued"
+    running = "running"
+    completed = "completed"
+    failed = "failed"
+
+
+class VisionRunStatus(StrEnum):
+    queued = "queued"
+    running = "running"
+    completed = "completed"
+    failed = "failed"
+
+
+class VisionCategory(StrEnum):
+    outdoor_ad = "outdoor_ad"
+    fence = "fence"
+    site_gate = "site_gate"
+    waste_container = "waste_container"
+    wheel_wash = "wheel_wash"
+    debris = "debris"
+    other = "other"
+
+
+class VisionFindingStatus(StrEnum):
+    """A visual finding is not a violation: the legal conclusion is a separate human check (plan, section 5)."""
+
+    observed = "observed"
+    possible_noncompliance = "possible_noncompliance"
+    insufficient_evidence = "insufficient_evidence"
+    not_applicable = "not_applicable"
+
+
+class VisionFindingOrigin(StrEnum):
+    manual = "manual"
+    model = "model"
+
+
+class VisionReviewState(StrEnum):
+    pending = "pending"
+    confirmed = "confirmed"
+    rejected = "rejected"
+    needs_more_evidence = "needs_more_evidence"
+
+
+class VisionReviewAction(StrEnum):
+    confirm = "confirm"
+    reject = "reject"
+    needs_more_evidence = "needs_more_evidence"
+    not_applicable = "not_applicable"
+    comment = "comment"

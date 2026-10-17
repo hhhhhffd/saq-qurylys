@@ -43,26 +43,30 @@ export class ApiError extends Error {
   }
 }
 
-async function toApiError(response: Response): Promise<ApiError> {
+/** Builds the error from a response body; a body that is not JSON (e.g. a gateway error page) gives the status text. */
+function errorFromBody(status: number, statusText: string, text: string): ApiError {
   try {
-    const body = (await response.json()) as { detail?: unknown };
-    const detail = body.detail;
+    const detail = (JSON.parse(text) as { detail?: unknown }).detail;
     if (detail && typeof detail === 'object' && 'message' in detail) {
       const { code, message } = detail as { code?: string; message?: string };
-      return new ApiError(response.status, code ?? 'error', message ?? response.statusText);
+      return new ApiError(status, code ?? 'error', message ?? statusText);
     }
     // FastAPI validation errors (422) send detail as an array.
     if (Array.isArray(detail)) {
       const message = detail
         .map((item: { loc?: unknown[]; msg?: string }) => `${item.loc?.slice(1).join('.') ?? ''}: ${item.msg ?? ''}`)
         .join('; ');
-      return new ApiError(response.status, 'validation_error', message);
+      return new ApiError(status, 'validation_error', message);
     }
-    if (typeof detail === 'string') return new ApiError(response.status, 'error', detail);
+    if (typeof detail === 'string') return new ApiError(status, 'error', detail);
   } catch {
-    // Body is not JSON (e.g. a gateway error page); fall through to the status text.
+    // Not JSON; fall through to the status text.
   }
-  return new ApiError(response.status, response.status >= 500 ? 'server_error' : 'error', response.statusText);
+  return new ApiError(status, status >= 500 ? 'server_error' : 'error', statusText);
+}
+
+async function toApiError(response: Response): Promise<ApiError> {
+  return errorFromBody(response.status, response.statusText, await response.text());
 }
 
 // ---------------------------------------------------------------- requests
@@ -122,6 +126,43 @@ export async function api<T>(path: string, options?: RequestOptions): Promise<T>
   const response = await send(path, options);
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
+}
+
+/**
+ * Multipart POST through XMLHttpRequest: `fetch` cannot report upload progress.
+ * `onProgress` gets 0..100 while the body is being sent.
+ */
+export function apiUpload<T>(
+  path: string,
+  form: FormData,
+  onProgress?: (percent: number) => void,
+): Promise<{ status: number; body: T }> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${API_PREFIX}${path}`);
+    const token = getToken();
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) onProgress?.(Math.round((event.loaded / event.total) * 100));
+    };
+    // A connection reset mid-upload is how a proxy refuses a body over its size limit, so the message says so.
+    xhr.onerror = () => reject(new ApiError(0, 'upload_network_error', 'Network error during upload'));
+    xhr.onabort = () => reject(new ApiError(0, 'upload_aborted', 'Upload aborted'));
+    xhr.ontimeout = () => reject(new ApiError(0, 'upload_timeout', 'Upload timed out'));
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve({ status: xhr.status, body: JSON.parse(xhr.responseText) as T });
+        } catch {
+          reject(new ApiError(xhr.status, 'bad_response', 'Unreadable server response'));
+        }
+        return;
+      }
+      if (xhr.status === 401) unauthorizedHandler?.();
+      reject(errorFromBody(xhr.status, xhr.statusText, xhr.responseText));
+    };
+    xhr.send(form);
+  });
 }
 
 /** Authenticated binary download (evidence content, PDF). */

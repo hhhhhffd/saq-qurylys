@@ -9,6 +9,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from functools import lru_cache
+from typing import BinaryIO
 from urllib.parse import urlparse
 
 import httpx
@@ -42,6 +43,8 @@ TSA_TIMEOUT_S = 10
 STREAM_CHUNK_BYTES = 64 * 1024
 
 _bucket_ready = False
+_vision_bucket_ready = False
+VISION_PART_SIZE = 10 * 1024 * 1024
 
 
 @dataclass(frozen=True)
@@ -77,17 +80,13 @@ def get_client() -> Minio:
     )
 
 
-def ensure_bucket() -> None:
-    """Create the evidence bucket with Object Lock if missing; fail if an existing one lacks it."""
-    global _bucket_ready
-    if _bucket_ready:
-        return
+def _ensure_locked_bucket(bucket: str) -> None:
+    """Create a bucket with Object Lock if missing; fail if an existing one lacks it."""
     client = get_client()
-    bucket = get_settings().s3_bucket_evidence
     if not client.bucket_exists(bucket):
         try:
             client.make_bucket(bucket, object_lock=True)
-            logger.info("Created evidence bucket %s with Object Lock", bucket)
+            logger.info("Created bucket %s with Object Lock", bucket)
         except S3Error as exc:
             if exc.code not in {"BucketAlreadyOwnedByYou", "BucketAlreadyExists"}:
                 raise
@@ -95,11 +94,45 @@ def ensure_bucket() -> None:
         client.get_object_lock_config(bucket)
     except S3Error as exc:
         if exc.code == "ObjectLockConfigurationNotFoundError":
-            raise RuntimeError(
-                f"Bucket {bucket!r} exists without Object Lock; evidence requires a bucket created with it"
-            ) from exc
+            raise RuntimeError(f"Bucket {bucket!r} exists without Object Lock; it must be created with it") from exc
         raise
+
+
+def ensure_bucket() -> None:
+    """Create the evidence bucket with Object Lock if missing; fail if an existing one lacks it."""
+    global _bucket_ready
+    if _bucket_ready:
+        return
+    _ensure_locked_bucket(get_settings().s3_bucket_evidence)
     _bucket_ready = True
+
+
+def ensure_vision_bucket() -> None:
+    """The same for the SAQ VISION bucket. Called before the first write, never at startup (the module is optional)."""
+    global _vision_bucket_ready
+    if _vision_bucket_ready:
+        return
+    _ensure_locked_bucket(get_settings().s3_bucket_vision)
+    _vision_bucket_ready = True
+
+
+def put_vision_object(key: str, data: BinaryIO, length: int, content_type: str) -> None:
+    """Store a vision original, frame or preview under Object Lock with the evidence retention policy.
+
+    `length` is the exact size of `data` from its current position; the file is streamed, never read whole.
+    """
+    settings = get_settings()
+    ensure_vision_bucket()
+    retention_until = datetime.now(UTC) + timedelta(days=settings.evidence_retention_days)
+    get_client().put_object(
+        settings.s3_bucket_vision,
+        key,
+        data,
+        length,
+        content_type=content_type,
+        part_size=VISION_PART_SIZE,
+        retention=Retention(LockMode(settings.evidence_lock_mode).value, retention_until),
+    )
 
 
 def request_timestamp(digest: bytes, tsa_url: str) -> bytes | None:

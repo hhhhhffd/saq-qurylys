@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useConfirmAndSend } from '@/api/hooks/signals';
 import type { SignalDetail, SignalRecipient } from '@/api/types';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useEnum } from '@/i18n/useEnum';
 import { Callout } from './Callout';
 import { useApplySignal } from './useApplySignal';
@@ -36,9 +36,10 @@ export function ConfirmSendModal({ opened, onClose, detail, recipient }: Props) 
 
   return (
     <Dialog open={opened} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-lg" aria-describedby={undefined}>
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{t('actions.confirmSend')}</DialogTitle>
+          <DialogDescription>{t('confirmSend.description')}</DialogDescription>
         </DialogHeader>
         <Callout tone="warning" icon={<IconSend size={18} />} title={t('confirmSend.headline', { number: detail.number })}>
           <strong>{t('confirmSend.recipient', { recipient: e('recipient', recipient) })}</strong>
@@ -47,12 +48,14 @@ export function ConfirmSendModal({ opened, onClose, detail, recipient }: Props) 
           <li>{t('confirmSend.onlyOutbound')}</li>
           <li>{t('confirmSend.locked')}</li>
           <li>{t('confirmSend.deadline', { days: t('reviewDays', { count: detail.review_days }) })}</li>
+          <li>{t('confirmSend.archive')}</li>
+          <li>{t('confirmSend.email')}</li>
         </ul>
         <DialogFooter>
-          <Button variant="secondary" onClick={onClose} disabled={send.isPending}>
+          <Button className="min-h-11" variant="secondary" onClick={onClose} disabled={send.isPending}>
             {tc('cancel')}
           </Button>
-          <Button onClick={submit} loading={send.isPending}>
+          <Button className="min-h-11" onClick={submit} loading={send.isPending}>
             {t('actions.confirmSend')}
           </Button>
         </DialogFooter>

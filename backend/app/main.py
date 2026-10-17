@@ -33,6 +33,8 @@ from app.modules.settings.router import router as settings_router
 from app.modules.signals.router import router as signals_router
 from app.modules.territories.router import router as territories_router
 from app.modules.users.router import router as users_router
+from app.modules.vision.limits import UploadSizeLimitMiddleware
+from app.modules.vision.router import router as vision_router
 
 logger = logging.getLogger(__name__)
 
@@ -110,5 +112,10 @@ for module_router in (
     signals_router,
 ):
     api.include_router(module_router)
+
+# Optional module: while it is off there are no /api/v1/vision routes at all (404).
+if get_settings().vision_enabled:
+    api.include_router(vision_router)
+    app.add_middleware(UploadSizeLimitMiddleware)
 
 app.include_router(api)

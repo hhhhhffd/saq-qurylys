@@ -161,7 +161,7 @@ def test_celery_registers_contract_tasks_and_schedule() -> None:
     assert routed == {
         "archive.capture", "nlp.analyze", "nlp.link", "nlp.llm_extract", "nlp.ocr", "ads.recheck_due",
         "collect.run_all", "collect.source", "risk.recalc_object", "risk.sweep_due", "signals.check_deadlines",
-        "notify.red_zone", "registry.sync_homeportal",
+        "notify.red_zone", "registry.sync_homeportal", "vision.*",
     }  # fmt: skip
     assert celery_app.conf.task_routes["registry.sync_homeportal"] == {"queue": "collect"}
     assert {queue.name for queue in celery_app.conf.task_queues} == {
@@ -170,6 +170,7 @@ def test_celery_registers_contract_tasks_and_schedule() -> None:
         "nlp",
         "score",
         "notify",
+        "vision",
         "default",
     }
     # Each queue needs its own exchange/key, otherwise every message lands in every queue.

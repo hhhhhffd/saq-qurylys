@@ -18,6 +18,7 @@ export const namespaces = [
   'admin',
   'activity',
   'sources',
+  'vision',
 ] as const;
 
 export function getStoredLanguage(): Locale | null {

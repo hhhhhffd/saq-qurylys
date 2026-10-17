@@ -111,6 +111,15 @@ class AdVersionOut(ORMModel):
     evidence_id: int | None
 
 
+class VisionSourceOut(BaseModel):
+    """Where a publication found by SAQ VISION came from."""
+
+    session_id: int
+    finding_id: int
+    frame_id: int | None
+    timestamp_ms: int | None
+
+
 class AdDetail(AdRow):
     phrase_hits: list[PhraseHitOut]
     evidence: list[EvidenceOut]
@@ -122,6 +131,7 @@ class AdDetail(AdRow):
     original_captured_at: datetime
     # The first screenshot of the publication: the proof of what the original looked like.
     original_evidence: EvidenceOut | None
+    vision_source: VisionSourceOut | None = None
 
 
 class CaptureRequest(BaseModel):

@@ -1,7 +1,5 @@
 const activity = {
   region: 'Живая лента событий',
-  idle: 'Мониторинг',
-  offline: 'Нет связи с сервером',
   title: {
     adCitizen: 'Сообщение гражданина',
     adCollector: 'Новая публикация',
