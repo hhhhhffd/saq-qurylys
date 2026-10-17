@@ -120,6 +120,28 @@ services:
       retries: 5
       start_period: 30s
 
+  # SAQ VISION video processing and OCR of marked areas (queue `vision`); started on demand with VISION_ENABLED=true:
+  #   docker compose --profile vision up -d vision-worker
+  vision-worker:
+    <<: *backend
+    profiles: ["vision"]
+    build:
+      context: ./backend
+      target: vision
+    command:
+      - celery
+      - -A
+      - app.worker.celery_app
+      - worker
+      - -Q
+      - vision
+      - -c
+      - ${VISION_WORKER_CONCURRENCY:-1}
+      - --loglevel=INFO
+    depends_on:
+      api:
+        condition: service_healthy
+
   beat:
     <<: *backend
     build:

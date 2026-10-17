@@ -52,3 +52,11 @@ FROM browser AS worker
 COPY --chown=app:app . .
 USER app
 CMD ["celery", "-A", "app.worker.celery_app", "worker", "--loglevel=INFO"]
+
+# ---- vision: the worker image plus ffmpeg (ffprobe included) for SAQ VISION video processing ----
+FROM worker AS vision
+USER root
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+USER app
