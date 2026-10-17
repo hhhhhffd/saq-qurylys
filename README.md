@@ -178,6 +178,10 @@ python3 scripts/verify_case_scenarios.py               # проверка сце
 **Telegram-бот (необязательно).** Создайте бота у @BotFather, впишите токен в `TELEGRAM_BOT_TOKEN` в `.env` и
 выполните `docker compose --profile bot up -d bot`. Подробности — [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
+**Cloudflare Tunnel (необязательно).** Открывает стенд из интернета без проброса портов. В панели Cloudflare
+(Zero Trust → Networks → Tunnels) создайте туннель, в его публичном адресе укажите сервис `http://frontend:80`,
+токен туннеля впишите в `CF_TOKEN` в `.env` и выполните `docker compose --profile tunnel up -d tunnel`.
+
 **Telegram-юзербот (необязательно).** Читает публичные каналы и группы из «Источников» от имени пользовательского
 аккаунта. Возьмите отдельный номер, не личный. На https://my.telegram.org войдите этим номером, откройте «API
 development tools» и создайте приложение. Впишите `TELEGRAM_API_ID` и `TELEGRAM_API_HASH` в `.env`, включите

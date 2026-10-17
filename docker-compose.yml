@@ -285,6 +285,21 @@ services:
       minio:
         condition: service_healthy
 
+  # Cloudflare Tunnel to the frontend nginx (public access without opening ports); started on demand:
+  #   docker compose --profile tunnel up -d tunnel
+  # CF_TOKEN in .env is the tunnel token from the Cloudflare dashboard (Zero Trust -> Networks -> Tunnels); set the
+  # tunnel's public hostname service there to http://frontend:80.
+  # With an empty CF_TOKEN cloudflared exits with an error.
+  tunnel:
+    image: cloudflare/cloudflared:2026.9.3
+    profiles: ["tunnel"]
+    command: ["tunnel", "--no-autoupdate", "run"]
+    environment:
+      TUNNEL_TOKEN: ${CF_TOKEN:-}
+    depends_on:
+      - frontend
+    restart: unless-stopped
+
   frontend:
     build:
       context: ./frontend
