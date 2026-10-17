@@ -210,7 +210,7 @@
 | Тени и радиусы | `shadow-1`, `shadow-2`, `shadow-glow`, `shadow-window`; `rounded-sm` 2px, `rounded` и `rounded-md` 4px, `rounded-lg` и крупнее 6px |
 | Шрифт и размеры | `font-sans` (Play), `font-heading` (Tektur), `font-mono`; `text-3xs` 10px, `text-2xs` 11px, `text-xs` 12px, `text-sm` 14px, `text-base` 16px; базовый текст страницы 16px |
 
-Высота закреплённой шапки для responsive-отступа задаётся токеном `--header-h`: 56px на desktop и 92px при ширине до 62em.
+Высота закреплённой шапки для responsive-отступа задаётся токеном `--header-h`: 88px на desktop у ролей с мониторингом, 56px у остальных и 92px при ширине до 62em.
 
 Ловушка имён: в shadcn `accent` значит «фон наведения», а наш брендовый `--accent` у shadcn называется `primary`. Поэтому
 `bg-accent` и `bg-primary` разные вещи: розовая заливка только `bg-primary` (и `text-primary`, `border-primary`), а `bg-accent`

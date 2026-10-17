@@ -101,6 +101,7 @@ const common: typeof ru = {
     markAllRead: 'Барлығын оқылған деп белгілеу',
     userMenu: 'Пайдаланушы мәзірі',
     menu: 'Бөлімдер',
+    utilities: 'Әрекеттер мен баптаулар',
   },
   demo: {
     badge: 'ДЕМО',

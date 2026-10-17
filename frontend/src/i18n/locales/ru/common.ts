@@ -98,6 +98,7 @@ const common = {
     markAllRead: 'Прочитать все',
     userMenu: 'Меню пользователя',
     menu: 'Разделы',
+    utilities: 'Действия и настройки',
   },
   demo: {
     badge: 'ДЕМО',

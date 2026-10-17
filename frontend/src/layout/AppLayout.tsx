@@ -48,7 +48,7 @@ export function AppLayout() {
   );
 
   return (
-    <div className="min-h-dvh">
+    <div className={`min-h-dvh ${canSeeRegistry ? '[--header-h:88px]' : ''} max-[62em]:[--header-h:92px]`}>
       <header className="sticky top-0 z-40 border-b border-border bg-surface-raised">
         <div className="mx-auto flex min-h-14 max-w-(--page-max) items-center gap-3 px-(--gutter) max-[62em]:flex-wrap max-[62em]:gap-x-1 max-[62em]:gap-y-0">
           <Link
@@ -131,13 +131,19 @@ export function AppLayout() {
             )}
           </nav>
 
-          {canSeeRegistry && <ActivityIsland />}
-          <div className="ml-auto flex flex-none items-center gap-1 max-[62em]:gap-0">
-            <LanguageSwitch />
+          <div role="group" aria-label={t('header.utilities')} className="ml-auto flex h-12 flex-none items-center rounded border border-border-strong bg-surface-sunken p-px">
+            <LanguageSwitch grouped />
+            <span aria-hidden className="mx-px h-6 w-px shrink-0 bg-border-strong" />
             <NotificationsBell />
+            <span aria-hidden className="mx-px h-6 w-px shrink-0 bg-border-strong" />
             <UserMenu />
           </div>
         </div>
+        {canSeeRegistry && (
+          <div className="relative flex h-8 items-center justify-center max-[62em]:h-0">
+            <ActivityIsland />
+          </div>
+        )}
       </header>
       <main className="mx-auto max-w-(--page-max) px-(--gutter) pt-6 pb-14">
         <Suspense fallback={<LoadingBlock />}>
