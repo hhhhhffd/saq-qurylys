@@ -13,6 +13,7 @@ import { ZoneDisclaimer } from '@/components/ZoneDisclaimer';
 import { useFormat } from '@/i18n/useFormat';
 import { useKeyStatusLabel } from '@/i18n/useEnum';
 import { ObjectFormModal } from '../forms/ObjectFormModal';
+import { DossierButton } from './DossierButton';
 
 export function ObjectHeader({ object }: { object: ObjectDetail }) {
   const { t } = useTranslation('objects');
@@ -35,6 +36,7 @@ export function ObjectHeader({ object }: { object: ObjectDetail }) {
           <h1 className="text-2xl font-bold [overflow-wrap:anywhere]">{object.name}</h1>
         </div>
         <div data-print="hide" className="flex flex-wrap items-center gap-2">
+          <DossierButton objectId={object.id} code={object.code} />
           <Button className="min-h-11" variant="secondary" onClick={() => window.print()}>
             <IconPrinter />
             {t('common:print')}
