@@ -114,11 +114,19 @@ export function GlobalSearch() {
     ].filter((group) => group.items.length > 0);
   }, [data, t, e]);
 
-  // Hits without a target (a developer with no object in scope) are shown but cannot be chosen.
-  const selectable = groups.flatMap((group) => group.items).filter((item) => item.to !== '');
-  const activeKey = selectable[Math.min(active, selectable.length - 1)]?.key;
   const typed = text.trim();
   const showPanel = open && typed.length > 0;
+
+  let status: string | null = null;
+  if (typed.length < SEARCH_MIN_LENGTH) status = t('globalSearch.minLength');
+  else if (search.isError) status = t('globalSearch.error');
+  else if (!data || query !== typed || search.isPlaceholderData) status = t('globalSearch.loading');
+  else if (groups.length === 0) status = t('globalSearch.nothingFound');
+
+  // Hits without a target (a developer with no object in scope) are shown but cannot be chosen. While a status is
+  // shown the previous query's hits are hidden, so Enter and the arrows must not reach them either.
+  const selectable = status ? [] : groups.flatMap((group) => group.items).filter((item) => item.to !== '');
+  const activeKey = selectable[Math.min(active, selectable.length - 1)]?.key;
 
   const choose = (item: Item) => {
     setOpen(false);
@@ -147,12 +155,6 @@ export function GlobalSearch() {
       if (item) choose(item);
     }
   };
-
-  let status: string | null = null;
-  if (typed.length < SEARCH_MIN_LENGTH) status = t('globalSearch.minLength');
-  else if (search.isError) status = t('globalSearch.error');
-  else if (!data || query !== typed) status = t('globalSearch.loading');
-  else if (groups.length === 0) status = t('globalSearch.nothingFound');
 
   return (
     <div
