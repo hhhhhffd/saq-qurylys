@@ -276,12 +276,20 @@ class VisionJobStatus(StrEnum):
     failed = "failed"
 
 
+class VisionRunStatus(StrEnum):
+    queued = "queued"
+    running = "running"
+    completed = "completed"
+    failed = "failed"
+
+
 class VisionCategory(StrEnum):
     outdoor_ad = "outdoor_ad"
     fence = "fence"
     site_gate = "site_gate"
     waste_container = "waste_container"
     wheel_wash = "wheel_wash"
+    debris = "debris"
     other = "other"
 
 

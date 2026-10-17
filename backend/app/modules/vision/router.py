@@ -11,7 +11,7 @@ from app import audit, storage
 from app.config import get_settings
 from app.deps import PageDep, ScopeDep, SessionDep, StaffUser
 from app.errors import api_error
-from app.models import VisionAsset, VisionFinding, VisionFrame, VisionJob, VisionSession
+from app.models import VisionAsset, VisionFinding, VisionFrame, VisionJob, VisionRun, VisionSession
 from app.models.enums import (
     AdOrigin,
     LinkMethod,
@@ -25,6 +25,7 @@ from app.models.enums import (
     VisionJobKind,
     VisionReviewAction,
     VisionReviewState,
+    VisionRunStatus,
     VisionSessionStatus,
     VisionSource,
 )
@@ -123,7 +124,8 @@ def get_config(user: StaffUser) -> VisionConfig:
     settings = get_settings()
     return VisionConfig(
         enabled=settings.vision_enabled,
-        detector_mode=settings.vision_detector_backend,
+        detector_mode="disabled" if settings.vision_detector_backend == "disabled" else "experimental_pretrained",
+        detector_model=None if settings.vision_detector_backend == "disabled" else settings.vision_detector_model,
         ocr_enabled=settings.ocr_enabled,
         max_photo_mb=settings.vision_max_photo_mb,
         max_video_mb=settings.vision_max_video_mb,
@@ -254,6 +256,39 @@ def mark_reviewed(
     return service.build_detail(session, session_id)
 
 
+@router.post("/sessions/{session_id}/reanalyze", response_model=SessionDetail)
+def reanalyze_session(
+    session_id: int, session: SessionDep, user: StaffUser, scope: ScopeDep, request: Request
+) -> SessionDetail:
+    """Run the detector again over all usable frames of the session.
+
+    Earlier runs, their findings and every human decision stay as they are; the new run adds findings of its own.
+    """
+    service.get_session_in_scope(session, scope, session_id)
+    if get_settings().vision_detector_backend == "disabled":
+        raise api_error(409, "detector_disabled", "Автоматическое распознавание объектов отключено")
+    # Locked so that a double click creates one run.
+    session.scalars(select(VisionSession).where(VisionSession.id == session_id).with_for_update()).one()
+    busy = session.scalar(
+        select(func.count())
+        .select_from(VisionRun)
+        .where(
+            VisionRun.session_id == session_id,
+            VisionRun.status.in_((VisionRunStatus.queued, VisionRunStatus.running)),
+        )
+    )
+    if busy:
+        raise api_error(409, "run_in_progress", "Распознавание этой сессии уже выполняется")
+    run = VisionRun(session_id=session_id, created_by=user.id)
+    session.add(run)
+    session.flush()
+    session.refresh(run)
+    audit.record(session, user, "vision_run.create", "vision_run", run.id, None, audit.snapshot(run), request)
+    session.commit()
+    service.queue_run(session, run)
+    return service.build_detail(session, session_id)
+
+
 # ---------------------------------------------------------------- assets and frames
 
 
@@ -287,6 +322,8 @@ def upload_asset(
     session.commit()
     if stored.job is not None and not service.dispatch_extract_frames(stored.job):
         service.mark_job_unqueued(session, stored.job)
+    if stored.asset.kind is VisionAssetKind.photo:
+        service.start_automatic_run(session, session_id, stored.asset.id)
     return service.build_assets(session, [stored.asset])[0]
 
 

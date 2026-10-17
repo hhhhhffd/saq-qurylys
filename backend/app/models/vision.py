@@ -17,6 +17,7 @@ from app.models.enums import (
     VisionJobStatus,
     VisionReviewAction,
     VisionReviewState,
+    VisionRunStatus,
     VisionSessionStatus,
     VisionSource,
 )
@@ -115,6 +116,53 @@ class VisionFrame(IdMixin, Base):
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
 
+class VisionRun(IdMixin, Base):
+    """One pass of the object detector over the usable frames of an asset (or of the whole session)."""
+
+    __tablename__ = "vision_run"
+    __table_args__ = (
+        CheckConstraint("frames_done BETWEEN 0 AND frames_total", name="vision_run_frames_range"),
+        Index("ix_vision_run_session_id", "session_id", "id"),
+    )
+
+    session_id: Mapped[int] = fk("vision_session.id")
+    asset_id: Mapped[int | None] = fk("vision_asset.id", nullable=True)
+    status: Mapped[VisionRunStatus] = mapped_column(
+        enum_type(VisionRunStatus, "vision_run_status"), server_default=VisionRunStatus.queued.value
+    )
+    model_version: Mapped[str | None] = mapped_column(String(100))
+    # Thresholds, prompts, max side, device: what the run was made with.
+    config: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default="{}")
+    frames_total: Mapped[int] = mapped_column(server_default="0")
+    frames_done: Mapped[int] = mapped_column(server_default="0")
+    error_code: Mapped[str | None] = mapped_column(String(64))
+    started_at: Mapped[datetime | None]
+    finished_at: Mapped[datetime | None]
+    created_by: Mapped[int | None] = fk("app_user.id", nullable=True)  # NULL: started automatically
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+
+class VisionDetection(IdMixin, Base):
+    """A raw box of the detector. Findings are made from groups of these; the boxes themselves are kept as evidence."""
+
+    __tablename__ = "vision_detection"
+    __table_args__ = (
+        CheckConstraint("confidence BETWEEN 0 AND 1", name="vision_detection_confidence_range"),
+        Index("ix_vision_detection_run_id", "run_id", "group_key"),
+        Index("ix_vision_detection_frame_id", "frame_id"),
+    )
+
+    run_id: Mapped[int] = fk("vision_run.id")
+    frame_id: Mapped[int] = fk("vision_frame.id")
+    category: Mapped[VisionCategory] = mapped_column(enum_type(VisionCategory, "vision_detection_category"))
+    label: Mapped[str] = mapped_column(String(100))  # the matched phrase of the prompt
+    bbox: Mapped[dict[str, Any]] = mapped_column(JSONB)  # fractions of the source frame: {"x", "y", "w", "h"}
+    confidence: Mapped[float] = mapped_column(Float)
+    # The same physical object on adjacent frames of one asset shares the key (unique within the run).
+    group_key: Mapped[int]
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+
 class VisionFinding(IdMixin, TimestampMixin, Base):
     """An observation on a frame. It is not a violation: `status` and `review_state` are decided by people."""
 
@@ -145,6 +193,8 @@ class VisionFinding(IdMixin, TimestampMixin, Base):
     ocr_engine: Mapped[str | None] = mapped_column(String(100))
     confirmed_text: Mapped[str | None] = mapped_column(Text)
     ad_post_id: Mapped[int | None] = fk("ad_post.id", nullable=True)
+    run_id: Mapped[int | None] = fk("vision_run.id", nullable=True)
+    detection_id: Mapped[int | None] = fk("vision_detection.id", nullable=True)  # the representative box
     created_by: Mapped[int | None] = fk("app_user.id", nullable=True)
 
 

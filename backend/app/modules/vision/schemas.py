@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Annotated, Self
+from typing import Annotated, Literal, Self
 
 from pydantic import BaseModel, Field, StringConstraints, model_validator
 
@@ -12,6 +12,7 @@ from app.models.enums import (
     VisionFindingStatus,
     VisionReviewAction,
     VisionReviewState,
+    VisionRunStatus,
     VisionSessionStatus,
     VisionSource,
 )
@@ -22,7 +23,8 @@ Comment = Annotated[str, StringConstraints(strip_whitespace=True, max_length=500
 
 class VisionConfig(BaseModel):
     enabled: bool
-    detector_mode: str
+    detector_mode: Literal["disabled", "experimental_pretrained"]
+    detector_model: str | None
     ocr_enabled: bool
     max_photo_mb: int
     max_video_mb: int
@@ -172,14 +174,31 @@ class FindingOut(BaseModel):
     ocr_engine: str | None
     confirmed_text: str | None
     ad_post_id: int | None
+    run_id: int | None
     created_at: datetime
     created_by_name: str | None
     reviews: list[ReviewOut]
 
 
+class RunOut(BaseModel):
+    id: int
+    asset_id: int | None
+    status: VisionRunStatus
+    model_version: str | None
+    frames_total: int
+    frames_done: int
+    error_code: str | None
+    started_at: datetime | None
+    finished_at: datetime | None
+    # Objects found per category (groups of boxes, not boxes). Filled once the run is completed; a category with 0
+    # means "not found" - which is never evidence that it is absent from the site.
+    summary: dict[str, int]
+
+
 class SessionDetail(SessionListItem):
     assets: list[AssetOut]
     findings: list[FindingOut]
+    runs: list[RunOut]
 
 
 class PublishAdBody(BaseModel):

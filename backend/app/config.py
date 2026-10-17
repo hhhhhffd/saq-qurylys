@@ -83,7 +83,16 @@ class Settings(BaseSettings):
     vision_max_duration_seconds: int = Field(default=1800, ge=1)
     vision_frame_interval_seconds: float = Field(default=3, gt=0)
     vision_max_frames: int = Field(default=400, ge=1)
-    vision_detector_backend: Literal["disabled"] = "disabled"
+    # "grounding_dino" runs the open-vocabulary detector (experimental, pretrained, not fine-tuned) in `vision-worker`.
+    vision_detector_backend: Literal["disabled", "grounding_dino"] = "disabled"
+    vision_detector_model: str = "IDEA-Research/grounding-dino-tiny"
+    vision_detector_box_threshold: float = Field(default=0.35, ge=0, le=1)
+    vision_detector_text_threshold: float = Field(default=0.25, ge=0, le=1)
+    # The detector gets a copy of the frame with its longer side at most this many pixels.
+    vision_detector_max_side: int = Field(default=800, ge=64)
+    vision_detector_device: Literal["auto", "cpu", "cuda"] = "auto"
+    # Frames per forward pass; 0 picks 2 on CPU and 8 on a GPU.
+    vision_detector_batch_size: int = Field(default=0, ge=0, le=64)
 
     # Telegram bot for citizens (SPEC 10.4); an empty token keeps it off.
     telegram_bot_token: str = ""

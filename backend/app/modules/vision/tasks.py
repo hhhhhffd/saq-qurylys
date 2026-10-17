@@ -17,28 +17,48 @@ from pathlib import Path
 import urllib3.exceptions
 from celery.exceptions import SoftTimeLimitExceeded
 from minio.error import S3Error
-from PIL import Image
+from PIL import Image, ImageOps
 from pytesseract import TesseractError
-from sqlalchemy import delete, exists
+from sqlalchemy import delete, exists, select
 from sqlalchemy.orm import Session
 
 from app import storage
+from app.config import get_settings
 from app.db import get_sessionmaker
-from app.models import VisionAsset, VisionFinding, VisionFrame, VisionJob
-from app.models.enums import OcrStatus, VisionAssetStatus, VisionJobKind, VisionJobStatus
+from app.models import (
+    VisionAsset,
+    VisionDetection,
+    VisionFinding,
+    VisionFrame,
+    VisionJob,
+    VisionReview,
+    VisionRun,
+)
+from app.models.enums import (
+    OcrStatus,
+    VisionAssetStatus,
+    VisionFindingOrigin,
+    VisionFindingStatus,
+    VisionJobKind,
+    VisionJobStatus,
+    VisionRunStatus,
+)
 from app.modules.nlp.ocr import ocr_image
-from app.modules.vision import media
+from app.modules.vision import detector, media, service
 from app.worker.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
 
 SOFT_LIMIT_S = 1800
 HARD_LIMIT_S = 1860
+DETECT_SOFT_LIMIT_S = 3300
+DETECT_HARD_LIMIT_S = 3360
 OCR_SOFT_LIMIT_S = 120
 OCR_HARD_LIMIT_S = 150
 MAX_RETRIES = 3
 RETRY_DELAY_S = 30
 PROGRESS_STEP = 10  # frames between committed progress updates
+CPU_BATCH, GPU_BATCH = 2, 8  # frames per forward pass when VISION_DETECTOR_BATCH_SIZE is 0
 TRANSIENT_S3_CODES = frozenset(
     {"InternalError", "SlowDown", "ServiceUnavailable", "RequestTimeout", "RequestTimeTooSkewed"}
 )
@@ -189,6 +209,7 @@ def extract_frames_for_job(session: Session, job_id: int) -> None:
     job.status, job.progress, job.finished_at = VisionJobStatus.completed, 100, datetime.now(UTC)
     asset.status = VisionAssetStatus.ready
     session.commit()
+    service.start_automatic_run(session, asset.session_id, asset.id)
 
 
 @celery_app.task(
@@ -244,3 +265,182 @@ def run_ocr(session: Session, finding_id: int) -> None:
 def ocr_region(finding_id: int) -> None:
     with get_sessionmaker()() as session:
         run_ocr(session, finding_id)
+
+
+# ---------------------------------------------------------------- object detection
+
+
+def _fail_run(session: Session, run_id: int, code: str) -> None:
+    session.rollback()
+    run = session.get(VisionRun, run_id)
+    if run is None:
+        return
+    run.status, run.error_code, run.finished_at = VisionRunStatus.failed, code, datetime.now(UTC)
+    session.commit()
+    logger.warning("vision.detect: run %s failed: %s", run_id, code)
+
+
+def _load_for_detector(frame: VisionFrame, max_side: int) -> Image.Image:
+    """The original of a frame, upright and shrunk so that its longer side is at most `max_side` pixels."""
+    response = storage.get_client().get_object(frame.bucket, frame.s3_key)
+    data = b"".join(storage.stream_object(response))
+    with Image.open(io.BytesIO(data)) as image:
+        if image.format == "JPEG":
+            image.draft("RGB", (max_side, max_side))  # decode at a reduced scale: a 12 MP photo stays small
+        upright = ImageOps.exif_transpose(image).convert("RGB")
+    upright.thumbnail((max_side, max_side))
+    return upright
+
+
+def _model_finding(run: VisionRun, detection: VisionDetection) -> VisionFinding:
+    debris = detector.POSSIBLE_NONCOMPLIANCE
+    return VisionFinding(
+        session_id=run.session_id,
+        frame_id=detection.frame_id,
+        bbox=detection.bbox,
+        category=detection.category,
+        status=VisionFindingStatus.possible_noncompliance
+        if detection.category in debris
+        else VisionFindingStatus.observed,
+        origin=VisionFindingOrigin.model,
+        confidence=detection.confidence,
+        model_version=run.model_version,
+        note=f"Автоматическое распознавание: «{detection.label}». Требуется проверка человеком.",
+        run_id=run.id,
+        detection_id=detection.id,
+    )
+
+
+def run_detection(session: Session, run_id: int) -> None:
+    """Process one detector run. Raises TransientStorageError for storage trouble worth retrying.
+
+    Idempotent: a completed run is left alone; a run found running or failed (redelivery) starts over. Nothing but the
+    progress is written until the end: detections and findings of a run appear in one transaction together with its
+    completion, so a crashed attempt leaves nothing behind, and absence of a category is never recorded as a finding.
+    """
+    run = session.get(VisionRun, run_id)
+    if run is None:
+        logger.warning("vision.detect: run %s does not exist", run_id)
+        return
+    if run.status is VisionRunStatus.completed:
+        return
+    settings = get_settings()
+    try:
+        model = detector.get_detector()
+    except detector.DetectorUnavailable as exc:
+        logger.warning("vision.detect: run %s: %s", run_id, exc)
+        _fail_run(session, run_id, "detector_unavailable")
+        return
+
+    # Rows of an earlier attempt of this run that no person has looked at (normally there are none).
+    session.execute(
+        delete(VisionFinding).where(
+            VisionFinding.run_id == run.id, ~exists().where(VisionReview.finding_id == VisionFinding.id)
+        )
+    )
+    session.execute(
+        delete(VisionDetection).where(
+            VisionDetection.run_id == run.id, ~exists().where(VisionFinding.detection_id == VisionDetection.id)
+        )
+    )
+    frames_query = (
+        select(VisionFrame)
+        .join(VisionAsset, VisionAsset.id == VisionFrame.asset_id)
+        .where(VisionAsset.session_id == run.session_id, VisionFrame.usable)
+        .order_by(VisionFrame.asset_id, VisionFrame.timestamp_ms.nulls_first(), VisionFrame.id)
+    )
+    if run.asset_id is not None:
+        frames_query = frames_query.where(VisionFrame.asset_id == run.asset_id)
+    frames = list(session.scalars(frames_query))
+    batch_size = settings.vision_detector_batch_size or (GPU_BATCH if model.device == "cuda" else CPU_BATCH)
+    run.status, run.error_code, run.finished_at, run.started_at = VisionRunStatus.running, None, None, datetime.now(UTC)
+    run.model_version, run.frames_total, run.frames_done = model.model_version, len(frames), 0
+    run.config = {
+        "box_threshold": settings.vision_detector_box_threshold,
+        "text_threshold": settings.vision_detector_text_threshold,
+        "max_side": settings.vision_detector_max_side,
+        "device": model.device,
+        "precision": model.precision,
+        "batch_size": batch_size,
+        "prompts": {category.value: list(phrases) for category, phrases in detector.CATEGORY_PROMPTS.items()},
+    }
+    session.commit()
+    logger.info("vision.detect: run %s, %s frames, %s on %s", run_id, len(frames), model.model_version, model.device)
+
+    found: list[list[detector.Detection]] = []
+    try:
+        for start in range(0, len(frames), batch_size):
+            batch = frames[start : start + batch_size]
+            images = [_load_for_detector(frame, settings.vision_detector_max_side) for frame in batch]
+            found.extend(model.detect(images))
+            run.frames_done = len(found)
+            session.commit()
+    except SoftTimeLimitExceeded:
+        _fail_run(session, run_id, "processing_timeout")
+        return
+    except S3Error as exc:
+        if _transient(exc):
+            session.rollback()
+            raise TransientStorageError(str(exc)) from exc
+        _fail_run(session, run_id, "frame_missing" if exc.code in {"NoSuchKey", "NoSuchBucket"} else "storage_error")
+        return
+    except (urllib3.exceptions.HTTPError, ConnectionError, TimeoutError) as exc:
+        session.rollback()
+        raise TransientStorageError(str(exc)) from exc
+    except Exception:
+        logger.exception("vision.detect: unexpected failure in run %s", run_id)
+        _fail_run(session, run_id, "detector_error")
+        return
+
+    _store_results(session, run, frames, found)
+
+
+def _store_results(
+    session: Session, run: VisionRun, frames: list[VisionFrame], found: list[list[detector.Detection]]
+) -> None:
+    """Group the boxes of consecutive frames of each asset, keep every box, make one finding per group."""
+    by_asset: dict[int, list[int]] = {}
+    for index, frame in enumerate(frames):
+        by_asset.setdefault(frame.asset_id, []).append(index)
+    next_key = 1
+    for indexes in by_asset.values():
+        keys = detector.assign_groups([found[i] for i in indexes], next_key)
+        rows: dict[int, list[VisionDetection]] = {}
+        for index, frame_keys in zip(indexes, keys, strict=True):
+            for item, key in zip(found[index], frame_keys, strict=True):
+                row = VisionDetection(
+                    run_id=run.id,
+                    frame_id=frames[index].id,
+                    category=item.category,
+                    label=item.label,
+                    bbox=item.box.as_dict(),
+                    confidence=item.confidence,
+                    group_key=key,
+                )
+                session.add(row)
+                rows.setdefault(key, []).append(row)
+                next_key = max(next_key, key + 1)
+        session.flush()
+        for group in rows.values():
+            best = max(group, key=lambda row: row.confidence)
+            session.add(_model_finding(run, best))
+    run.status, run.frames_done, run.finished_at = VisionRunStatus.completed, run.frames_total, datetime.now(UTC)
+    session.commit()
+
+
+@celery_app.task(
+    name="vision.detect",
+    bind=True,
+    soft_time_limit=DETECT_SOFT_LIMIT_S,
+    time_limit=DETECT_HARD_LIMIT_S,
+    max_retries=MAX_RETRIES,
+)
+def detect(self, run_id: int) -> None:  # type: ignore[no-untyped-def]
+    with get_sessionmaker()() as session:
+        try:
+            run_detection(session, run_id)
+        except TransientStorageError as exc:
+            if self.request.retries >= MAX_RETRIES:
+                _fail_run(session, run_id, "storage_unavailable")
+                return
+            raise self.retry(exc=exc, countdown=RETRY_DELAY_S) from exc

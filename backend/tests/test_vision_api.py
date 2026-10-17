@@ -129,6 +129,7 @@ def test_config(client: TestClient, world: World) -> None:
     assert body == {
         "enabled": True,
         "detector_mode": "disabled",
+        "detector_model": None,
         "ocr_enabled": get_settings().ocr_enabled,
         "max_photo_mb": 25,
         "max_video_mb": 1024,

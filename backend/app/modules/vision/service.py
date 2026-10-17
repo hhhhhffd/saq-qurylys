@@ -4,7 +4,7 @@ import logging
 import re
 import secrets
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone, tzinfo
+from datetime import UTC, datetime, timedelta, timezone, tzinfo
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -25,10 +25,12 @@ from app.models import (
     ConstructionObject,
     Territory,
     VisionAsset,
+    VisionDetection,
     VisionFinding,
     VisionFrame,
     VisionJob,
     VisionReview,
+    VisionRun,
     VisionSession,
 )
 from app.models.enums import (
@@ -39,14 +41,17 @@ from app.models.enums import (
     VisionJobStatus,
     VisionReviewAction,
     VisionReviewState,
+    VisionRunStatus,
     VisionSessionStatus,
 )
 from app.modules.objects.service import get_object_in_scope
+from app.modules.vision.detector import CATEGORY_PROMPTS
 from app.modules.vision.schemas import (
     AssetOut,
     FindingOut,
     ObjectRef,
     ReviewOut,
+    RunOut,
     SessionDetail,
     SessionListItem,
 )
@@ -172,6 +177,9 @@ def session_query() -> Select[Any]:
     processing = exists().where(
         VisionAsset.session_id == VisionSession.id,
         VisionAsset.status.in_((VisionAssetStatus.queued, VisionAssetStatus.processing)),
+    ) | exists().where(
+        VisionRun.session_id == VisionSession.id,
+        VisionRun.status.in_((VisionRunStatus.queued, VisionRunStatus.running)),
     )
     failed = exists().where(VisionAsset.session_id == VisionSession.id, VisionAsset.status == VisionAssetStatus.failed)
     return (
@@ -314,6 +322,7 @@ def build_findings(db: Session, findings: list[VisionFinding]) -> list[FindingOu
             ocr_engine=finding.ocr_engine,
             confirmed_text=finding.confirmed_text,
             ad_post_id=finding.ad_post_id,
+            run_id=finding.run_id,
             created_at=finding.created_at,
             created_by_name=names.get(finding.created_by) if finding.created_by is not None else None,
             reviews=reviews.get(finding.id, []),
@@ -329,7 +338,48 @@ def build_detail(db: Session, session_id: int) -> SessionDetail:
     findings = list(
         db.scalars(select(VisionFinding).where(VisionFinding.session_id == session_id).order_by(VisionFinding.id))
     )
-    return SessionDetail(**item.model_dump(), assets=build_assets(db, assets), findings=build_findings(db, findings))
+    return SessionDetail(
+        **item.model_dump(),
+        assets=build_assets(db, assets),
+        findings=build_findings(db, findings),
+        runs=build_runs(db, session_id),
+    )
+
+
+def build_runs(db: Session, session_id: int) -> list[RunOut]:
+    runs = list(db.scalars(select(VisionRun).where(VisionRun.session_id == session_id).order_by(VisionRun.id)))
+    found: dict[int, dict[str, int]] = {}
+    completed = [run.id for run in runs if run.status is VisionRunStatus.completed]
+    if completed:
+        rows = db.execute(
+            select(
+                VisionDetection.run_id,
+                VisionDetection.category,
+                func.count(func.distinct(VisionDetection.group_key)),
+            )
+            .where(VisionDetection.run_id.in_(completed))
+            .group_by(VisionDetection.run_id, VisionDetection.category)
+        )
+        for run_id, category, count in rows:
+            found.setdefault(run_id, {})[category.value] = count
+    categories = [category.value for category in CATEGORY_PROMPTS]
+    return [
+        RunOut(
+            id=run.id,
+            asset_id=run.asset_id,
+            status=run.status,
+            model_version=run.model_version,
+            frames_total=run.frames_total,
+            frames_done=run.frames_done,
+            error_code=run.error_code,
+            started_at=run.started_at,
+            finished_at=run.finished_at,
+            summary={category: found.get(run.id, {}).get(category, 0) for category in categories}
+            if run.status is VisionRunStatus.completed
+            else {},
+        )
+        for run in runs
+    ]
 
 
 # ---------------------------------------------------------------- upload
@@ -567,6 +617,35 @@ def dispatch_ocr(finding_id: int) -> bool:
         logger.exception("Failed to enqueue vision.ocr_region for finding %s", finding_id)
         return False
     return True
+
+
+def dispatch_detect(run: VisionRun) -> bool:
+    """Queue a detector run. Call after the run is committed; False when the broker is down."""
+    if not get_settings().events_enabled:
+        return True
+    try:
+        celery_app.send_task("vision.detect", args=[run.id], queue="vision", retry=False, ignore_result=True)
+    except Exception:
+        logger.exception("Failed to enqueue vision.detect for run %s", run.id)
+        return False
+    return True
+
+
+def queue_run(db: Session, run: VisionRun) -> None:
+    """Queue a committed run. If the queue is down the run is failed (visible, can be repeated), not lost."""
+    if not dispatch_detect(run):
+        run.status, run.error_code, run.finished_at = VisionRunStatus.failed, "queue_unavailable", datetime.now(UTC)
+        db.commit()
+
+
+def start_automatic_run(db: Session, session_id: int, asset_id: int) -> None:
+    """The run that follows an upload (a photo) or the end of frame extraction (a video), when a detector is on."""
+    if get_settings().vision_detector_backend == "disabled":
+        return
+    run = VisionRun(session_id=session_id, asset_id=asset_id)
+    db.add(run)
+    db.commit()
+    queue_run(db, run)
 
 
 def mark_job_unqueued(db: Session, job: VisionJob) -> None:
