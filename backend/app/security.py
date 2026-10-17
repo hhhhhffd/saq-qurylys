@@ -24,23 +24,24 @@ def verify_password(password: str, password_hash: str | None) -> bool:
     return _password_hash.verify(password, password_hash)
 
 
-def create_access_token(user_id: int, *, now: datetime | None = None) -> str:
+def create_access_token(user_id: int, token_version: int, *, now: datetime | None = None) -> str:
     settings = get_settings()
     issued_at = now or datetime.now(UTC)
     payload = {
         "sub": str(user_id),
+        "ver": token_version,
         "iat": issued_at,
         "exp": issued_at + timedelta(minutes=settings.jwt_ttl_minutes),
     }
     return jwt.encode(payload, settings.jwt_secret, algorithm=JWT_ALGORITHM)
 
 
-def decode_access_token(token: str) -> int:
-    """Return the user id from a valid token; raise jwt.PyJWTError otherwise."""
+def decode_access_token(token: str) -> tuple[int, int]:
+    """Return the user id and token version from a valid token; raise jwt.PyJWTError otherwise."""
     payload = jwt.decode(
         token,
         get_settings().jwt_secret,
         algorithms=[JWT_ALGORITHM],
-        options={"require": ["sub", "exp"]},
+        options={"require": ["sub", "ver", "exp"]},
     )
-    return int(payload["sub"])
+    return int(payload["sub"]), int(payload["ver"])

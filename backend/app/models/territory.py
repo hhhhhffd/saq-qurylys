@@ -47,3 +47,5 @@ class AppUser(IdMixin, TimestampMixin, Base):
     territory_id: Mapped[int | None] = fk("territory.id", nullable=True, index=True)
     is_active: Mapped[bool] = mapped_column(server_default="true")
     locale: Mapped[Locale] = mapped_column(enum_type(Locale, "locale"), server_default=Locale.ru.value)
+    # Part of every access token; raising it revokes all tokens issued before (logout, new password, deactivation).
+    token_version: Mapped[int] = mapped_column(default=0, server_default="0")

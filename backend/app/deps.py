@@ -26,11 +26,11 @@ def get_current_user(
     if credentials is None:
         raise api_error(401, "not_authenticated", "Требуется авторизация")
     try:
-        user_id = decode_access_token(credentials.credentials)
-    except (jwt.PyJWTError, ValueError) as exc:
+        user_id, token_version = decode_access_token(credentials.credentials)
+    except (jwt.PyJWTError, ValueError, TypeError) as exc:
         raise api_error(401, "invalid_token", "Недействительный или просроченный токен") from exc
     user = session.get(AppUser, user_id)
-    if user is None or not user.is_active:
+    if user is None or not user.is_active or user.token_version != token_version:
         raise api_error(401, "invalid_token", "Недействительный или просроченный токен")
     return user
 

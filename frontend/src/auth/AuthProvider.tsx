@@ -18,17 +18,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     staleTime: Infinity,
   });
 
-  const logout = useCallback(() => {
+  const endSession = useCallback(() => {
     setToken(null);
     setTokenState(null);
     qc.clear();
   }, [qc]);
 
+  // The server revokes the user's tokens on every device; the local session ends even if that request fails.
+  const logout = useCallback(() => {
+    api<void>('/auth/logout', { method: 'POST' })
+      .catch((err: unknown) => console.error('Logout request failed', err))
+      .finally(endSession);
+  }, [endSession]);
+
   // Any 401 from the API (expired or revoked token) sends the user back to the login screen.
   useEffect(() => {
-    setUnauthorizedHandler(logout);
+    setUnauthorizedHandler(endSession);
     return () => setUnauthorizedHandler(null);
-  }, [logout]);
+  }, [endSession]);
 
   const login = useCallback(
     async (username: string, password: string) => {

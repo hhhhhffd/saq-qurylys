@@ -57,7 +57,17 @@ def login(body: LoginRequest, session: SessionDep, request: Request) -> LoginRes
         logger.warning("Failed login for %r from %s", username, ip)
         raise api_error(401, "invalid_credentials", "Неверный логин или пароль")
     throttle.record_success(username)
-    return LoginResponse(access_token=create_access_token(user.id), user=UserOut.model_validate(user))
+    return LoginResponse(
+        access_token=create_access_token(user.id, user.token_version), user=UserOut.model_validate(user)
+    )
+
+
+@router.post("/logout", status_code=204)
+def logout(user: CurrentUser, session: SessionDep, request: Request) -> None:
+    """Revoke every token of the user, on all devices: a token cannot be withdrawn one by one."""
+    user.token_version += 1
+    audit.record(session, user, "auth.logout", "user", user.id, None, None, request)
+    session.commit()
 
 
 @router.get("/me", response_model=UserOut)

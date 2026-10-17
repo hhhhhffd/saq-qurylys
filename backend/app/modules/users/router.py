@@ -85,6 +85,9 @@ def update_user(
         setattr(user, field, value)
     if password is not None:
         user.password_hash = hash_password(password)
+    # Sessions opened with the old password, or by a deactivated user, must not outlive the change.
+    if password is not None or changes.get("is_active") is False:
+        user.token_version += 1
     session.flush()
     audit.record(session, admin, "user.update", "user", user.id, before, audit.snapshot(user), request)
     session.commit()

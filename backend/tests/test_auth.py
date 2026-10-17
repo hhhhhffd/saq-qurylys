@@ -1,5 +1,6 @@
 from datetime import UTC, datetime, timedelta
 
+import jwt
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
@@ -7,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.models import AuditLog
-from app.security import create_access_token
+from app.security import JWT_ALGORITHM, create_access_token
 from tests.conftest import PASSWORD, World, auth
 
 
@@ -46,7 +47,7 @@ def test_inactive_user_cannot_login_or_use_token(client: TestClient, world: Worl
 def test_missing_malformed_and_expired_tokens(client: TestClient, world: World) -> None:
     assert client.get("/api/v1/auth/me").json()["detail"]["code"] == "not_authenticated"
     assert client.get("/api/v1/auth/me", headers={"Authorization": "Bearer garbage"}).status_code == 401
-    expired = create_access_token(world.users["admin"].id, now=datetime.now(UTC) - timedelta(days=2))
+    expired = create_access_token(world.users["admin"].id, 0, now=datetime.now(UTC) - timedelta(days=2))
     response = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {expired}"})
     assert response.status_code == 401
     assert response.json()["detail"]["code"] == "invalid_token"
@@ -98,3 +99,41 @@ def test_successful_login_clears_account_failures(
     assert client.post("/api/v1/auth/login", json={"username": "t_admin", "password": PASSWORD}).status_code == 200
     assert client.post("/api/v1/auth/login", json={"username": "t_admin", "password": "wrong"}).status_code == 401
     assert client.post("/api/v1/auth/login", json={"username": "t_admin", "password": PASSWORD}).status_code == 200
+
+
+def test_logout_revokes_all_tokens_of_the_user(client: TestClient, world: World) -> None:
+    first, second = (
+        client.post("/api/v1/auth/login", json={"username": "t_admin", "password": PASSWORD}).json()["access_token"]
+        for _ in range(2)
+    )
+    other = auth(world.users["gask"])
+    assert client.post("/api/v1/auth/logout", headers={"Authorization": f"Bearer {first}"}).status_code == 204
+    for token in (first, second):
+        response = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
+        assert response.status_code == 401
+        assert response.json()["detail"]["code"] == "invalid_token"
+    assert client.get("/api/v1/auth/me", headers=other).status_code == 200
+    fresh = client.post("/api/v1/auth/login", json={"username": "t_admin", "password": PASSWORD}).json()
+    assert (
+        client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {fresh['access_token']}"}).status_code == 200
+    )
+
+
+def test_new_password_and_deactivation_revoke_tokens(client: TestClient, world: World) -> None:
+    admin = auth(world.users["admin"])
+    for target, change in (("mio_ust", {"password": "Another-passw0rd"}), ("gask", {"is_active": False})):
+        user = world.users[target]
+        headers = auth(user)
+        assert client.patch(f"/api/v1/users/{user.id}", json=change, headers=admin).status_code == 200
+        assert client.get("/api/v1/auth/me", headers=headers).status_code == 401
+    # A change of the name keeps the sessions.
+    law = world.users["law"]
+    headers = auth(law)
+    assert client.patch(f"/api/v1/users/{law.id}", json={"full_name": "Новое имя"}, headers=admin).status_code == 200
+    assert client.get("/api/v1/auth/me", headers=headers).status_code == 200
+
+
+def test_token_without_version_is_rejected(client: TestClient, world: World) -> None:
+    payload = {"sub": str(world.users["admin"].id), "exp": datetime.now(UTC) + timedelta(hours=1)}
+    token = jwt.encode(payload, get_settings().jwt_secret, algorithm=JWT_ALGORITHM)
+    assert client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"}).status_code == 401

@@ -187,7 +187,7 @@ def world(db: Session) -> World:
 
 
 def auth(user: AppUser) -> dict[str, str]:
-    return {"Authorization": f"Bearer {create_access_token(user.id)}"}
+    return {"Authorization": f"Bearer {create_access_token(user.id, user.token_version)}"}
 
 
 def make_object(db: Session, territory: Territory, name: str = "ЖК Тест", **fields: object) -> ConstructionObject:
