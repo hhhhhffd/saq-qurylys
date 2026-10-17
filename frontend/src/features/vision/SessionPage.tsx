@@ -159,7 +159,7 @@ function SessionView({ session, config }: { session: VisionSessionDetail; config
           {config.ocr_enabled ? t('banner.detectorOff') : t('banner.detectorAndOcrOff')}
         </p>
 
-        <UploadPanel sessionId={session.id} config={config} assets={session.assets} />
+        <UploadPanel sessionId={session.id} config={config} />
         <AssetsPanel assets={session.assets} />
         <FramesGallery
           frames={frames.data}

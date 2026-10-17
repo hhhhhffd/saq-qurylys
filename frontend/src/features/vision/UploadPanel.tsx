@@ -26,14 +26,12 @@ interface UploadItem {
 interface Props {
   sessionId: number;
   config: VisionConfig;
-  /** assets the session already has: a returned asset that is among them was a duplicate upload */
-  assets: VisionAsset[];
 }
 
 let nextKey = 0;
 
 /** Drop zone and the per-file list. Files go one request each, one after another, with real upload progress. */
-export function UploadPanel({ sessionId, config, assets }: Props) {
+export function UploadPanel({ sessionId, config }: Props) {
   const { t } = useTranslation('vision');
   const qc = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -61,17 +59,16 @@ export function UploadPanel({ sessionId, config, assets }: Props) {
     setItems((prev) => [...added, ...prev]);
 
     setBusy(true);
-    const known = new Set(assets.map((asset) => asset.id));
     for (const { key, file } of queued) {
       patch(key, { state: 'uploading' });
       try {
-        const asset = await apiUpload<VisionAsset>(
+        // the server answers 201 for a new file and 200 for one this session already has
+        const { status } = await apiUpload<VisionAsset>(
           `/vision/sessions/${sessionId}/assets`,
           toFormData({ file }),
           (progress) => patch(key, { progress }),
         );
-        patch(key, { state: known.has(asset.id) ? 'duplicate' : 'done', progress: 100 });
-        known.add(asset.id);
+        patch(key, { state: status === 200 ? 'duplicate' : 'done', progress: 100 });
         void qc.invalidateQueries({ queryKey: qk.vision });
       } catch (error) {
         patch(key, { state: 'error', error: error instanceof ApiError ? errorMessage(error) : String(error) });

@@ -132,8 +132,12 @@ export async function api<T>(path: string, options?: RequestOptions): Promise<T>
  * Multipart POST through XMLHttpRequest: `fetch` cannot report upload progress.
  * `onProgress` gets 0..100 while the body is being sent.
  */
-export function apiUpload<T>(path: string, form: FormData, onProgress?: (percent: number) => void): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
+export function apiUpload<T>(
+  path: string,
+  form: FormData,
+  onProgress?: (percent: number) => void,
+): Promise<{ status: number; body: T }> {
+  return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('POST', `${API_PREFIX}${path}`);
     const token = getToken();
@@ -141,10 +145,17 @@ export function apiUpload<T>(path: string, form: FormData, onProgress?: (percent
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) onProgress?.(Math.round((event.loaded / event.total) * 100));
     };
-    xhr.onerror = () => reject(new ApiError(0, 'network_error', 'Network error'));
+    // A connection reset mid-upload is how a proxy refuses a body over its size limit, so the message says so.
+    xhr.onerror = () => reject(new ApiError(0, 'upload_network_error', 'Network error during upload'));
+    xhr.onabort = () => reject(new ApiError(0, 'upload_aborted', 'Upload aborted'));
+    xhr.ontimeout = () => reject(new ApiError(0, 'upload_timeout', 'Upload timed out'));
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) {
-        resolve(JSON.parse(xhr.responseText) as T);
+        try {
+          resolve({ status: xhr.status, body: JSON.parse(xhr.responseText) as T });
+        } catch {
+          reject(new ApiError(xhr.status, 'bad_response', 'Unreadable server response'));
+        }
         return;
       }
       if (xhr.status === 401) unauthorizedHandler?.();
