@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { useSettings } from '@/api/hooks/reference';
-import { findFactor, readBreakdown, type ObjectDetail, type Zone } from '@/api/types';
+import { findFactor, readBreakdown, type ObjectDetail, type RiskBreakdown, type Zone } from '@/api/types';
 import { Chip } from '@/components/Chip';
 import { KeyValue } from '@/components/KeyValue';
 import { Panel } from '@/components/Panel';
@@ -42,6 +42,45 @@ function ZoneRule({ yellowMin, redMin, current }: { yellowMin: number; redMin: n
         ))}
       </ul>
     </section>
+  );
+}
+
+const SUMMARY_FACTORS_MAX = 3;
+const SUMMARY_CHECKS_MAX = 2;
+
+/** Two plain sentences: why the zone is what it is, and what the employee should check first. */
+function RiskSummary({ zone, breakdown }: { zone: Zone; breakdown: RiskBreakdown | null }) {
+  const { t } = useTranslation('objects');
+  const e = useEnum();
+  const lower = (text: string) => text.toLocaleLowerCase();
+
+  const factors = (breakdown?.factors ?? [])
+    .filter((factor) => factor.triggered)
+    .sort((a, b) => b.weight - a.weight)
+    .slice(0, SUMMARY_FACTORS_MAX)
+    .map((factor) => lower(e('risk_factor', factor.code)));
+  const reason = factors.length > 0 ? factors.join('; ') : t(`card.risk.summary.noFactors.${zone}`);
+
+  const checks = (breakdown?.needs_check ?? [])
+    .slice(0, SUMMARY_CHECKS_MAX)
+    .map((item) => lower(e('needs_check', item.code)));
+  const todo =
+    zone === 'green'
+      ? t('card.risk.summary.noChecks')
+      : checks.length > 0
+        ? t('card.risk.summary.check', { items: checks.join('; ') })
+        : t('card.risk.summary.checkGeneric');
+
+  return (
+    <div
+      className="mt-4 rounded-md border border-border bg-surface-sunken p-3 text-base leading-snug"
+      data-testid="risk-plain-summary"
+    >
+      <p className="m-0 font-semibold">
+        {t('card.risk.summary.why', { zone: t(`card.risk.summary.zone.${zone}`), reason })}
+      </p>
+      <p className="m-0 mt-1.5 text-text-2">{todo}</p>
+    </div>
   );
 }
 
@@ -87,6 +126,8 @@ export function RiskPanel({ object }: { object: ObjectDetail }) {
               style={{ width: `${latest.score}%`, background: zoneColor(latest.zone) }}
             />
           </div>
+
+          <RiskSummary zone={latest.zone} breakdown={breakdown} />
 
           <section className="mt-4" aria-labelledby="risk-reasons-title">
             <h4 id="risk-reasons-title" className={cn(subTitleClass, 'mb-2')}>
