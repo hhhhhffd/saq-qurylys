@@ -53,10 +53,41 @@ COPY --chown=app:app . .
 USER app
 CMD ["celery", "-A", "app.worker.celery_app", "worker", "--loglevel=INFO"]
 
-# ---- vision: the worker image plus ffmpeg (ffprobe included) for SAQ VISION video processing ----
-FROM worker AS vision
-USER root
+# ---- vision-weights: the detector weights (Apache-2.0), pinned to one revision of the model repository. They are
+# baked in at build time and shared by the CPU and GPU images; at run time the worker is offline. The revision is what
+# `model_version` of the findings reports. ----
+FROM base AS vision-weights
+ARG DETECTOR_MODEL=IDEA-Research/grounding-dino-tiny
+ARG DETECTOR_REVISION=a2bb814dd30d776dcf7e30523b00659f4f141c71
+ENV HF_HOME=/opt/hf
+RUN --mount=type=cache,target=/root/.cache/uv uv run --no-project --with huggingface_hub python -c \
+    "import sys; from huggingface_hub import snapshot_download; snapshot_download(sys.argv[1], revision=sys.argv[2], ignore_patterns=['*.bin'])" \
+    "$DETECTOR_MODEL" "$DETECTOR_REVISION" \
+    && mkdir -p /opt/hf/hub/models--$(echo "$DETECTOR_MODEL" | sed 's#/#--#')/refs \
+    && printf '%s' "$DETECTOR_REVISION" > /opt/hf/hub/models--$(echo "$DETECTOR_MODEL" | sed 's#/#--#')/refs/main \
+    && chmod -R a+rX /opt/hf
+
+# ---- vision-base: ffmpeg (ffprobe included) on top of the worker libraries (before the code, so code changes keep
+# these big layers) ----
+FROM browser AS vision-base
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ffmpeg \
     && rm -rf /var/lib/apt/lists/*
+COPY --from=vision-weights /opt/hf /opt/hf
+ENV HF_HOME=/opt/hf \
+    HF_HUB_OFFLINE=1
+
+# ---- vision: the worker image plus ffmpeg and the object detector on CPU. Only the vision images get torch and
+# transformers: the api and worker images do not. pyproject.toml and uv.lock are those copied in `base`. ----
+FROM vision-base AS vision
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev --no-install-project --extra vision-cpu
+COPY --chown=app:app . .
 USER app
+CMD ["celery", "-A", "app.worker.celery_app", "worker", "--loglevel=INFO", "-Q", "vision"]
+
+# ---- vision-gpu: the same with CUDA wheels of torch (needs the NVIDIA container runtime; larger image) ----
+FROM vision-base AS vision-gpu
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev --no-install-project --extra vision-gpu
+COPY --chown=app:app . .
+USER app
+CMD ["celery", "-A", "app.worker.celery_app", "worker", "--loglevel=INFO", "-Q", "vision"]
