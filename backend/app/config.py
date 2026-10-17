@@ -32,6 +32,17 @@ class Settings(BaseSettings):
     ollama_model: str = "qwen3.5:9b-q6k"
     llm_timeout_s: int = 120
 
+    # Help assistant for officers (docs/ASSISTANT.md): any OpenAI-compatible `/chat/completions`. Off by default;
+    # while off there are no /api/v1/assistant routes at all (404).
+    assistant_enabled: bool = False
+    assistant_base_url: str = "http://host.docker.internal:11434/v1"
+    assistant_api_key: str = ""
+    assistant_model: str = "qwen3.5:9b-q6k"
+    # Empty: the field is not sent (providers that do not know it).
+    assistant_reasoning_effort: str = "none"
+    assistant_timeout_s: int = Field(default=120, ge=1)
+    assistant_max_tool_rounds: int = Field(default=4, ge=1, le=10)
+
     smtp_host: str = ""
     smtp_port: int = 587
     smtp_user: str = ""
