@@ -240,6 +240,26 @@ def test_chat_stops_after_too_many_tool_rounds(
     assert [e["type"] for e in sequence] == ["sources", "tool", "tool", "error"]
     assert sequence[-1]["code"] == "too_many_tool_rounds"
     assert len(model.requests) == 3
+    last = model.requests[-1]
+    assert "tools" not in last and last["messages"][-1]["role"] == "system"
+
+
+def test_chat_separates_rounds_and_marks_a_truncated_answer(
+    world: World, client: TestClient, use_model: Callable[[FakeModel], None]
+) -> None:
+    thinking: list[dict[str, Any] | str] = [
+        {"choices": [{"delta": {"content": "Сейчас поищу."}}]},
+        *ask_tool("work_summary", "{}"),
+    ]
+    cut: list[dict[str, Any] | str] = [
+        {"choices": [{"delta": {"content": "Итого"}, "finish_reason": "length"}]},
+        "[DONE]",
+    ]
+    use_model(FakeModel([thinking, cut]))
+    sequence = events(client.post(CHAT, json=QUESTION, headers=auth(world.users["mio_ust"])))
+    text = "".join(e["text"] for e in sequence if e["type"] == "delta")
+    assert text.startswith("Сейчас поищу.\n\nИтого") and "Ответ обрезан" in text
+    assert sequence[-1] == {"type": "done"}
 
 
 def test_chat_survives_bad_tool_arguments(

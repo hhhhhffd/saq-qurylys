@@ -9,7 +9,7 @@ import pytest
 
 from app.config import get_settings
 from app.modules.assistant import knowledge
-from app.modules.assistant.llm import AssistantLlmError, ToolCall, stream_chat
+from app.modules.assistant.llm import AssistantLlmError, ToolCall, Truncated, stream_chat
 
 GUIDE = Path(__file__).parent / "fixtures" / "assistant_guide"
 
@@ -27,7 +27,7 @@ def tool_delta(*deltas: dict[str, Any]) -> dict[str, Any]:
     return {"choices": [{"delta": {"tool_calls": list(deltas)}}]}
 
 
-def collect(body: bytes, *, status: int = 200) -> list[str | ToolCall]:
+def collect(body: bytes, *, status: int = 200) -> list[str | ToolCall | Truncated]:
     client = httpx.Client(transport=httpx.MockTransport(lambda request: httpx.Response(status, content=body)))
     return list(stream_chat([{"role": "user", "content": "hi"}], [], client=client))
 

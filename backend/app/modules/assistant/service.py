@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.models import AppUser
 from app.modules.assistant import knowledge, llm, tools
-from app.modules.assistant.llm import AssistantLlmError, ToolCall
+from app.modules.assistant.llm import AssistantLlmError, ToolCall, Truncated
 from app.modules.assistant.schemas import ChatRequest
 from app.scope import build_scope
 
@@ -32,6 +32,15 @@ ROLE_NAMES = {
     "gask": "сотрудник ГАСК",
     "law_enforcement": "сотрудник правоохранительных органов",
 }
+TRUNCATED_NOTES = {
+    "ru": "\n\n_Ответ обрезан: модель достигла предела длины ответа._",
+    "kk": "\n\n_Жауап қысқартылды: модель жауап ұзындығының шегіне жетті._",
+}
+# The last round is sent without tools, with this note, so that a small model answers with what it has instead of
+# asking for one more tool.
+FINAL_ROUND_NOTE = (
+    "Инструменты больше недоступны. Ответь сейчас по уже полученным данным; если их не хватает, так и скажи."
+)
 ERROR_MESSAGES = {
     "llm_unavailable": "Модель сейчас недоступна. Попробуйте позже.",
     "llm_bad_response": "Модель вернула непонятный ответ. Попробуйте переформулировать вопрос.",
@@ -102,13 +111,15 @@ def _parse_arguments(raw: str) -> object:
 
 
 def _model_turn(
-    messages: list[dict[str, Any]], tool_schemas: list[dict[str, Any]], http: httpx.Client | None
+    messages: list[dict[str, Any]], tool_schemas: list[dict[str, Any]], http: httpx.Client | None, language: str
 ) -> Iterator[str | list[ToolCall]]:
     """Streams one model call: yields frames-ready text deltas, then (last) the list of requested tool calls."""
     calls: list[ToolCall] = []
     for item in llm.stream_chat(messages, tool_schemas, client=http):
         if isinstance(item, ToolCall):
             calls.append(item)
+        elif isinstance(item, Truncated):
+            yield TRUNCATED_NOTES[language]
         else:
             yield item
     yield calls
@@ -152,21 +163,29 @@ def _run_chat(
         ]
         tool_schemas = tools.tool_schemas(user)
 
+        streamed = False
         for round_number in range(max_rounds + 1):
             # The read transaction must not stay open while the model is thinking.
             session.commit()
+            final_round = round_number == max_rounds
+            if final_round:
+                messages.append({"role": "system", "content": FINAL_ROUND_NOTE})
             text: list[str] = []
             calls: list[ToolCall] = []
-            for item in _model_turn(messages, tool_schemas, http):
+            for item in _model_turn(messages, [] if final_round else tool_schemas, http, request.language):
                 if isinstance(item, list):
                     calls = item[:MAX_CALLS_PER_ROUND]
-                else:
-                    text.append(item)
-                    yield _frame({"type": "delta", "text": item})
+                    continue
+                if not text and streamed:
+                    # Text of an earlier round ("Сейчас поищу.") must not run into this one.
+                    yield _frame({"type": "delta", "text": "\n\n"})
+                text.append(item)
+                streamed = True
+                yield _frame({"type": "delta", "text": item})
             if not calls:
                 yield _frame({"type": "done"})
                 return
-            if round_number == max_rounds:
+            if final_round:
                 raise AssistantLlmError("too_many_tool_rounds")
             messages.append(
                 {

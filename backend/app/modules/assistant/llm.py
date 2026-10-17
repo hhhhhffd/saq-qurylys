@@ -34,6 +34,11 @@ class ToolCall:
     arguments: str  # JSON text as the model wrote it; the caller parses it
 
 
+@dataclass
+class Truncated:
+    """The provider stopped the answer at its length limit (`finish_reason: length`)."""
+
+
 class _ThinkFilter:
     """Drops `<think>...</think>` from streamed content. A tag may be split between chunks, so a tail that
     could still become a tag is held back until the next chunk."""
@@ -104,8 +109,9 @@ def _merge_tool_calls(calls: list[ToolCall], by_index: dict[int, ToolCall], delt
 
 def stream_chat(
     messages: list[dict[str, Any]], tools: list[dict[str, Any]], *, client: httpx.Client | None = None
-) -> Iterator[str | ToolCall]:
-    """Yields the text deltas of the answer as they arrive, then the tool calls the model asked for (if any)."""
+) -> Iterator[str | ToolCall | Truncated]:
+    """Yields the text deltas of the answer as they arrive, then the tool calls the model asked for (if any), then
+    `Truncated` if the answer was cut at the length limit."""
     settings = get_settings()
     headers = {"Authorization": f"Bearer {settings.assistant_api_key}"} if settings.assistant_api_key else {}
     url = f"{settings.assistant_base_url.rstrip('/')}/chat/completions"
@@ -115,10 +121,16 @@ def stream_chat(
     calls: list[ToolCall] = []
     by_index: dict[int, ToolCall] = {}
     chunks = 0
+    finish_reason = None
     try:
         with http.stream("POST", url, json=_request_body(messages, tools), headers=headers) as response:
             if response.status_code >= 400:
-                logger.warning("Assistant model answered HTTP %s", response.status_code)
+                # The body says why (an unknown model, an unsupported `reasoning_effort`); it never echoes the key.
+                logger.warning(
+                    "Assistant model answered HTTP %s: %s",
+                    response.status_code,
+                    response.read()[:500].decode(errors="replace"),
+                )
                 raise AssistantLlmError("llm_unavailable")
             for line in response.iter_lines():
                 if not line.startswith("data:"):
@@ -129,6 +141,7 @@ def stream_chat(
                 try:
                     choices = json.loads(payload)["choices"]
                     delta = choices[0]["delta"] if choices else {}
+                    finish_reason = (choices[0].get("finish_reason") if choices else None) or finish_reason
                     content = delta.get("content")
                     tool_deltas = delta.get("tool_calls")
                 except (ValueError, KeyError, IndexError, TypeError, AttributeError) as exc:
@@ -154,3 +167,5 @@ def stream_chat(
     if tail:
         yield tail
     yield from (call for call in calls if call.name)
+    if finish_reason == "length":
+        yield Truncated()
