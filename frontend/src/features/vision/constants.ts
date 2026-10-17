@@ -4,6 +4,7 @@ import type {
   FindingReviewState,
   FindingStatus,
   VisionAssetStatus,
+  VisionRunStatus,
   VisionSessionStatus,
   VisionSource,
 } from '@/api/types';
@@ -16,6 +17,7 @@ export const CATEGORIES: readonly FindingCategory[] = [
   'site_gate',
   'waste_container',
   'wheel_wash',
+  'debris',
   'other',
 ];
 export const SITE_CATEGORIES = CATEGORIES.filter((category) => category !== 'outdoor_ad');
@@ -53,6 +55,16 @@ export const ASSET_STATUS_TONE: Record<VisionAssetStatus, ChipTone> = {
   ready: 'green',
   failed: 'red',
 };
+
+export const RUN_STATUS_TONE: Record<VisionRunStatus, ChipTone> = {
+  queued: 'neutral',
+  running: 'info',
+  completed: 'green',
+  failed: 'red',
+};
+
+/** Categories the detector looks for: the summary of a run lists exactly these. */
+export const DETECTED_CATEGORIES = SITE_CATEGORIES.filter((category) => category !== 'other');
 
 const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp'];
 const VIDEO_EXTENSIONS = ['mp4', 'mov', 'webm', 'mkv'];

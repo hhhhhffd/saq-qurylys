@@ -18,9 +18,11 @@ interface Props {
   onOpen: (frameId: number) => void;
   /** frames with at least one finding get a mark */
   markedFrameIds: Set<number>;
+  /** frames with a model finding still waiting for the specialist */
+  pendingModelFrameIds: Set<number>;
 }
 
-export function FramesGallery({ frames, error, onRetry, page, onPageChange, onOpen, markedFrameIds }: Props) {
+export function FramesGallery({ frames, error, onRetry, page, onPageChange, onOpen, markedFrameIds, pendingModelFrameIds }: Props) {
   const { t } = useTranslation('vision');
   const pages = Math.max(1, Math.ceil((frames?.total ?? 0) / FRAMES_PAGE_SIZE));
 
@@ -51,6 +53,11 @@ export function FramesGallery({ frames, error, onRetry, page, onPageChange, onOp
                 {markedFrameIds.has(frame.id) && (
                   <span className="absolute top-1 right-1 rounded-sm bg-primary px-1 text-2xs text-primary-foreground">
                     {t('frames.marked')}
+                  </span>
+                )}
+                {pendingModelFrameIds.has(frame.id) && (
+                  <span className="absolute top-1 right-1 mt-5 rounded-sm border border-dashed border-text bg-scrim px-1 text-2xs text-text">
+                    {t('frames.modelMarked')}
                   </span>
                 )}
                 {!frame.usable && (

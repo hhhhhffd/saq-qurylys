@@ -54,16 +54,24 @@ export function FindingCard({ finding, session, config, onShow }: Props) {
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <div className="flex flex-wrap items-center gap-1.5">
             <strong className="text-sm">{e('vision_category', finding.category)}</strong>
-            <Chip tone={FINDING_STATUS_TONE[finding.status]}>{e('vision_finding_status', finding.status)}</Chip>
+            <Chip tone={FINDING_STATUS_TONE[finding.status]}>
+              {finding.category === 'debris' && finding.status === 'possible_noncompliance'
+                ? t('finding.debrisPossible')
+                : e('vision_finding_status', finding.status)}
+            </Chip>
             <Chip tone={REVIEW_STATE_TONE[finding.review_state]}>{e('vision_review_state', finding.review_state)}</Chip>
           </div>
-          <p className="m-0 text-xs text-text-3">
-            {finding.origin === 'manual'
-              ? t('finding.originManual', { name: finding.created_by_name ?? '—' })
-              : t('finding.originModel', {
-                  model: finding.model_version ?? '—',
-                  confidence: finding.confidence !== null ? Math.round(finding.confidence * 100) : '—',
-                })}
+          <p className="m-0 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-text-3">
+            {finding.origin === 'manual' ? (
+              t('finding.originManual', { name: finding.created_by_name ?? '—' })
+            ) : (
+              <>
+                <Chip tone="info">
+                  {t('finding.originModelBadge', { confidence: finding.confidence !== null ? Math.round(finding.confidence * 100) : '—' })}
+                </Chip>
+                <span className="[overflow-wrap:anywhere]">{t('finding.modelVersion', { model: finding.model_version ?? '—' })}</span>
+              </>
+            )}
             {' · '}
             <span className="tabular-nums">{f.dateTime(finding.created_at)}</span>
           </p>

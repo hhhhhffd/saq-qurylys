@@ -71,12 +71,14 @@ const enums: typeof ru = {
   vision_source: { drone: 'Дрон', camera: 'Камера', phone: 'Телефон', other: 'Басқа' },
   vision_session_status: { open: 'Ашық', reviewed: 'Тексерілген' },
   vision_asset_status: { queued: 'Кезекте', processing: 'Өңделуде', ready: 'Дайын', failed: 'Қате' },
+  vision_run_status: { queued: 'Кезекте', running: 'Орындалуда', completed: 'Аяқталды', failed: 'Қате' },
   vision_category: {
     outdoor_ad: 'Сыртқы жарнама',
     fence: 'Қоршау',
     site_gate: 'Алаңға кіреберіс',
     waste_container: 'Қалдық контейнері',
     wheel_wash: 'Дөңгелек жуғыш',
+    debris: 'Құрылыс қоқысы',
     other: 'Басқа',
   },
   vision_finding_status: {

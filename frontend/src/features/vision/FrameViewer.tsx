@@ -166,12 +166,19 @@ export function FrameViewer({ session, frameId, frames, focusFindingId, onFrameC
                     key={finding.id}
                     className={cn(
                       'pointer-events-none absolute border-2 border-accent-text',
+                      finding.origin === 'model' && 'border-dashed',
                       finding.id === focusFindingId && 'shadow-glow ring-2 ring-text',
                     )}
                     style={box(finding.bbox)}
+                    data-origin={finding.origin}
                   >
                     <span className="absolute -top-px left-0 -translate-y-full bg-primary px-1 text-2xs whitespace-nowrap text-primary-foreground">
-                      {e('vision_category', finding.category)}
+                      {finding.origin === 'model' && finding.confidence !== null
+                        ? t('viewer.modelBox', {
+                            category: e('vision_category', finding.category),
+                            confidence: Math.round(finding.confidence * 100),
+                          })
+                        : e('vision_category', finding.category)}
                     </span>
                   </span>
                 ) : null,

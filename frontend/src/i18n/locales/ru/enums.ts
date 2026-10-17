@@ -69,12 +69,14 @@ const enums = {
   vision_source: { drone: 'Дрон', camera: 'Камера', phone: 'Телефон', other: 'Другое' },
   vision_session_status: { open: 'Открыта', reviewed: 'Проверена' },
   vision_asset_status: { queued: 'В очереди', processing: 'Обрабатывается', ready: 'Готов', failed: 'Ошибка' },
+  vision_run_status: { queued: 'В очереди', running: 'Выполняется', completed: 'Завершён', failed: 'Ошибка' },
   vision_category: {
     outdoor_ad: 'Наружная реклама',
     fence: 'Ограждение',
     site_gate: 'Въезд на площадку',
     waste_container: 'Контейнер для отходов',
     wheel_wash: 'Мойка колёс',
+    debris: 'Строительный мусор',
     other: 'Другое',
   },
   vision_finding_status: {
