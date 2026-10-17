@@ -78,16 +78,16 @@ def _zone_counts(session: Session, scope: TerritoryScope, at: datetime) -> dict[
 def _zone_changes(
     session: Session, scope: TerritoryScope, start: datetime, end: datetime
 ) -> list[tuple[Any, Zone | None, Zone | None]]:
-    """Objects whose zone at `end` differs from the one at `start`, the most dangerous now first."""
+    """Scored objects whose zone at `end` differs from the one at `start`, the most dangerous now first."""
     before, after = _zones_at(session, scope, start), _zones_at(session, scope, end)
-    changed = {oid: (before.get(oid), after.get(oid)) for oid in before.keys() | after.keys()}
-    changed = {oid: zones for oid, zones in changed.items() if zones[0] != zones[1]}
+    # An object scored for the first time in the period did not change its zone: it had none.
+    changed = {oid: (zone, after[oid]) for oid, zone in before.items() if oid in after and zone != after[oid]}
     objects = session.execute(
         select(ConstructionObject.id, ConstructionObject.name, ConstructionObject.code).where(
             ConstructionObject.id.in_(changed)
         )
     ).all()
-    rows = [(obj, *changed[obj.id]) for obj in objects]
+    rows: list[tuple[Any, Zone | None, Zone | None]] = [(obj, *changed[obj.id]) for obj in objects]
     rows.sort(key=lambda row: (ZONE_ORDER.index(row[2]), row[0].name, row[0].id))
     return rows
 
