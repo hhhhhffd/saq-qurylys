@@ -103,7 +103,13 @@ def ensure_bucket() -> None:
     global _bucket_ready
     if _bucket_ready:
         return
-    _ensure_locked_bucket(get_settings().s3_bucket_evidence)
+    settings = get_settings()
+    _ensure_locked_bucket(settings.s3_bucket_evidence)
+    if settings.evidence_lock_mode != LockMode.COMPLIANCE.value:
+        logger.warning(
+            "EVIDENCE_LOCK_MODE=%s: a key with the bypass right can delete evidence; use COMPLIANCE in production",
+            settings.evidence_lock_mode,
+        )
     _bucket_ready = True
 
 

@@ -22,8 +22,10 @@ class Settings(BaseSettings):
     s3_access_key: str
     s3_secret_key: str
     s3_bucket_evidence: str = "evidence"
-    evidence_lock_mode: Literal["GOVERNANCE", "COMPLIANCE"] = "GOVERNANCE"
-    evidence_retention_days: int = Field(default=1, ge=1)
+    # COMPLIANCE: nobody, the MinIO root key included, can delete or shorten the lock before it ends. GOVERNANCE
+    # can be bypassed by a key with that right and is meant for development only (.env.example).
+    evidence_lock_mode: Literal["GOVERNANCE", "COMPLIANCE"] = "COMPLIANCE"
+    evidence_retention_days: int = Field(default=1825, ge=1)
     tsa_url: str = ""
 
     # No default on purpose: the service must not start with a guessable secret.
