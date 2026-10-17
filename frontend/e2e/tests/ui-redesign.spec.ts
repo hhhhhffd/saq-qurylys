@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { expect, test } from '../support/test';
 import type { Page, Route } from '@playwright/test';
-import type { AdDetail, ObjectDetail, Role, SignalDetail, SignalRecipient, SignalStatus, User } from '../../src/api/types';
+import type { ActivityEvent, AdDetail, EvidenceMeta, ObjectDetail, ObjectDocument, Role, SignalDetail, SignalRecipient, SignalStatus, User } from '../../src/api/types';
 
 const screenshotDir = '/tmp/saq-ui-after';
 const objectRow = {
@@ -186,6 +186,100 @@ function makeObject(zone: 'green' | 'yellow' | 'red' = 'yellow', name = objectRo
   };
 }
 
+const registryShaA = 'a'.repeat(64);
+const registryShaB = 'b'.repeat(64);
+
+function registryResponseJson(name: string, warrantyNumber: string): string {
+  const payload = {
+    success: true,
+    message: 'Object Details retrieved successfully',
+    data: {
+      basicData: {
+        name,
+        address: 'г. Учебный, ул. Примерная, 1',
+        authority: { id: 1, name: 'Орган выдачи тестовых гарантий' },
+        warranty_number: warrantyNumber,
+        issue_date: '16.10.2026',
+        start_date: '01.02.2025',
+        commissioning_date: '01.09.2026',
+        city: { id: 1, name_ru: 'г. Учебный' },
+        region: { id: 1, name_ru: 'Учебная область' },
+        developerData: { bin: '000000000001', name: 'ТОО Учебный застройщик' },
+      },
+      objectData: { no_of_houses: '2', no_of_floors: '9', comfort_class: 'III класс' },
+      locationData: { cadastral_number: '00-000-000-0000' },
+      companyData: {},
+    },
+  };
+  return JSON.stringify(payload).replace(/[\u007f-\uffff]/g, (character) =>
+    `\\u${character.charCodeAt(0).toString(16).padStart(4, '0')}`,
+  );
+}
+
+function makeEvidence(
+  id: number,
+  kind: EvidenceMeta['kind'],
+  contentType: string,
+  sha256: string,
+  capturedAt: string,
+): EvidenceMeta {
+  return {
+    id,
+    kind,
+    content_type: contentType,
+    sha256,
+    size_bytes: 512,
+    captured_at: capturedAt,
+    source_url: null,
+    retention_until: null,
+  };
+}
+
+function makeRegistryObject(): ObjectDetail {
+  const evidence = [
+    makeEvidence(5181, 'registry_response', 'application/json', registryShaA, '2026-10-14T09:00:00Z'),
+    makeEvidence(5182, 'registry_response', 'application/json', registryShaA, '2026-10-15T10:00:00Z'),
+    makeEvidence(5183, 'registry_response', 'application/json', registryShaB, '2026-10-16T11:00:00Z'),
+    makeEvidence(5190, 'photo', 'image/png', 'c'.repeat(64), '2026-10-16T11:05:00Z'),
+    makeEvidence(5191, 'pdf', 'application/pdf', 'd'.repeat(64), '2026-10-16T11:10:00Z'),
+  ];
+  const object = makeObject();
+  const document: ObjectDocument = {
+    id: 31,
+    object_id: 7,
+    doc_type: 'guarantee',
+    number: 'ГАРАНТИЯ-ТЕСТ-002',
+    issued_at: '2026-10-16',
+    issuer: 'Тестовый реестр',
+    check_status: 'confirmed',
+    checked_at: '2026-10-16T11:15:00Z',
+    checked_by: 1,
+    check_source: 'housing_portal',
+    note: null,
+    evidence,
+  };
+  object.documents = [document];
+  return object;
+}
+
+const transparentPng = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/qgAAAABJRU5ErkJggg==',
+  'base64',
+);
+
+function registryContentFixtures() {
+  return {
+    5181: { contentType: 'application/json', body: registryResponseJson('ЖК Учебный дом', 'ГАРАНТИЯ-ТЕСТ-001') },
+    5182: { contentType: 'application/json', body: registryResponseJson('ЖК Учебный дом', 'ГАРАНТИЯ-ТЕСТ-001') },
+    5183: {
+      contentType: 'application/json',
+      body: registryResponseJson('ЖК Учебный дом · актуальные сведения', 'ГАРАНТИЯ-ТЕСТ-002'),
+    },
+    5190: { contentType: 'image/png', body: transparentPng },
+    5191: { contentType: 'application/pdf', body: Buffer.from('%PDF-1.4\n% isolated UI fixture\n', 'utf8') },
+  };
+}
+
 interface CapturedMutation {
   method: string;
   path: string;
@@ -195,6 +289,10 @@ interface CapturedMutation {
 interface MockState {
   role: Role;
   signals: SignalDetail[];
+  activityEvents?: ActivityEvent[];
+  evidenceContents?: Record<number, { contentType: string; body: string | Buffer }>;
+  evidenceFailures?: Record<number, number>;
+  expectedEvidence503Responses: number;
   signal: SignalDetail;
   ad: AdDetail;
   object: ObjectDetail;
@@ -207,9 +305,11 @@ interface Harness {
   mutations: CapturedMutation[];
   unexpected: string[];
   listRequests: URL[];
+  evidenceRequests: Array<{ id: number; authorization: string | null }>;
+  expectedCancelledEvidenceIds: Set<number>;
   pageErrors: string[];
   consoleErrors: string[];
-  failedApiRequests: string[];
+  failedApiRequests: Array<{ url: string; errorText: string }>;
 }
 
 async function json(route: Route, body: unknown, status = 200) {
@@ -220,20 +320,34 @@ async function installMocks(page: Page, role: Role, overrides: Partial<MockState
   const state: MockState = {
     role,
     signals: [],
+    expectedEvidence503Responses: 0,
     signal: makeSignal(),
     ad: structuredClone(adFixture),
     object: makeObject(),
     ads: [structuredClone(adFixture)],
     ...overrides,
   };
-  const harness: Harness = { state, mutations: [], unexpected: [], listRequests: [], pageErrors: [], consoleErrors: [], failedApiRequests: [] };
+  const harness: Harness = {
+    state,
+    mutations: [],
+    unexpected: [],
+    listRequests: [],
+    evidenceRequests: [],
+    expectedCancelledEvidenceIds: new Set(),
+    pageErrors: [],
+    consoleErrors: [],
+    failedApiRequests: [],
+  };
 
   page.on('pageerror', (error) => harness.pageErrors.push(error.message));
   page.on('console', (message) => {
     if (message.type() === 'error') harness.consoleErrors.push(message.text());
   });
   page.on('requestfailed', (request) => {
-    if (new URL(request.url()).pathname.startsWith('/api/v1/')) harness.failedApiRequests.push(request.url());
+    const url = new URL(request.url());
+    if (url.pathname.startsWith('/api/v1/')) {
+      harness.failedApiRequests.push({ url: request.url(), errorText: request.failure()?.errorText ?? 'unknown failure' });
+    }
   });
 
   await page.addInitScript(() => {
@@ -251,7 +365,9 @@ async function installMocks(page: Page, role: Role, overrides: Partial<MockState
 
     if (method === 'GET' && path === '/auth/me') return json(route, makeUser(state.role));
     if (method === 'GET' && path === '/notifications') return json(route, { items: [] });
-    if (method === 'GET' && path === '/activity') return json(route, { items: [], cursor: 'mock-cursor', reset: false });
+    if (method === 'GET' && path === '/activity') {
+      return json(route, { items: state.activityEvents ?? [], cursor: 'mock-cursor', reset: false });
+    }
     if (method === 'GET' && path === '/settings') {
       return json(route, {
         review_days: 10,
@@ -291,6 +407,19 @@ async function installMocks(page: Page, role: Role, overrides: Partial<MockState
     if (method === 'GET' && path === '/signals/88') return json(route, state.signal);
     if (method === 'GET' && /^\/objects\/\d+$/.test(path)) {
       return json(route, { ...state.object, id: Number(path.split('/').at(-1)) });
+    }
+    const evidenceMatch = /^\/evidence\/(\d+)\/content$/.exec(path);
+    if (method === 'GET' && evidenceMatch) {
+      const id = Number(evidenceMatch[1]);
+      harness.evidenceRequests.push({ id, authorization: request.headers()['authorization'] ?? null });
+      const remainingFailures = state.evidenceFailures?.[id] ?? 0;
+      if (remainingFailures > 0) {
+        if (state.evidenceFailures) state.evidenceFailures[id] = remainingFailures - 1;
+        state.expectedEvidence503Responses += 1;
+        return json(route, { detail: 'temporary evidence fixture failure' }, 503);
+      }
+      const content = state.evidenceContents?.[id];
+      if (content) return route.fulfill({ status: 200, contentType: content.contentType, body: content.body });
     }
     if (method === 'GET' && path === '/objects') {
       return json(route, { items: [objectRow, { ...objectRow, id: 8, code: 'D-08', name: 'ЖК Малахит' }], total: 2 });
@@ -370,8 +499,22 @@ async function screenshot(page: Page, name: string) {
 function expectCleanBrowser(harness: Harness) {
   expect(harness.unexpected).toEqual([]);
   expect(harness.pageErrors).toEqual([]);
-  expect(harness.consoleErrors).toEqual([]);
-  expect(harness.failedApiRequests).toEqual([]);
+  const fixture503ConsoleErrors = harness.consoleErrors.filter((message) =>
+    message === 'Failed to load resource: the server responded with a status of 503 (Service Unavailable)',
+  );
+  expect(fixture503ConsoleErrors.length).toBeLessThanOrEqual(harness.state.expectedEvidence503Responses);
+  expect(harness.consoleErrors.filter((message) =>
+    message !== 'Failed to load resource: the server responded with a status of 503 (Service Unavailable)',
+  )).toEqual([]);
+  const unexplainedFailures = harness.failedApiRequests.filter((failure) => {
+    const evidenceId = /\/api\/v1\/evidence\/(\d+)\/content(?:\?|$)/.exec(failure.url)?.[1];
+    return !(
+      failure.errorText === 'net::ERR_ABORTED' &&
+      evidenceId !== undefined &&
+      harness.expectedCancelledEvidenceIds.has(Number(evidenceId))
+    );
+  });
+  expect(unexplainedFailures).toEqual([]);
 }
 
 test('work opens as the operator task queue, links the real next item and supports Kazakh', async ({ page }) => {
@@ -427,6 +570,199 @@ test('administrator opens the read-only task overview and recipient is kept out 
   expectCleanBrowser(recipientHarness);
 });
 
+test('header keeps monitoring separate and utilities usable at every supported width', async ({ page }) => {
+  const harness = await installMocks(page, 'mio_officer');
+  await page.goto('/work');
+  const header = page.getByRole('banner');
+  const utilities = page.getByRole('group', { name: 'Действия и настройки' });
+  const breakpoints = [320, 390, 768, 1024, 1440];
+  const measurements: Array<{ width: number; headerHeight: number; clientWidth: number; scrollWidth: number }> = [];
+  const popoverMeasurements: Array<{ width: number; x: number; y: number; right: number; bottom: number }> = [];
+
+  for (const width of breakpoints) {
+    await page.setViewportSize({ width, height: 844 });
+    await expect(header).toBeVisible();
+    await expect(utilities).toBeVisible();
+    const measurement = await page.evaluate(() => {
+      const headerElement = document.querySelector('header');
+      const navigation = headerElement?.querySelector('nav');
+      const utilityGroup = headerElement?.querySelector('[role="group"][aria-label]');
+      const island = headerElement?.querySelector<HTMLElement>('[data-open][data-place]');
+      if (!headerElement || !navigation || !utilityGroup || !island) throw new Error('Missing header region');
+
+      const box = (element: Element) => {
+        const rect = element.getBoundingClientRect();
+        return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom };
+      };
+      const visible = (element: Element) => getComputedStyle(element).display !== 'none';
+      const overlaps = (first: ReturnType<typeof box>, second: ReturnType<typeof box>) =>
+        first.left < second.right && second.left < first.right && first.top < second.bottom && second.top < first.bottom;
+      const islandBox = box(island);
+      const navigationBox = box(navigation);
+      const utilityBox = box(utilityGroup);
+      const utilityTargets = Array.from(utilityGroup.querySelectorAll<HTMLElement>('button,[role="radio"]'))
+        .filter(visible)
+        .map((target) => {
+          const rect = target.getBoundingClientRect();
+          return { width: rect.width, height: rect.height };
+        });
+
+      return {
+        headerHeight: headerElement.getBoundingClientRect().height,
+        clientWidth: document.documentElement.clientWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+        islandVisible: visible(island),
+        islandBox,
+        navigationBox,
+        utilityBox,
+        islandOverlapsNavigation: overlaps(islandBox, navigationBox),
+        islandOverlapsUtilities: overlaps(islandBox, utilityBox),
+        utilityHeight: utilityBox.bottom - utilityBox.top,
+        utilityTargets,
+      };
+    });
+    measurements.push({ width, ...measurement });
+
+    expect(measurement.scrollWidth, `header must not cause horizontal overflow at ${width}px`).toBeLessThanOrEqual(measurement.clientWidth);
+    expect(measurement.utilityHeight, `utility toolbar must stay large enough at ${width}px`).toBeGreaterThanOrEqual(48);
+    expect(measurement.utilityTargets.length, `all toolbar targets must be present at ${width}px`).toBeGreaterThan(3);
+    for (const target of measurement.utilityTargets) {
+      expect(target.width, `toolbar target width at ${width}px`).toBeGreaterThanOrEqual(44);
+      expect(target.height, `toolbar target height at ${width}px`).toBeGreaterThanOrEqual(44);
+    }
+
+    if (width <= 992) {
+      expect(measurement.headerHeight, `mobile header height at ${width}px`).toBeGreaterThanOrEqual(92);
+      expect(measurement.headerHeight, `mobile header height at ${width}px`).toBeLessThanOrEqual(94);
+      expect(measurement.islandVisible, `monitoring status stays out of the crowded mobile row at ${width}px`).toBe(false);
+    } else {
+      expect(measurement.headerHeight, `desktop header height at ${width}px`).toBeGreaterThanOrEqual(88);
+      expect(measurement.headerHeight, `desktop header height at ${width}px`).toBeLessThanOrEqual(90);
+      expect(measurement.islandVisible).toBe(true);
+      expect(measurement.islandOverlapsNavigation, `monitoring must not overlap navigation at ${width}px`).toBe(false);
+      expect(measurement.islandOverlapsUtilities, `monitoring must not overlap toolbar at ${width}px`).toBe(false);
+      expect(measurement.islandBox.left).toBeGreaterThanOrEqual(0);
+      expect(measurement.islandBox.right).toBeLessThanOrEqual(width);
+    }
+
+    if (width === 1440 || width === 320) await screenshot(page, `header-${width}`);
+
+    const bell = utilities.getByRole('button', { name: 'Уведомления' });
+    await bell.focus();
+    await page.keyboard.press('Enter');
+    const notificationContent = page.getByText('Новых уведомлений нет', { exact: true });
+    await expect(notificationContent).toBeVisible();
+    const popover = page.locator('[data-slot="popover-content"]');
+    let previousPosition: { x: number; y: number } | null = null;
+    await expect.poll(async () => {
+      const box = await popover.boundingBox();
+      if (!box) return false;
+      const position = { x: Math.round(box.x), y: Math.round(box.y) };
+      const stable = previousPosition?.x === position.x && previousPosition?.y === position.y;
+      previousPosition = position;
+      return stable;
+    }).toBe(true);
+    const popoverBox = await popover.boundingBox();
+    const bellBox = await bell.boundingBox();
+    expect(popoverBox).not.toBeNull();
+    expect(bellBox).not.toBeNull();
+    expect(popoverBox!.x).toBeGreaterThanOrEqual(0);
+    expect(popoverBox!.x + popoverBox!.width).toBeLessThanOrEqual(width);
+    expect(popoverBox!.y).toBeGreaterThanOrEqual(bellBox!.y + bellBox!.height - 1);
+    popoverMeasurements.push({
+      width,
+      x: popoverBox!.x,
+      y: popoverBox!.y,
+      right: popoverBox!.x + popoverBox!.width,
+      bottom: popoverBox!.y + popoverBox!.height,
+    });
+    if (width === 320) await screenshot(page, 'notifications-320-open');
+    await page.keyboard.press('Escape');
+    await expect(notificationContent).toBeHidden();
+    await expect(bell).toBeFocused();
+
+    const profile = utilities.getByRole('button', { name: 'Меню пользователя' });
+    await profile.focus();
+    await page.keyboard.press('Enter');
+    const profileMenu = page.getByRole('menu');
+    await expect(profileMenu).toBeVisible();
+    const menuBox = await profileMenu.boundingBox();
+    expect(menuBox).not.toBeNull();
+    expect(menuBox!.x).toBeGreaterThanOrEqual(8);
+    expect(menuBox!.x + menuBox!.width).toBeLessThanOrEqual(width - 8);
+    await page.keyboard.press('Escape');
+    await expect(profileMenu).toBeHidden();
+    await expect(profile).toBeFocused();
+  }
+
+  const kazakh = page.getByRole('radio', { name: 'ҚАЗ' });
+  await kazakh.click();
+  await expect(page.locator('html')).toHaveAttribute('lang', 'kk');
+  await expect(page.getByRole('group', { name: 'Әрекеттер мен баптаулар' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Хабарландырулар' })).toBeVisible();
+  await page.getByRole('radio', { name: 'RU' }).click();
+  await expect(page.locator('html')).toHaveAttribute('lang', 'ru');
+
+  await writeFile(`${screenshotDir}/header-breakpoints.json`, JSON.stringify(measurements, null, 2));
+  await writeFile(`${screenshotDir}/header-popover-bounds.json`, JSON.stringify(popoverMeasurements, null, 2));
+  expect(harness.mutations).toEqual([]);
+  expectCleanBrowser(harness);
+});
+
+test('monitoring activity opens below the sticky header and navigates to its event', async ({ page }) => {
+  const event: ActivityEvent = {
+    id: 'signal_created:ui-42',
+    kind: 'signal_created',
+    at: '2026-10-16T11:30:00Z',
+    object_id: 7,
+    object_name: objectRow.name,
+    ad_id: null,
+    signal_id: 42,
+    origin: 'manual',
+    platform: null,
+    score_before: null,
+    score_after: null,
+    zone_before: null,
+    zone_after: null,
+    number: 'SIG-UI-0042',
+    is_demo: false,
+  };
+  const harness = await installMocks(page, 'mio_officer', { activityEvents: [] });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const initialActivityPoll = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/v1/activity');
+  await page.goto('/work');
+  await initialActivityPoll;
+  harness.state.activityEvents = [event];
+
+  const activity = page.getByRole('button', { name: /SIG-UI-0042/ });
+  await expect(activity).toBeVisible();
+  await activity.hover();
+  const metrics = await page.evaluate(() => {
+    const header = document.querySelector('header');
+    const island = header?.querySelector<HTMLElement>('[data-open="true"][data-place="below"]');
+    if (!header || !island) throw new Error('Open activity island was not placed below the header');
+    const headerRect = header.getBoundingClientRect();
+    const islandRect = island.getBoundingClientRect();
+    return {
+      headerBottom: headerRect.bottom,
+      islandLeft: islandRect.left,
+      islandRight: islandRect.right,
+      islandTop: islandRect.top,
+      islandBottom: islandRect.bottom,
+      viewportWidth: document.documentElement.clientWidth,
+    };
+  });
+  expect(metrics.islandTop).toBeGreaterThanOrEqual(metrics.headerBottom + 7);
+  expect(metrics.islandLeft).toBeGreaterThanOrEqual(16);
+  expect(metrics.islandRight).toBeLessThanOrEqual(metrics.viewportWidth - 16);
+  expect(metrics.islandBottom).toBeGreaterThan(metrics.islandTop);
+  await screenshot(page, 'monitoring-activity-open');
+  await activity.click();
+  await expect(page).toHaveURL(/\/signals\/42$/);
+  expect(harness.mutations).toEqual([]);
+  expectCleanBrowser(harness);
+});
+
 test('mobile object next-step anchors clear the sticky header and available signal action is explicit', async ({ page }) => {
   const longName = `ЖК Северный бриз — ${'очень длинное название объекта '.repeat(5)}`;
   const harness = await installMocks(page, 'mio_officer', { object: makeObject('yellow', longName) });
@@ -465,6 +801,168 @@ test('mobile object next-step anchors clear the sticky header and available sign
     contentType: 'application/json',
   });
   expect(harness.mutations).toEqual([]);
+  expectCleanBrowser(harness);
+});
+
+test('registry answers show readable latest data, group identical captures and preserve file evidence', async ({ page }) => {
+  const harness = await installMocks(page, 'mio_officer', {
+    object: makeRegistryObject(),
+    evidenceContents: registryContentFixtures(),
+  });
+  await page.goto('/objects/7');
+
+  const registryAction = page.getByRole('button', { name: 'Открыть сохранённые сведения из реестра' });
+  await expect(registryAction).toHaveCount(1);
+  await expect(registryAction).toContainText('2 версии');
+
+  const photo = page.getByRole('img', { name: 'Фото #5190' });
+  await expect(photo).toBeVisible();
+  await page.getByRole('button', { name: 'Фото #5190' }).click();
+  const photoDialog = page.getByRole('dialog', { name: 'Фото #5190' });
+  await expect(photoDialog.getByRole('img', { name: 'Фото #5190' })).toBeVisible();
+  harness.expectedCancelledEvidenceIds.add(5190);
+  await page.keyboard.press('Escape');
+  await expect(photoDialog).toBeHidden();
+
+  const pdfButton = page.getByRole('button', { name: 'PDF', exact: true });
+  await expect(pdfButton).toBeVisible();
+  const pdfResponse = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/v1/evidence/5191/content');
+  await pdfButton.click();
+  await pdfResponse;
+
+  await registryAction.click();
+  const dialog = page.getByRole('dialog', { name: 'Сведения из реестра' });
+  await expect(dialog.getByText('ЖК Учебный дом · актуальные сведения', { exact: true })).toBeVisible();
+  await expect(dialog.getByText('г. Учебный, ул. Примерная, 1', { exact: true })).toBeVisible();
+  await expect(dialog.getByText('Орган выдачи тестовых гарантий', { exact: true })).toBeVisible();
+  await expect(dialog.getByText('ГАРАНТИЯ-ТЕСТ-002', { exact: true })).toBeVisible();
+  await expect(dialog.getByText('ТОО Учебный застройщик', { exact: true })).toBeVisible();
+  await expect(dialog.getByText('Название объекта', { exact: true })).toBeVisible();
+  await expect(dialog.getByText('Основание', { exact: true })).toBeVisible();
+  await expect(dialog.getByText('Номер документа', { exact: true })).toBeVisible();
+  await expect(dialog.getByText('Дата выдачи', { exact: true })).toBeVisible();
+  await expect(dialog.getByText('16.10.2026', { exact: true })).toBeVisible();
+  await expect(dialog).not.toContainText('"success":true');
+  await expect(dialog).not.toContainText('Object Details retrieved successfully');
+  await expect(dialog.getByText(/Последняя сохранённая версия/)).toContainText('#5183');
+
+  const versionSelect = dialog.getByLabel('Сохранённые версии');
+  await expect(versionSelect).toHaveValue(`sha:${registryShaB}`);
+  await expect(versionSelect.locator('option')).toHaveCount(2);
+  const history = dialog.getByText('История сохранений (3)', { exact: true });
+  await history.click();
+  const historyList = dialog.locator('details').last();
+  for (const id of [5181, 5182, 5183]) await expect(historyList.getByText(new RegExp(`#${id}`))).toBeVisible();
+  await screenshot(page, 'registry-response-history');
+
+  harness.expectedCancelledEvidenceIds.add(5183);
+  await versionSelect.selectOption(`sha:${registryShaA}`);
+  await expect(dialog.getByText('ЖК Учебный дом', { exact: true })).toBeVisible();
+  await expect(dialog.getByText('ГАРАНТИЯ-ТЕСТ-001', { exact: true })).toBeVisible();
+  await expect(dialog.getByText('ЖК Учебный дом · актуальные сведения', { exact: true })).toHaveCount(0);
+  harness.expectedCancelledEvidenceIds.add(5182);
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+
+  await registryAction.click();
+  const reopened = page.getByRole('dialog', { name: 'Сведения из реестра' });
+  await expect(reopened.getByLabel('Сохранённые версии')).toHaveValue(`sha:${registryShaB}`);
+  await expect(reopened.getByText('ЖК Учебный дом · актуальные сведения', { exact: true })).toBeVisible();
+  await screenshot(page, 'registry-response-latest');
+  await page.setViewportSize({ width: 320, height: 844 });
+  const mobileDialogBox = await reopened.boundingBox();
+  expect(mobileDialogBox).not.toBeNull();
+  expect(mobileDialogBox!.x).toBeGreaterThanOrEqual(0);
+  expect(mobileDialogBox!.x + mobileDialogBox!.width).toBeLessThanOrEqual(320);
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+  await screenshot(page, 'registry-response-latest-320');
+  await page.screenshot({ path: `${screenshotDir}/registry-response-latest-320-viewport.png` });
+  const dialogHasScrollableContent = await page.evaluate(() => {
+    const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
+    if (!dialog) return false;
+    return [dialog, ...dialog.querySelectorAll<HTMLElement>('*')].some((element) => {
+      const style = getComputedStyle(element);
+      return element.scrollHeight > element.clientHeight + 1 && ['auto', 'scroll'].includes(style.overflowY);
+    });
+  });
+  expect(dialogHasScrollableContent).toBe(true);
+  await page.mouse.move(160, 720);
+  await page.mouse.wheel(0, 600);
+  await expect.poll(() => page.evaluate(() => {
+    const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
+    if (!dialog) return false;
+    return [dialog, ...dialog.querySelectorAll<HTMLElement>('*')].some((element) => element.scrollTop > 0);
+  })).toBe(true);
+  harness.expectedCancelledEvidenceIds.add(5183);
+  await page.keyboard.press('Escape');
+  await expect(reopened).toBeHidden();
+
+  expect(harness.evidenceRequests.length).toBeGreaterThanOrEqual(3);
+  expect(harness.evidenceRequests.every((request) => request.authorization === 'Bearer mock-ui-session')).toBe(true);
+  expect(harness.mutations).toEqual([]);
+  expectCleanBrowser(harness);
+});
+
+test('registry response reports unsupported and malformed archives and keeps the original download', async ({ page }) => {
+  const object = makeRegistryObject();
+  object.documents[0].evidence = [
+    makeEvidence(5301, 'registry_response', 'application/json', 'e'.repeat(64), '2026-10-14T09:00:00Z'),
+    makeEvidence(5302, 'registry_response', 'application/json', 'f'.repeat(64), '2026-10-16T11:00:00Z'),
+  ];
+  const harness = await installMocks(page, 'mio_officer', {
+    object,
+    evidenceContents: {
+      5301: { contentType: 'application/json', body: '{not-json' },
+      5302: { contentType: 'application/json', body: '{"success":true,"data":{"unrecognized":{}}}' },
+    },
+  });
+  await page.goto('/objects/7');
+  await page.getByRole('button', { name: 'Открыть сохранённые сведения из реестра' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Сведения из реестра' });
+  await expect(dialog.getByText('Формат сохранённого ответа не распознан. Оригинал можно скачать.')).toBeVisible();
+  await expect(dialog).not.toContainText('"success":true');
+
+  const downloadPromise = page.waitForEvent('download');
+  await dialog.getByRole('button', { name: 'Скачать исходный ответ' }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe('registry-response-5302.json');
+  await expect.poll(() => harness.evidenceRequests.some((request) => request.id === 5302)).toBe(true);
+
+  harness.expectedCancelledEvidenceIds.add(5302);
+  await dialog.getByLabel('Сохранённые версии').selectOption(`sha:${'e'.repeat(64)}`);
+  await expect(dialog.getByText('Сохранённый ответ повреждён или не читается как JSON. Оригинал можно скачать.')).toBeVisible();
+  expect(harness.evidenceRequests.filter((request) => request.id === 5301).length).toBeGreaterThanOrEqual(1);
+  expect(harness.evidenceRequests.every((request) => request.authorization === 'Bearer mock-ui-session')).toBe(true);
+  expect(harness.mutations).toEqual([]);
+  harness.expectedCancelledEvidenceIds.add(5301);
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  expectCleanBrowser(harness);
+});
+
+test('registry response load failure offers a working retry', async ({ page }) => {
+  const object = makeRegistryObject();
+  object.documents[0].evidence = [
+    makeEvidence(5401, 'registry_response', 'application/json', '9'.repeat(64), '2026-10-16T11:00:00Z'),
+  ];
+  const harness = await installMocks(page, 'mio_officer', {
+    object,
+    evidenceContents: {
+      5401: { contentType: 'application/json', body: registryResponseJson('ЖК Повторная проверка', 'ГАРАНТИЯ-ТЕСТ-003') },
+    },
+    evidenceFailures: { 5401: 4 },
+  });
+  await page.goto('/objects/7');
+  await page.getByRole('button', { name: 'Открыть сохранённые сведения из реестра' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Сведения из реестра' });
+  await expect(dialog.getByRole('alert')).toContainText('Не удалось загрузить сохранённый ответ. Повторите попытку или скачайте оригинал.');
+  await dialog.getByRole('button', { name: 'Повторить загрузку' }).click();
+  await expect(dialog.getByText('ЖК Повторная проверка', { exact: true })).toBeVisible();
+  expect(harness.evidenceRequests.every((request) => request.authorization === 'Bearer mock-ui-session')).toBe(true);
+  expect(harness.mutations).toEqual([]);
+  harness.expectedCancelledEvidenceIds.add(5401);
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
   expectCleanBrowser(harness);
 });
 
