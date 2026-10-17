@@ -243,6 +243,7 @@ RU: dict[str, Any] = {
         "photo": "Фотография",
         "document_scan": "Скан документа",
         "pdf": "PDF-документ",
+        "registry_response": "Ответ реестра",
     },
     # Case file (dossier) of an object.
     "dossier": {
