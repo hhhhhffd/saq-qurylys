@@ -6,6 +6,7 @@ import { useSignals } from '@/api/hooks/signals';
 import type { SignalRow, SignalStatus } from '@/api/types';
 import { useAuth } from '@/auth/useAuth';
 import { EmptyState, ErrorBlock, LoadingBlock } from '@/components/QueryState';
+import { ReportCard } from './ReportCard';
 
 type QueueStatus = Exclude<SignalStatus, 'closed'>;
 type SignalQuery = ReturnType<typeof useSignals>;
@@ -243,6 +244,7 @@ export function WorkPage() {
           </Link>
         </aside>
       </div>
+      <ReportCard />
     </div>
   );
 }
