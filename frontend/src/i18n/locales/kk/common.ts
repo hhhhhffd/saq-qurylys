@@ -5,6 +5,7 @@ const common: typeof ru = {
   appName: 'SAQ QURYLYS',
   error: 'Қате',
   cancel: 'Бас тарту',
+  print: 'Басып шығару',
   save: 'Сақтау',
   create: 'Құру',
   add: 'Қосу',
@@ -104,6 +105,7 @@ const common: typeof ru = {
     menu: 'Бөлімдер',
     utilities: 'Әрекеттер мен баптаулар',
     askAi: 'ЖИ-ден сұрау',
+    largeFont: 'Ірі қаріп',
   },
   demo: {
     badge: 'ДЕМО',

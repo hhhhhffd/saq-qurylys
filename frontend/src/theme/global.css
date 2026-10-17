@@ -6,7 +6,7 @@
   html {
     -webkit-text-size-adjust: 100%;
     /* Quiet scrollbars that blend into the surface instead of the browser's default track. */
-    scrollbar-color: rgba(235, 232, 253, 0.22) transparent;
+    scrollbar-color: rgba(40, 26, 100, 0.28) transparent;
   }
 
   body {
@@ -14,7 +14,7 @@
     background: var(--bg);
     color: var(--text);
     font-family: var(--font-sans);
-    font-size: 14px;
+    font-size: calc(14px * var(--font-scale));
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -74,7 +74,7 @@
   }
 
   ::selection {
-    background: rgba(240, 3, 91, 0.35);
+    background: rgba(240, 3, 91, 0.22);
     color: var(--text);
   }
 
@@ -92,5 +92,58 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* Print: the card on white paper, without chrome. */
+@media print {
+  :root {
+    --bg: #fff;
+    --surface: #fff;
+    --surface-raised: #fff;
+    --surface-sunken: #fff;
+    --text: #000;
+    --text-2: #000;
+    --text-3: #333;
+    --link: #000;
+    --accent-text: #000;
+    --shadow-1: none;
+    --shadow-2: none;
+    --shadow-glow: none;
+    --shadow-window: none;
+    --font-scale: 1;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    animation: none !important;
+  }
+
+  [data-print='hide'],
+  [data-sonner-toaster],
+  button {
+    display: none !important;
+  }
+
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  section,
+  article,
+  tr,
+  figure,
+  [data-slot='card'] {
+    break-inside: avoid;
   }
 }

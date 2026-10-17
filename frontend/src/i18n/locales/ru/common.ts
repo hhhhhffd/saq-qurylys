@@ -2,6 +2,7 @@ const common = {
   appName: 'SAQ QURYLYS',
   error: 'Ошибка',
   cancel: 'Отмена',
+  print: 'Печать',
   save: 'Сохранить',
   create: 'Создать',
   add: 'Добавить',
@@ -101,6 +102,7 @@ const common = {
     menu: 'Разделы',
     utilities: 'Действия и настройки',
     askAi: 'Спросить ИИ',
+    largeFont: 'Крупный шрифт',
   },
   demo: {
     badge: 'ДЕМО',

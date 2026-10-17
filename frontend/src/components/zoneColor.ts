@@ -11,8 +11,8 @@ export function zoneColor(zone: Zone | null | undefined): string {
 
 /** Concrete hex values for canvas/WebGL (maplibre) where CSS variables are unavailable. Mirror tokens.css. */
 export const ZONE_HEX = {
-  green: '#34d17b',
-  yellow: '#f5b83d',
-  red: '#ff4d3d',
-  none: '#7d7899',
+  green: '#1f9d57',
+  yellow: '#d99a0b',
+  red: '#d92d20',
+  none: '#8a85a3',
 } as const;

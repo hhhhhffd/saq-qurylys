@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { IconArrowLeft, IconPencil, IconRefresh } from '@tabler/icons-react';
+import { IconArrowLeft, IconPencil, IconPrinter, IconRefresh } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { useRecalculateObject } from '@/api/hooks/objects';
@@ -24,7 +24,7 @@ export function ObjectHeader({ object }: { object: ObjectDetail }) {
 
   return (
     <header className="mb-4 flex flex-col gap-3">
-      <Link to="/objects" className="inline-flex items-center gap-1 self-start text-sm text-text-2 hover:text-text">
+      <Link to="/objects" data-print="hide" className="inline-flex items-center gap-1 self-start text-sm text-text-2 hover:text-text">
         <IconArrowLeft size={16} stroke={1.8} aria-hidden />
         {t('card.back')}
       </Link>
@@ -34,7 +34,11 @@ export function ObjectHeader({ object }: { object: ObjectDetail }) {
           <p className="mb-1 font-mono text-xs tracking-wide text-text-3">{object.code}</p>
           <h1 className="text-2xl font-bold [overflow-wrap:anywhere]">{object.name}</h1>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div data-print="hide" className="flex flex-wrap items-center gap-2">
+          <Button className="min-h-11" variant="secondary" onClick={() => window.print()}>
+            <IconPrinter />
+            {t('common:print')}
+          </Button>
           {canEditRegistry && (
             <Button
               className="min-h-11"

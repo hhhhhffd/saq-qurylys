@@ -11,6 +11,7 @@ import {
   IconSend,
   IconSettings,
   IconSparkles,
+  IconTextSize,
   IconSpeakerphone,
   IconTopologyStar3,
 } from '@tabler/icons-react';
@@ -19,6 +20,7 @@ import { useAssistantEnabled } from '@/api/hooks/assistant';
 import { useVisionEnabled } from '@/api/hooks/vision';
 import { useAuth } from '@/auth/useAuth';
 import { LoadingBlock } from '@/components/QueryState';
+import { useLargeFont } from '@/lib/preferences';
 import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
@@ -50,6 +52,7 @@ export function AppLayout() {
   const assistantEnabled = useAssistantEnabled();
   const assistant = usePanelState();
   const askAiRef = useRef<HTMLButtonElement>(null);
+  const [largeFont, setLargeFont] = useLargeFont();
   const assistantOpen = assistantEnabled && assistant.open;
 
   const closeAssistant = () => {
@@ -73,7 +76,7 @@ export function AppLayout() {
       className="min-h-dvh"
       style={{ '--assistant-w': assistant.expanded ? 'min(640px, 60vw)' : 'min(400px, 40vw)' } as CSSProperties}
     >
-      <header className="sticky top-0 z-40 border-b border-border bg-surface-raised">
+      <header data-print="hide" className="sticky top-0 z-40 border-b border-border bg-surface-raised">
         <div className="mx-auto flex min-h-14 max-w-(--page-max) items-center gap-6 px-(--gutter) max-[62em]:min-h-12 max-[62em]:flex-wrap max-[62em]:gap-x-1 max-[62em]:gap-y-0">
           <Link
             to="/"
@@ -155,28 +158,38 @@ export function AppLayout() {
             )}
           </nav>
 
-          <div role="group" aria-label={t('header.utilities')} className="ml-auto flex flex-none items-center gap-1">
+          <div role="group" aria-label={t('header.utilities')} className="ml-auto flex flex-none flex-wrap items-center justify-end gap-1">
             {assistantEnabled && (
               <Button
                 ref={askAiRef}
                 variant="ghost"
-                size="icon"
-                className="size-11"
+                className="min-h-11 px-2.5"
                 aria-label={t('header.askAi')}
                 title={t('header.askAi')}
                 aria-pressed={assistantOpen}
                 onClick={() => (assistantOpen ? closeAssistant() : assistant.setOpen(true))}
               >
                 <IconSparkles />
+                <span className="max-[75em]:hidden">{t('header.askAi')}</span>
               </Button>
             )}
+            <Button
+              variant="ghost"
+              className="min-h-11 px-2.5"
+              aria-pressed={largeFont}
+              title={t('header.largeFont')}
+              onClick={() => setLargeFont(!largeFont)}
+            >
+              <IconTextSize />
+              <span className="max-[75em]:sr-only">{t('header.largeFont')}</span>
+            </Button>
             <LanguageSwitch />
             <NotificationsBell />
             <UserMenu />
           </div>
         </div>
         {canSeeRegistry && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-0">
+          <div data-print="hide" className="pointer-events-none absolute inset-x-0 bottom-0">
             <div className="relative mx-auto h-0 max-w-(--page-max) px-(--gutter)">
               <ActivityIsland />
             </div>

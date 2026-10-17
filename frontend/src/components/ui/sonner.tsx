@@ -8,7 +8,7 @@ import { Toaster as Sonner, type ToasterProps } from 'sonner';
 function Toaster(props: ToasterProps) {
   return (
     <Sonner
-      theme="dark"
+      theme="light"
       position="top-right"
       visibleToasts={4}
       icons={{
