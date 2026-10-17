@@ -18,6 +18,7 @@ os.environ.setdefault("S3_SECRET_KEY", "saq-minio-dev-secret")
 # Parallel test runs (separate worktrees) need their own database and bucket: the bucket is emptied at the end.
 os.environ["S3_BUCKET_EVIDENCE"] = os.environ.get("TEST_S3_BUCKET", "evidence-test")
 os.environ["VISION_ENABLED"] = "true"
+os.environ["ASSISTANT_ENABLED"] = "true"
 os.environ["S3_BUCKET_VISION"] = os.environ.get("TEST_S3_BUCKET_VISION", "vision-test")
 os.environ["EVIDENCE_LOCK_MODE"] = "GOVERNANCE"
 os.environ["EVIDENCE_RETENTION_DAYS"] = "1"

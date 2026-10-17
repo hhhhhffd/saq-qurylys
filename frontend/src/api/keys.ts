@@ -32,6 +32,7 @@ export const qk = {
   activity: ['activity'] as const,
   audit: (entityType: string, entityId: number) => ['audit', entityType, entityId] as const,
   graph: (params: GraphParams) => ['graph', params] as const,
+  assistantConfig: ['assistant', 'config'] as const,
   visionConfig: ['vision', 'config'] as const,
   vision: ['vision'] as const,
   visionSessions: (params: VisionSessionListParams) => ['vision', 'sessions', params] as const,

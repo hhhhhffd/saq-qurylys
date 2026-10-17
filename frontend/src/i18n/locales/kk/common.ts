@@ -103,6 +103,7 @@ const common: typeof ru = {
     userMenu: 'Пайдаланушы мәзірі',
     menu: 'Бөлімдер',
     utilities: 'Әрекеттер мен баптаулар',
+    askAi: 'ЖИ-ден сұрау',
   },
   demo: {
     badge: 'ДЕМО',

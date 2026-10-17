@@ -13,6 +13,7 @@ from app.deps import SessionDep
 from app.errors import api_error, register_error_handlers
 from app.modules.activity.router import router as activity_router
 from app.modules.ads.router import router as ads_router
+from app.modules.assistant.router import router as assistant_router
 from app.modules.audit.router import router as audit_router
 from app.modules.auth.router import router as auth_router
 from app.modules.complaints.router import router as complaints_router
@@ -117,5 +118,9 @@ for module_router in (
 if get_settings().vision_enabled:
     api.include_router(vision_router)
     app.add_middleware(UploadSizeLimitMiddleware)
+
+# Optional module: while it is off there are no /api/v1/assistant routes at all (404).
+if get_settings().assistant_enabled:
+    api.include_router(assistant_router)
 
 app.include_router(api)

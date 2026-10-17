@@ -165,6 +165,11 @@ export function apiUpload<T>(
   });
 }
 
+/** POST whose response body is read by the caller as a stream (SSE); throws ApiError before the stream starts. */
+export async function apiStream(path: string, body: unknown, options: { signal?: AbortSignal } = {}): Promise<Response> {
+  return send(path, { method: 'POST', body, signal: options.signal });
+}
+
 /** Authenticated binary download (evidence content, PDF). */
 export async function apiBlob(path: string, signal?: AbortSignal): Promise<Blob> {
   const response = await send(path, { signal });

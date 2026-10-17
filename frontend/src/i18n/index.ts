@@ -18,6 +18,7 @@ export const namespaces = [
   'admin',
   'activity',
   'sources',
+  'assistant',
   'vision',
 ] as const;
 

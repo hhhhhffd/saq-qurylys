@@ -33,6 +33,7 @@ export default defineConfig({
       'react-dom/client',
       'react-hook-form',
       'react-i18next',
+      'react-markdown',
       'react-router',
       'sonner',
       'tailwind-merge',

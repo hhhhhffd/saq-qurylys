@@ -1,4 +1,4 @@
-import { Suspense } from 'react';
+import { Suspense, useRef, type CSSProperties } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import {
   IconBuildingSkyscraper,
@@ -10,13 +10,16 @@ import {
   IconRss,
   IconSend,
   IconSettings,
+  IconSparkles,
   IconSpeakerphone,
   IconTopologyStar3,
 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
+import { useAssistantEnabled } from '@/api/hooks/assistant';
 import { useVisionEnabled } from '@/api/hooks/vision';
 import { useAuth } from '@/auth/useAuth';
 import { LoadingBlock } from '@/components/QueryState';
+import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +28,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import { AssistantPanel } from '@/features/assistant/AssistantPanel';
+import { usePanelState } from '@/features/assistant/usePanelState';
 import { ActivityIsland } from './ActivityIsland';
 import { LanguageSwitch } from './LanguageSwitch';
 import { NotificationsBell } from './NotificationsBell';
@@ -41,6 +47,15 @@ export function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const visionEnabled = useVisionEnabled();
+  const assistantEnabled = useAssistantEnabled();
+  const assistant = usePanelState();
+  const askAiRef = useRef<HTMLButtonElement>(null);
+  const assistantOpen = assistantEnabled && assistant.open;
+
+  const closeAssistant = () => {
+    assistant.setOpen(false);
+    askAiRef.current?.focus();
+  };
 
   const toolItems = [
     { to: '/map', label: t('nav.map'), icon: <IconMap2 />, visible: canSeeRegistry },
@@ -54,7 +69,10 @@ export function AppLayout() {
   );
 
   return (
-    <div className="min-h-dvh">
+    <div
+      className="min-h-dvh"
+      style={{ '--assistant-w': assistant.expanded ? 'min(640px, 60vw)' : 'min(400px, 40vw)' } as CSSProperties}
+    >
       <header className="sticky top-0 z-40 border-b border-border bg-surface-raised">
         <div className="mx-auto flex min-h-14 max-w-(--page-max) items-center gap-6 px-(--gutter) max-[62em]:min-h-12 max-[62em]:flex-wrap max-[62em]:gap-x-1 max-[62em]:gap-y-0">
           <Link
@@ -62,7 +80,7 @@ export function AppLayout() {
             aria-label={t('appName')}
             className="flex min-h-11 flex-none items-center font-heading text-sm font-bold tracking-widest whitespace-nowrap text-text no-underline focus-visible:ring-2 focus-visible:ring-focus max-[62em]:text-xs max-[62em]:tracking-wide"
           >
-            SAQ <span className="ml-1 text-accent-text [text-shadow:0_0_14px_var(--accent-glow)]">QURYLYS</span>
+            SAQ <span className="ml-1 text-accent-text [text-shadow:0_0_14px_var(--accent-glow)] max-[24em]:hidden">QURYLYS</span>
           </Link>
 
           <nav
@@ -138,6 +156,20 @@ export function AppLayout() {
           </nav>
 
           <div role="group" aria-label={t('header.utilities')} className="ml-auto flex flex-none items-center gap-1">
+            {assistantEnabled && (
+              <Button
+                ref={askAiRef}
+                variant="ghost"
+                size="icon"
+                className="size-11"
+                aria-label={t('header.askAi')}
+                title={t('header.askAi')}
+                aria-pressed={assistantOpen}
+                onClick={() => (assistantOpen ? closeAssistant() : assistant.setOpen(true))}
+              >
+                <IconSparkles />
+              </Button>
+            )}
             <LanguageSwitch />
             <NotificationsBell />
             <UserMenu />
@@ -151,13 +183,19 @@ export function AppLayout() {
           </div>
         )}
       </header>
-      <main className="mx-auto max-w-(--page-max) px-(--gutter) pt-6 pb-14">
-        <Suspense fallback={<LoadingBlock />}>
-          <div className="animate-in duration-200 fade-in-0 slide-in-from-bottom-1">
-            <Outlet />
-          </div>
-        </Suspense>
-      </main>
+      {/* The docked panel starts below the header, so only the content makes room for it and the header keeps its full width. */}
+      <div className={cn(assistantOpen && 'min-[62em]:pr-(--assistant-w)')}>
+        <main className="mx-auto max-w-(--page-max) px-(--gutter) pt-6 pb-14">
+          <Suspense fallback={<LoadingBlock />}>
+            <div className="animate-in duration-200 fade-in-0 slide-in-from-bottom-1">
+              <Outlet />
+            </div>
+          </Suspense>
+        </main>
+      </div>
+      {assistantEnabled && (
+        <AssistantPanel open={assistantOpen} expanded={assistant.expanded} onToggleExpanded={assistant.toggleExpanded} onClose={closeAssistant} />
+      )}
     </div>
   );
 }
