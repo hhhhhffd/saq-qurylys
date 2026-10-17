@@ -644,6 +644,8 @@ export interface AdDetail extends AdRow {
   evidence: EvidenceMeta[];
   llm_extraction: LlmExtraction | null;
   linked_object: { id: number; code: string; name: string } | null;
+  /** set when the publication was created from a confirmed outdoor-ad finding of a visual inspection */
+  vision_source?: { session_id: number; finding_id: number; frame_id: number | null; timestamp_ms: number | null } | null;
 }
 
 export interface AdListParams {
@@ -1031,4 +1033,142 @@ export interface Timeline {
   frames: TimelineFrame[];
   /** every object that has a score in at least one frame */
   objects: TimelineObject[];
+}
+
+// ---------------------------------------------------------------- vision (visual inspections)
+
+export type VisionSource = 'drone' | 'camera' | 'phone' | 'other';
+export type VisionSessionStatus = 'open' | 'reviewed';
+export type VisionAssetStatus = 'queued' | 'processing' | 'ready' | 'failed';
+export type FindingCategory = 'outdoor_ad' | 'fence' | 'site_gate' | 'waste_container' | 'wheel_wash' | 'other';
+export type FindingStatus = 'observed' | 'possible_noncompliance' | 'insufficient_evidence' | 'not_applicable';
+export type FindingReviewState = 'pending' | 'confirmed' | 'rejected' | 'needs_more_evidence';
+export type FindingReviewAction = 'confirm' | 'reject' | 'needs_more_evidence' | 'not_applicable' | 'comment';
+
+export interface VisionConfig {
+  enabled: boolean;
+  detector_mode: 'disabled';
+  ocr_enabled: boolean;
+  max_photo_mb: number;
+  max_video_mb: number;
+  max_duration_seconds: number;
+}
+
+export interface VisionSessionListItem {
+  id: number;
+  object: { id: number; code: string; name: string } | null;
+  territory_id: number | null;
+  source: VisionSource;
+  captured_at: string | null;
+  status: VisionSessionStatus;
+  is_demo: boolean;
+  note: string | null;
+  created_at: string;
+  created_by_name: string | null;
+  reviewed_at: string | null;
+  reviewed_by_name: string | null;
+  assets_count: number;
+  frames_count: number;
+  findings_count: number;
+  processing: boolean;
+  failed: boolean;
+}
+
+export interface VisionAsset {
+  id: number;
+  session_id: number;
+  kind: 'photo' | 'video';
+  original_name: string;
+  content_type: string;
+  size_bytes: number;
+  sha256: string;
+  width: number | null;
+  height: number | null;
+  duration_ms: number | null;
+  lat: number | null;
+  lon: number | null;
+  taken_at: string | null;
+  status: VisionAssetStatus;
+  error_code: string | null;
+  progress: number;
+  frames_count: number;
+  created_at: string;
+}
+
+export interface VisionFrame {
+  id: number;
+  asset_id: number;
+  timestamp_ms: number | null;
+  width: number;
+  height: number;
+  sharpness: number | null;
+  usable: boolean;
+}
+
+/** Fractions (0..1) of the original frame. */
+export interface VisionBbox {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+export interface VisionFindingReview {
+  id: number;
+  action: FindingReviewAction;
+  comment: string | null;
+  reviewer_name: string | null;
+  created_at: string;
+}
+
+export interface VisionFinding {
+  id: number;
+  session_id: number;
+  frame_id: number | null;
+  bbox: VisionBbox | null;
+  category: FindingCategory;
+  status: FindingStatus;
+  origin: 'manual' | 'model';
+  confidence: number | null;
+  model_version: string | null;
+  note: string | null;
+  review_state: FindingReviewState;
+  ocr_status: 'pending' | 'done' | 'failed' | null;
+  ocr_text: string | null;
+  ocr_confidence: number | null;
+  ocr_engine: string | null;
+  confirmed_text: string | null;
+  ad_post_id: number | null;
+  created_at: string;
+  created_by_name: string | null;
+  reviews: VisionFindingReview[];
+}
+
+export interface VisionSessionDetail extends VisionSessionListItem {
+  assets: VisionAsset[];
+  findings: VisionFinding[];
+}
+
+export interface VisionSessionInput {
+  object_id?: number | null;
+  territory_id?: number | null;
+  source?: VisionSource;
+  captured_at?: string | null;
+  note?: string | null;
+}
+
+export interface VisionSessionListParams {
+  object_id?: number;
+  source?: VisionSource;
+  status?: VisionSessionStatus;
+  limit?: number;
+  offset?: number;
+}
+
+export interface VisionFindingInput {
+  frame_id?: number | null;
+  bbox?: VisionBbox | null;
+  category: FindingCategory;
+  status: FindingStatus;
+  note?: string | null;
 }

@@ -1,4 +1,4 @@
-import type { AdListParams, GraphParams, ObjectListParams, SignalListParams } from './types';
+import type { AdListParams, GraphParams, ObjectListParams, SignalListParams, VisionSessionListParams } from './types';
 
 export const qk = {
   me: ['me'] as const,
@@ -32,5 +32,11 @@ export const qk = {
   activity: ['activity'] as const,
   audit: (entityType: string, entityId: number) => ['audit', entityType, entityId] as const,
   graph: (params: GraphParams) => ['graph', params] as const,
+  visionConfig: ['vision', 'config'] as const,
+  vision: ['vision'] as const,
+  visionSessions: (params: VisionSessionListParams) => ['vision', 'sessions', params] as const,
+  visionSession: (id: number) => ['vision', 'session', id] as const,
+  visionFrames: (sessionId: number, page: number) => ['vision', 'session', sessionId, 'frames', page] as const,
+  visionBlob: (kind: 'frame' | 'asset', id: number, variant: string) => ['visionBlob', kind, id, variant] as const,
   sourceSuggestions: ['source-suggestions'] as const,
 };

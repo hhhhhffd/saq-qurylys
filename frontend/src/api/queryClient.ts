@@ -60,9 +60,10 @@ export const queryClient = new QueryClient({
   },
 });
 
-// Evidence blobs are cached as object URLs; free them when the cache drops the entry.
+// Evidence and vision blobs are cached as object URLs; free them when the cache drops the entry.
 queryClient.getQueryCache().subscribe((event) => {
-  if (event.type === 'removed' && event.query.queryKey[0] === 'evidence') {
+  const root = event.type === 'removed' ? event.query.queryKey[0] : null;
+  if (root === 'evidence' || root === 'visionBlob') {
     const data = event.query.state.data as { url?: string } | undefined;
     if (data?.url) URL.revokeObjectURL(data.url);
   }
