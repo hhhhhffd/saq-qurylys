@@ -15,6 +15,7 @@ const ObjectDetailPage = lazy(() =>
 );
 const AdsPage = lazy(() => import('@/features/ads/AdsPage').then((m) => ({ default: m.AdsPage })));
 const SourcesPage = lazy(() => import('@/features/sources/SourcesPage').then((m) => ({ default: m.SourcesPage })));
+const WorkPage = lazy(() => import('@/features/work/WorkPage').then((m) => ({ default: m.WorkPage })));
 const GraphPage = lazy(() => import('@/features/graph/GraphPage').then((m) => ({ default: m.GraphPage })));
 const SignalsPage = lazy(() => import('@/features/signals/SignalsPage').then((m) => ({ default: m.SignalsPage })));
 const SignalDetailPage = lazy(() =>
@@ -54,6 +55,14 @@ export function App() {
         }
       >
         <Route index element={<HomeRedirect />} />
+        <Route
+          path="work"
+          element={
+            <RequireCapability capability="canSeeRegistry">
+              <WorkPage />
+            </RequireCapability>
+          }
+        />
         <Route
           path="map"
           element={

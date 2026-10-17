@@ -27,6 +27,11 @@ pnpm dev                                    # in another terminal
 E2E_BASE_URL=http://localhost:5173 pnpm e2e
 ```
 
+### Isolated UI regression suite
+
+With the source preview running, use `E2E_BASE_URL=http://127.0.0.1:5174 pnpm exec playwright test --config=e2e/ui-mock.config.ts`.
+This focused suite intercepts `/api/v1` with in-memory fixtures; it does not seed or access the shared database.
+
 Chromium comes from `~/.cache/ms-playwright`. `@playwright/test` is pinned to 1.63.0, the version that uses the
 installed `chromium-1243`; after changing the version run `pnpm exec playwright install chromium`.
 
@@ -65,9 +70,10 @@ these when restyling or replacing components:
 
 Besides these the suite relies on accessible names that come from the UI (they must stay when the markup changes):
 the labelled regions «Объекты по убыванию риска», «Правовое основание», «История публикации», «Выбранная
-публикация», the zone-counter group, the island text «Мониторинг», the language switch showing the texts `RU` and
-`ҚАЗ`, the role `article` with the name «Публикация №N» for a publication, and `aria-pressed` on the zone counters, the
-time-machine toggle and the findings of the graph.
+публикация», the zone-counter group, the language switch showing the texts `RU` and `ҚАЗ`, the role `article` with
+the name «Публикация №N» for a publication, and `aria-pressed` on the zone counters, the time-machine toggle and the
+findings of the graph. Activity announcements remain available through the live region when an event arrives; an
+idle monitoring caption is not part of the header.
 
 ## Data the tests leave behind
 

@@ -7,11 +7,13 @@ test.use({ storageState: authFile('mio') });
 
 const NAV = ['map', 'objects', 'ads', 'graph', 'signals'] as const;
 
-test('the activity island idles as «Мониторинг» for a registry officer', async ({ page }) => {
+test('the activity live region stays quiet without an idle caption', async ({ page }) => {
   await page.goto('/map');
-  await expect(page.getByText(t('activity:idle'), { exact: true })).toBeVisible();
-  // Its live region is empty until an event is announced.
-  await expect(page.getByTestId('activity-live-region')).toBeAttached();
+  await expect(page.getByText('Мониторинг', { exact: true })).toBeHidden();
+  const liveRegion = page.getByTestId('activity-live-region');
+  await expect(liveRegion).toBeAttached();
+  await expect(liveRegion).toHaveAttribute('aria-live', 'polite');
+  await expect(liveRegion).toBeEmpty();
 });
 
 test('the language switch changes the navigation to Kazakh and back', async ({ page }) => {

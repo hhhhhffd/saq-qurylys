@@ -8,7 +8,7 @@ import { choose, expectObjectScore } from '../support/ui';
 test.use({ storageState: authFile('mio') });
 
 // Not undone: the publication, the rescored object and the events stay in the demo database (see e2e/README.md).
-test('a manually entered publication is highlighted, rescored and announced by the island', async ({ page }) => {
+test('a manually entered publication is highlighted, rescored and announced through the activity region', async ({ page }) => {
   test.setTimeout(150_000);
   const api = await apiAs('mio');
   const object = await findObject(api, OBJECT.birchGrove).finally(() => api.dispose());
@@ -17,10 +17,14 @@ test('a manually entered publication is highlighted, rescored and announced by t
   const stamp = `E2E ${Date.now()}`;
   const text = `${stamp} Старт продаж! Забронируйте квартиру, первоначальный взнос 10 %`;
 
-  // The island takes its starting point from the first poll of the feed; events after it are announced.
+  // The feed takes its starting point from the first poll; only later events are announced.
   const firstPoll = page.waitForResponse((r) => new URL(r.url()).pathname === '/api/v1/activity');
   await page.goto('/ads');
-  await expect(page.getByText(t('activity:idle'), { exact: true })).toBeVisible();
+  await expect(page.getByText('Мониторинг', { exact: true })).toBeHidden();
+  const activityLiveRegion = page.getByTestId('activity-live-region');
+  await expect(activityLiveRegion).toBeAttached();
+  await expect(activityLiveRegion).toHaveAttribute('aria-live', 'polite');
+  await expect(activityLiveRegion).toBeEmpty();
   await firstPoll;
 
   await page.getByRole('button', { name: t('ads:actions.manual') }).click();
@@ -41,8 +45,8 @@ test('a manually entered publication is highlighted, rescored and announced by t
   await expect(marks.filter({ hasText: /забронируйте/i })).toBeVisible();
   await expect(marks.filter({ hasText: /первоначальный взнос/i })).toBeVisible();
 
-  // The island announces it within a few polls (every 4 s), through its live region.
-  await expect(page.getByTestId('activity-live-region')).toContainText(OBJECT.birchGrove, { timeout: 25_000 });
+  // The event is announced within a few polls (every 4 s), through the live region.
+  await expect(activityLiveRegion).toContainText(OBJECT.birchGrove, { timeout: 25_000 });
 
   // It is in the feed too (found by its unique text), with the phrases marked.
   await page.goto('/ads');

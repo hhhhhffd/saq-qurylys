@@ -6,7 +6,6 @@ import { useCloseSignal } from '@/api/hooks/signals';
 import { errorMessage } from '@/api/queryClient';
 import type { SignalDetail, SignalRecipient } from '@/api/types';
 import { useAuth } from '@/auth/useAuth';
-import { MovingBorder } from '@/components/fx/MovingBorder';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { confirmAction } from '@/lib/confirm';
@@ -39,7 +38,7 @@ function DownloadButton({ path, filename, label }: { path: string; filename: str
       variant="secondary"
       loading={loading}
       // The label of the sent copy is long: it wraps on a narrow screen instead of widening the page.
-      className="h-auto min-h-7 max-w-full py-1 whitespace-normal"
+      className="h-auto min-h-11 max-w-full px-3 py-2 whitespace-normal"
       onClick={() => void download()}
     >
       <IconFileTypePdf />
@@ -54,9 +53,11 @@ interface Props {
   recipient: SignalRecipient | null;
   /** the card has edits that are not saved yet */
   dirty: boolean;
+  /** edited fields satisfy the form's save requirements */
+  canSave: boolean;
 }
 
-export function ActionsBar({ detail, recipient, dirty }: Props) {
+export function ActionsBar({ detail, recipient, dirty, canSave }: Props) {
   const { t } = useTranslation('signals');
   const { user, canManageSignals, isRecipient } = useAuth();
   const [dialog, setDialog] = useState<Dialog | null>(null);
@@ -72,57 +73,72 @@ export function ActionsBar({ detail, recipient, dirty }: Props) {
 
   let sendBlocker: string | null = null;
   if (!recipient) sendBlocker = t('actions.needRecipient');
+  else if (dirty && !canSave) sendBlocker = t('unsaved.invalid');
   else if (dirty) sendBlocker = t('actions.saveFirst');
 
   const close = () => setDialog(null);
 
   return (
     <>
-      <DownloadButton path={`/signals/${detail.id}/pdf`} filename={`${detail.number}.pdf`} label={t('detail.pdf')} />
-      {detail.sent_pdf_evidence_id !== null && (
-        <DownloadButton
-          path={`/evidence/${detail.sent_pdf_evidence_id}/content`}
-          filename={`${detail.number}-sent.pdf`}
-          label={t('detail.sentPdf')}
-        />
-      )}
-      {canReview && (
-        <>
-          <Button variant="secondary" onClick={() => setDialog('return')}>
-            {t('actions.return')}
-          </Button>
-          {sendBlocker === null ? (
-            <MovingBorder>
-              <Button onClick={() => setDialog('send')}>{t('actions.confirmSend')}</Button>
-            </MovingBorder>
-          ) : (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span>
-                  <Button disabled>{t('actions.confirmSend')}</Button>
+      <div className="flex flex-wrap items-center gap-2">
+        {canReview && (
+          <>
+            {sendBlocker === null ? (
+              <Button className="min-h-11" onClick={() => setDialog('send')}>
+                {t('actions.confirmSend')}
+              </Button>
+            ) : (
+              <div className="flex flex-col items-start gap-1">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span>
+                      <Button className="min-h-11" disabled>
+                        {t('actions.confirmSend')}
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>{sendBlocker}</TooltipContent>
+                </Tooltip>
+                <span role="status" className="max-w-56 text-xs text-text-2">
+                  {sendBlocker}
                 </span>
-              </TooltipTrigger>
-              <TooltipContent>{sendBlocker}</TooltipContent>
-            </Tooltip>
-          )}
-        </>
-      )}
-      {canRespond && <Button onClick={() => setDialog('respond')}>{t('actions.respond')}</Button>}
-      {canClose && (
-        <Button
-          loading={closeSignal.isPending}
-          onClick={() =>
-            confirmAction({
-              title: t('actions.close'),
-              message: t('close.message', { number: detail.number }),
-              confirmLabel: t('actions.close'),
-              onConfirm: () => closeSignal.mutate(detail.id, { onSuccess: apply }),
-            })
-          }
-        >
-          {t('actions.close')}
-        </Button>
-      )}
+              </div>
+            )}
+            <Button className="min-h-11" variant="secondary" onClick={() => setDialog('return')}>
+              {t('actions.return')}
+            </Button>
+          </>
+        )}
+        {canRespond && (
+          <Button className="min-h-11" onClick={() => setDialog('respond')}>
+            {t('actions.respond')}
+          </Button>
+        )}
+        {canClose && (
+          <Button
+            className="min-h-11"
+            loading={closeSignal.isPending}
+            onClick={() =>
+              confirmAction({
+                title: t('actions.close'),
+                message: t('close.message', { number: detail.number }),
+                confirmLabel: t('actions.close'),
+                onConfirm: () => closeSignal.mutate(detail.id, { onSuccess: apply }),
+              })
+            }
+          >
+            {t('actions.close')}
+          </Button>
+        )}
+        <DownloadButton path={`/signals/${detail.id}/pdf`} filename={`${detail.number}.pdf`} label={t('detail.pdf')} />
+        {detail.sent_pdf_evidence_id !== null && (
+          <DownloadButton
+            path={`/evidence/${detail.sent_pdf_evidence_id}/content`}
+            filename={`${detail.number}-sent.pdf`}
+            label={t('detail.sentPdf')}
+          />
+        )}
+      </div>
       {canReview && recipient && (
         <ConfirmSendModal opened={dialog === 'send'} onClose={close} detail={detail} recipient={recipient} />
       )}

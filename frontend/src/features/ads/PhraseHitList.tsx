@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useConfirmHit } from '@/api/hooks/ads';
 import type { PhraseHit } from '@/api/types';
@@ -19,6 +20,7 @@ export function PhraseHitList({ adId, hits, editable, focusHitId = null }: Props
   const { t } = useTranslation('ads');
   const e = useEnum();
   const confirmHit = useConfirmHit();
+  const [updated, setUpdated] = useState<{ hitId: number; confirmed: boolean } | null>(null);
   const sorted = [...hits].sort((a, b) => a.start - b.start || a.id - b.id);
   const pending = confirmHit.isPending ? confirmHit.variables : undefined;
 
@@ -59,26 +61,37 @@ export function PhraseHitList({ adId, hits, editable, focusHitId = null }: Props
               <HitSourceChip hit={hit} />
             </div>
             {editable && (
-              <div className="flex gap-1.5">
+              <div className="flex flex-wrap gap-1.5">
                 <Button
                   size="sm"
+                  className="max-sm:min-h-11"
                   variant="secondary"
                   disabled={source === 'confirmed'}
                   loading={pending?.hitId === hit.id && pending.confirmed}
-                  onClick={() => confirmHit.mutate({ adId, hitId: hit.id, confirmed: true })}
+                  onClick={() =>
+                    confirmHit.mutate({ adId, hitId: hit.id, confirmed: true }, { onSuccess: () => setUpdated({ hitId: hit.id, confirmed: true }) })
+                  }
                 >
                   {hypothesis ? t('hits.accept') : t('confirm', { ns: 'common' })}
                 </Button>
                 <Button
                   size="sm"
+                  className="max-sm:min-h-11"
                   variant="secondary"
                   disabled={source === 'rejected'}
                   loading={pending?.hitId === hit.id && !pending.confirmed}
-                  onClick={() => confirmHit.mutate({ adId, hitId: hit.id, confirmed: false })}
+                  onClick={() =>
+                    confirmHit.mutate({ adId, hitId: hit.id, confirmed: false }, { onSuccess: () => setUpdated({ hitId: hit.id, confirmed: false }) })
+                  }
                 >
                   {t('hits.reject')}
                 </Button>
               </div>
+            )}
+            {updated?.hitId === hit.id && (
+              <p className="m-0 text-sm text-zone-green-ink md:col-span-3" role="status">
+                {t(updated.confirmed ? 'hits.confirmedFeedback' : 'hits.rejectedFeedback')}
+              </p>
             )}
           </li>
         );

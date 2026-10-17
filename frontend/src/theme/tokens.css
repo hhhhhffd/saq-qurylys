@@ -77,6 +77,12 @@
   --gutter: 24px;
 }
 
+@media (max-width: 62em) {
+  :root {
+    --header-h: 92px;
+  }
+}
+
 @media (max-width: 48em) {
   :root {
     --gutter: 16px;

@@ -1,6 +1,6 @@
 import type { SignalStatus } from '@/api/types';
 import { Chip, type ChipTone } from '@/components/Chip';
-import { useEnum } from '@/i18n/useEnum';
+import { useTranslation } from 'react-i18next';
 
 // Statuses stay calm: only "needs the officer" is yellow, red is reserved for the overdue chip.
 const APPEARANCE: Record<SignalStatus, { tone: ChipTone; outline?: boolean }> = {
@@ -8,15 +8,15 @@ const APPEARANCE: Record<SignalStatus, { tone: ChipTone; outline?: boolean }> = 
   returned: { tone: 'yellow', outline: true },
   sent: { tone: 'info' },
   responded: { tone: 'info', outline: true },
-  closed: { tone: 'neutral' },
+  closed: { tone: 'green' },
 };
 
 export function SignalStatusChip({ status }: { status: SignalStatus }) {
-  const e = useEnum();
+  const { t } = useTranslation('signals');
   const { tone, outline } = APPEARANCE[status];
   return (
     <Chip tone={tone} outline={outline}>
-      {e('signal_status', status)}
+      {t(`statusLabels.${status}`)}
     </Chip>
   );
 }

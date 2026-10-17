@@ -65,7 +65,7 @@ export function NotificationsBell() {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label={t('header.notifications')} className="relative">
+        <Button variant="ghost" size="icon" aria-label={t('header.notifications')} className="relative size-11">
           <IconBell />
           {data.length > 0 && (
             <Badge

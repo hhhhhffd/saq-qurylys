@@ -15,7 +15,7 @@ import { useEnum, useZoneReasonLabel } from '@/i18n/useEnum';
 import { useFormat } from '@/i18n/useFormat';
 import { cn } from '@/lib/utils';
 import { ReadinessGap } from './ReadinessGap';
-import { subTitleClass } from './styles';
+import { anchorTargetClass, subTitleClass } from './styles';
 
 // Defaults of `zone_yellow_min` / `zone_red_min` (SPEC 6.2) while the settings are not loaded.
 const DEFAULT_YELLOW_MIN = 25;
@@ -65,7 +65,11 @@ export function RiskPanel({ object }: { object: ObjectDetail }) {
 
   const panel = (
     // In the red zone the glow draws the frame, so the panel gives up its own.
-    <Panel title={t('card.risk.title')} id="risk" className={cn(red && 'border-0! bg-transparent! shadow-none!')}>
+    <Panel
+      title={t('card.risk.title')}
+      id="risk"
+      className={cn(anchorTargetClass, red && 'border-0! bg-transparent! shadow-none!')}
+    >
       {latest ? (
         <>
           <div className="flex flex-wrap items-center justify-between gap-3" data-testid="risk-summary">
