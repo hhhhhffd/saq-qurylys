@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.main import app
 from app.models import AdPost, AppUser, SignalCard
-from app.models.enums import Platform, Recipient, SignalOrigin, SignalStatus, Zone
+from app.models.enums import KeyStatus, Platform, Recipient, SignalOrigin, SignalStatus, Zone
 from app.modules.assistant import knowledge, tools
 from app.modules.assistant.router import get_llm_client, get_session_factory
 from app.scope import build_scope
@@ -335,3 +335,9 @@ def test_zone_reasons_are_put_into_words() -> None:
     assert tools._zone_reason("score_0_24") == "Балл в диапазоне 0–24"
     assert tools._zone_reason("score_60_without_r1_r2").startswith("Балл 60+")
     assert "R1 и R2" in tools._zone_reason("r1_and_r2")
+
+
+def test_key_status_is_put_into_words(world: World, db: Session) -> None:
+    obj = make_object(db, world.ust, "ЖК Слова", key_status=KeyStatus.legal_basis_unknown)
+    found = run(db, world.users["mio_ust"], "get_object", {"object_id": obj.id})
+    assert found["key_status"] == "Правовое основание не проверено"

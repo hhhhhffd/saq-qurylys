@@ -15,7 +15,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import AdPost, AppUser, ConstructionObject, SignalCard
-from app.models.enums import AdStatus, Role, SignalStatus, Zone
+from app.models.enums import AdStatus, KeyStatus, Role, SignalStatus, Zone
 from app.modules.assistant import knowledge
 from app.modules.nlp.text import strip_ocr_marker
 from app.modules.objects.router import build_detail
@@ -82,6 +82,25 @@ def _enum[E: (Zone, SignalStatus, AdStatus)](args: Args, name: str, enum: type[E
         raise ToolArgError(f"Параметр {name}: допустимы {allowed}") from None
 
 
+# The wording of the object card (frontend enums `key_status`), so that the model does not repeat the codes.
+KEY_STATUS_TEXT = {
+    KeyStatus.no_legal_basis_with_offer: "Нет правового основания, приём денег",
+    KeyStatus.no_legal_basis: "Нет правового основания",
+    KeyStatus.money_offer: "Предложение внести деньги",
+    KeyStatus.legal_basis_unknown: "Правовое основание не проверено",
+    KeyStatus.stalled: "Простой",
+    KeyStatus.delayed: "Срыв срока строительства",
+    KeyStatus.collective_complaint: "Коллективное обращение",
+    KeyStatus.readiness_mismatch: "Расхождение готовности",
+    KeyStatus.active_ads: "Идёт реклама",
+    KeyStatus.ok: "Замечаний нет",
+}
+
+
+def _key_status(value: KeyStatus | None) -> str | None:
+    return None if value is None else KEY_STATUS_TEXT.get(value, value)
+
+
 _SCORE_RANGE = re.compile(r"score_(\d+)_(\d+)")
 _SCORE_WITHOUT_R1_R2 = re.compile(r"score_(\d+)_without_r1_r2")
 
@@ -131,7 +150,7 @@ def search_objects(session: Session, user: AppUser, scope: TerritoryScope, args:
                 "district": district,
                 "score": obj.score,
                 "zone": obj.zone,
-                "key_status": obj.key_status,
+                "key_status": _key_status(obj.key_status),
                 "url": f"/objects/{obj.id}",
             }
             for obj, developer, district in rows
@@ -161,7 +180,7 @@ def get_object(session: Session, user: AppUser, scope: TerritoryScope, args: Arg
         "readiness_claimed_pct": obj.readiness_claimed_pct,
         "score": obj.score,
         "zone": obj.zone,
-        "key_status": obj.key_status,
+        "key_status": _key_status(obj.key_status),
         "key_status_detail": detail.key_status_detail,
         "ads_7d_count": detail.ads_7d_count,
         "documents": len(detail.documents),
