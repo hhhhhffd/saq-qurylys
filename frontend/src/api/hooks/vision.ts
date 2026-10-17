@@ -55,9 +55,11 @@ export function useVisionSessions(params: VisionSessionListParams) {
   });
 }
 
-/** An asset still being worked on, or an OCR run that has not finished. */
+/** An asset still being worked on, a detector run that has not finished, or an OCR run that has not finished. */
 const isWorking = (session: VisionSessionDetail) =>
+  session.processing ||
   session.assets.some((asset) => asset.status === 'queued' || asset.status === 'processing') ||
+  session.runs.some((run) => run.status === 'queued' || run.status === 'running') ||
   session.findings.some((finding) => finding.ocr_status === 'pending');
 
 export function useVisionSession(id: number) {
@@ -126,6 +128,15 @@ export function useMarkSessionReviewed(id: number) {
     mutationFn: () => api<VisionSessionDetail>(`/vision/sessions/${id}/reviewed`, { method: 'POST' }),
     onSuccess: invalidate,
     meta: { success: 'visionReviewed' },
+  });
+}
+
+export function useReanalyzeSession(id: number) {
+  const invalidate = useInvalidateVision();
+  return useMutation({
+    mutationFn: () => api<VisionSessionDetail>(`/vision/sessions/${id}/reanalyze`, { method: 'POST' }),
+    onSuccess: invalidate,
+    meta: { success: 'visionReanalysisQueued' },
   });
 }
 

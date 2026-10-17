@@ -1040,14 +1040,15 @@ export interface Timeline {
 export type VisionSource = 'drone' | 'camera' | 'phone' | 'other';
 export type VisionSessionStatus = 'open' | 'reviewed';
 export type VisionAssetStatus = 'queued' | 'processing' | 'ready' | 'failed';
-export type FindingCategory = 'outdoor_ad' | 'fence' | 'site_gate' | 'waste_container' | 'wheel_wash' | 'other';
+export type FindingCategory = 'outdoor_ad' | 'fence' | 'site_gate' | 'waste_container' | 'wheel_wash' | 'debris' | 'other';
 export type FindingStatus = 'observed' | 'possible_noncompliance' | 'insufficient_evidence' | 'not_applicable';
 export type FindingReviewState = 'pending' | 'confirmed' | 'rejected' | 'needs_more_evidence';
 export type FindingReviewAction = 'confirm' | 'reject' | 'needs_more_evidence' | 'not_applicable' | 'comment';
 
 export interface VisionConfig {
   enabled: boolean;
-  detector_mode: 'disabled';
+  detector_mode: 'disabled' | 'experimental_pretrained';
+  detector_model: string | null;
   ocr_enabled: boolean;
   max_photo_mb: number;
   max_video_mb: number;
@@ -1138,15 +1139,32 @@ export interface VisionFinding {
   ocr_confidence: number | null;
   ocr_engine: string | null;
   confirmed_text: string | null;
+  run_id: number | null;
   ad_post_id: number | null;
   created_at: string;
   created_by_name: string | null;
   reviews: VisionFindingReview[];
 }
 
+export type VisionRunStatus = 'queued' | 'running' | 'completed' | 'failed';
+
+export interface VisionRun {
+  id: number;
+  asset_id: number | null;
+  status: VisionRunStatus;
+  model_version: string;
+  frames_total: number;
+  frames_done: number;
+  error_code: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+  summary: Partial<Record<FindingCategory, number>>;
+}
+
 export interface VisionSessionDetail extends VisionSessionListItem {
   assets: VisionAsset[];
   findings: VisionFinding[];
+  runs: VisionRun[];
 }
 
 export interface VisionSessionInput {

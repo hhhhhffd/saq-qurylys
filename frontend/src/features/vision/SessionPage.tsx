@@ -18,6 +18,7 @@ import { AssetsPanel } from './AssetsPanel';
 import { FindingsPanels } from './FindingsPanels';
 import { FrameViewer } from './FrameViewer';
 import { FramesGallery } from './FramesGallery';
+import { RunsPanel } from './RunsPanel';
 import { SessionStatusChips } from './SessionStatusChips';
 import { UploadPanel } from './UploadPanel';
 
@@ -80,6 +81,11 @@ function SessionView({ session, config }: { session: VisionSessionDetail; config
   const [viewer, setViewer] = useState<{ frameId: number; findingId: number | null } | null>(null);
   const frames = useVisionFrames(session.id, page, session.processing);
   const markedFrameIds = new Set(session.findings.flatMap((finding) => (finding.frame_id !== null ? [finding.frame_id] : [])));
+  const pendingModelFrameIds = new Set(
+    session.findings.flatMap((finding) =>
+      finding.origin === 'model' && finding.review_state === 'pending' && finding.frame_id !== null ? [finding.frame_id] : [],
+    ),
+  );
 
   const showFinding = (finding: VisionFinding) => {
     if (finding.frame_id !== null) setViewer({ frameId: finding.frame_id, findingId: finding.id });
@@ -156,9 +162,24 @@ function SessionView({ session, config }: { session: VisionSessionDetail; config
         </Panel>
 
         <p role="note" className="m-0 rounded border border-border-strong bg-surface-sunken p-3 text-sm text-text-2">
-          {config.ocr_enabled ? t('banner.detectorOff') : t('banner.detectorAndOcrOff')}
+          {config.detector_mode === 'experimental_pretrained' ? (
+            <>
+              {t('banner.detectorExperimental')}
+              {config.detector_model && (
+                <>
+                  {' '}
+                  <span className="text-text-3 [overflow-wrap:anywhere]">{t('banner.model', { model: config.detector_model })}</span>
+                </>
+              )}
+            </>
+          ) : config.ocr_enabled ? (
+            t('banner.detectorOff')
+          ) : (
+            t('banner.detectorAndOcrOff')
+          )}
         </p>
 
+        <RunsPanel session={session} config={config} />
         <UploadPanel sessionId={session.id} config={config} />
         <AssetsPanel assets={session.assets} />
         <FramesGallery
@@ -169,6 +190,7 @@ function SessionView({ session, config }: { session: VisionSessionDetail; config
           onPageChange={setPage}
           onOpen={(frameId) => setViewer({ frameId, findingId: null })}
           markedFrameIds={markedFrameIds}
+          pendingModelFrameIds={pendingModelFrameIds}
         />
         <FindingsPanels session={session} config={config} onShow={showFinding} />
       </div>
