@@ -3,8 +3,6 @@ import type ru from '../ru/activity';
 
 const activity: typeof ru = {
   region: 'Оқиғалардың тірі лентасы',
-  idle: 'Мониторинг',
-  offline: 'Серверге қосылу жоқ',
   title: {
     adCitizen: 'Азаматтың хабарламасы',
     adCollector: 'Жаңа жарияланым',

@@ -42,7 +42,7 @@ export function SourcesPage() {
           </>
         }
       />
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-5">
         <section
           className={
             collectors.data && disabledCount > 0

@@ -141,7 +141,8 @@
 - **Модалка**: `bg-surface-raised`, `--shadow-window`, подложка `--scrim` с blur 4px. **Тосты**: `surface-raised`,
   ошибка — красная полоса слева, успех — розовая.
 - **Шапка**: полоса как заголовок окна Fatality (`surface-raised`, нижняя рамка), логотип «SAQ QURYLYS» жирным
-  Tektur, «SAQ» белым, «QURYLYS» розовым, лёгкое свечение.
+  Tektur, «SAQ» белым, «QURYLYS» розовым, лёгкое свечение. Язык, уведомления и профиль остаются отдельными
+  элементами без общей рамки.
 
 ## 5. Эффекты
 
@@ -161,7 +162,7 @@
 | Логотип на логине | React Bits **GlitchText** в режиме `bursts`: ровный текст, раз в 6 с короткая (~0,5 с) вспышка глитча; фон логина — обычный фон темы, без Aurora и Spotlight (мешали читать); статичный при reduced motion |
 | Счётчики зон, балл в карточке | React Bits **CountUp** |
 | Карточка объекта красной зоны, строка списка | React Bits **BorderGlow** (розово-красное свечение рамки по курсору), спокойно в покое |
-| «Островок» при событии | React Bits **StarBorder** по контуру пилюли |
+| Уведомление о событии | React Bits **StarBorder** по контуру временной карточки под шапкой; в ожидании карточка скрыта |
 
 ## 6. Карта и граф
 
@@ -208,9 +209,9 @@
 | Бренд (розовый) | `bg-primary` (заливка), `text-primary-foreground` (белый на розовом), `hover:bg-accent-hover`, `text-accent-text` (мелкий розовый текст), `text-link`, `ring-focus`, `shadow-glow` |
 | Зоны | `bg-zone-red`, `bg-zone-red-bg`, `text-zone-red-ink` (так же `green`, `yellow`, `none`); `bg-graph-developer` |
 | Тени и радиусы | `shadow-1`, `shadow-2`, `shadow-glow`, `shadow-window`; `rounded-sm` 2px, `rounded` и `rounded-md` 4px, `rounded-lg` и крупнее 6px |
-| Шрифт и размеры | `font-sans` (Play), `font-heading` (Tektur), `font-mono`; `text-3xs` 10px, `text-2xs` 11px, `text-xs` 12px, `text-sm` 14px, `text-base` 16px; базовый текст страницы 16px |
+| Шрифт и размеры | `font-sans` (Play), `font-heading` (Tektur), `font-mono`; `text-3xs` 10px, `text-2xs` 11px, `text-xs` 12px, `text-sm` 13px, `text-base` 16px; базовый текст страницы 14px |
 
-Высота закреплённой шапки для responsive-отступа задаётся токеном `--header-h`: 88px на desktop у ролей с мониторингом, 56px у остальных и 92px при ширине до 62em.
+Высота закреплённой шапки для responsive-отступа задаётся токеном `--header-h`: 56px на desktop и 92px при ширине до 62em. Событие открывается под шапкой и не занимает место в её строке; в ожидании индикатора и подписи нет.
 
 Ловушка имён: в shadcn `accent` значит «фон наведения», а наш брендовый `--accent` у shadcn называется `primary`. Поэтому
 `bg-accent` и `bg-primary` разные вещи: розовая заливка только `bg-primary` (и `text-primary`, `border-primary`), а `bg-accent`

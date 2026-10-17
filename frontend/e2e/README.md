@@ -70,9 +70,10 @@ these when restyling or replacing components:
 
 Besides these the suite relies on accessible names that come from the UI (they must stay when the markup changes):
 the labelled regions «Объекты по убыванию риска», «Правовое основание», «История публикации», «Выбранная
-публикация», the zone-counter group, the island text «Мониторинг», the language switch showing the texts `RU` and
-`ҚАЗ`, the role `article` with the name «Публикация №N» for a publication, and `aria-pressed` on the zone counters, the
-time-machine toggle and the findings of the graph.
+публикация», the zone-counter group, the language switch showing the texts `RU` and `ҚАЗ`, the role `article` with
+the name «Публикация №N» for a publication, and `aria-pressed` on the zone counters, the time-machine toggle and the
+findings of the graph. Activity announcements remain available through the live region when an event arrives; an
+idle monitoring caption is not part of the header.
 
 ## Data the tests leave behind
 

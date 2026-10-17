@@ -158,7 +158,7 @@ export function WorkPage() {
         </ol>
       </section>
 
-      <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,0.38fr)]">
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,0.38fr)]">
         <section aria-labelledby="work-queues-title" className="min-w-0 space-y-3">
           <h2 id="work-queues-title" className="text-lg font-semibold">
             {t('work.queuesTitle')}

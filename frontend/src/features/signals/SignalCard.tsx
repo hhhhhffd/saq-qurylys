@@ -215,11 +215,11 @@ export function SignalCard({ detail }: { detail: SignalDetail }) {
         <ZoneDisclaimer className="mt-3.5 border-t border-border pt-3" />
       </Panel>
 
-      <section aria-labelledby="signal-materials-heading" className="grid min-w-0 gap-3">
+      <section aria-labelledby="signal-materials-heading" className="grid min-w-0 gap-4">
         <h2 id="signal-materials-heading" className="text-sm font-semibold text-text">
           {t('detail.groups.materials')}
         </h2>
-        <div className="grid min-w-0 grid-cols-1 items-start gap-3 xl:grid-cols-2">
+        <div className="grid min-w-0 grid-cols-1 items-start gap-4 xl:grid-cols-2">
           <ObjectDeveloperSection data={sections.object_developer} />
           <RiskFactorsSection sections={sections} linked={!isRecipient} />
           <PermitChecksSection items={sections.permit_checks} />
@@ -227,11 +227,11 @@ export function SignalCard({ detail }: { detail: SignalDetail }) {
         </div>
       </section>
 
-      <section aria-labelledby="signal-review-heading" className="grid min-w-0 gap-3">
+      <section aria-labelledby="signal-review-heading" className="grid min-w-0 gap-4">
         <h2 id="signal-review-heading" className="text-sm font-semibold text-text">
           {t('detail.groups.review')}
         </h2>
-        <div className="grid grid-cols-1 items-start gap-3 lg:grid-cols-2">
+        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
           <SchemePaymentsSection
             value={draft.value.scheme_payments}
             editable={editable}
@@ -246,7 +246,7 @@ export function SignalCard({ detail }: { detail: SignalDetail }) {
         </div>
       </section>
 
-      <section aria-labelledby="signal-route-heading" className="grid min-w-0 gap-3">
+      <section aria-labelledby="signal-route-heading" className="grid min-w-0 gap-4">
         <h2 id="signal-route-heading" className="text-sm font-semibold text-text">
           {t('detail.groups.route')}
         </h2>

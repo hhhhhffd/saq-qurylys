@@ -570,34 +570,75 @@ test('administrator opens the read-only task overview and recipient is kept out 
   expectCleanBrowser(recipientHarness);
 });
 
-test('header keeps monitoring separate and utilities usable at every supported width', async ({ page }) => {
+test('header restores the compact style and keeps utilities usable at every supported width', async ({ page }) => {
   const harness = await installMocks(page, 'mio_officer');
   await page.goto('/work');
   const header = page.getByRole('banner');
   const utilities = page.getByRole('group', { name: 'Действия и настройки' });
+  const typography = await page.evaluate(() => {
+    const headerElement = document.querySelector('header');
+    const navigation = headerElement?.querySelector('nav');
+    const activeLink = navigation?.querySelector<HTMLAnchorElement>('a[aria-current="page"]');
+    if (!activeLink) throw new Error('Missing active navigation link');
+    const navStyle = getComputedStyle(activeLink);
+    return {
+      bodyFontSize: getComputedStyle(document.body).fontSize,
+      navFontFamily: navStyle.fontFamily,
+      navTextTransform: navStyle.textTransform,
+      navTextShadow: navStyle.textShadow,
+    };
+  });
+  expect(typography.bodyFontSize).toBe('14px');
+  expect(typography.navFontFamily.toLowerCase()).toContain('tektur variable');
+  expect(typography.navTextTransform).toBe('uppercase');
+  expect(typography.navTextShadow).not.toBe('none');
+
   const breakpoints = [320, 390, 768, 1024, 1440];
-  const measurements: Array<{ width: number; headerHeight: number; clientWidth: number; scrollWidth: number }> = [];
+  const measurements: Array<{
+    width: number;
+    headerHeight: number;
+    clientWidth: number;
+    scrollWidth: number;
+    mobileNavLabels: Array<{ cell: number; label: string; left: number; right: number; cellLeft: number; cellRight: number }>;
+  }> = [];
   const popoverMeasurements: Array<{ width: number; x: number; y: number; right: number; bottom: number }> = [];
 
   for (const width of breakpoints) {
     await page.setViewportSize({ width, height: 844 });
     await expect(header).toBeVisible();
     await expect(utilities).toBeVisible();
+    await expect(page.getByText('Мониторинг', { exact: true })).toBeHidden();
+    const languageBounds = await page.getByLabel('Язык').evaluate((frame) => {
+      const frameRect = frame.getBoundingClientRect();
+      return {
+        frame: { left: frameRect.left, top: frameRect.top, right: frameRect.right, bottom: frameRect.bottom },
+        buttons: Array.from(frame.querySelectorAll<HTMLElement>('[role="radio"]')).map((button) => {
+          const rect = button.getBoundingClientRect();
+          return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom };
+        }),
+      };
+    });
+    expect(languageBounds.frame.left, `language control must fit at ${width}px`).toBeGreaterThanOrEqual(0);
+    expect(languageBounds.frame.right, `language control must fit at ${width}px`).toBeLessThanOrEqual(width);
+    expect(languageBounds.frame.bottom - languageBounds.frame.top, `language frame at ${width}px`).toBeGreaterThanOrEqual(48);
+    expect(languageBounds.buttons).toHaveLength(2);
+    for (const button of languageBounds.buttons) {
+      expect(button.left, `language button left at ${width}px`).toBeGreaterThanOrEqual(languageBounds.frame.left);
+      expect(button.right, `language button right at ${width}px`).toBeLessThanOrEqual(languageBounds.frame.right);
+      expect(button.top, `language button top at ${width}px`).toBeGreaterThanOrEqual(languageBounds.frame.top);
+      expect(button.bottom, `language button bottom at ${width}px`).toBeLessThanOrEqual(languageBounds.frame.bottom);
+    }
     const measurement = await page.evaluate(() => {
       const headerElement = document.querySelector('header');
       const navigation = headerElement?.querySelector('nav');
       const utilityGroup = headerElement?.querySelector('[role="group"][aria-label]');
-      const island = headerElement?.querySelector<HTMLElement>('[data-open][data-place]');
-      if (!headerElement || !navigation || !utilityGroup || !island) throw new Error('Missing header region');
+      if (!headerElement || !navigation || !utilityGroup) throw new Error('Missing header region');
 
       const box = (element: Element) => {
         const rect = element.getBoundingClientRect();
         return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom };
       };
       const visible = (element: Element) => getComputedStyle(element).display !== 'none';
-      const overlaps = (first: ReturnType<typeof box>, second: ReturnType<typeof box>) =>
-        first.left < second.right && second.left < first.right && first.top < second.bottom && second.top < first.bottom;
-      const islandBox = box(island);
       const navigationBox = box(navigation);
       const utilityBox = box(utilityGroup);
       const utilityTargets = Array.from(utilityGroup.querySelectorAll<HTMLElement>('button,[role="radio"]'))
@@ -606,19 +647,34 @@ test('header keeps monitoring separate and utilities usable at every supported w
           const rect = target.getBoundingClientRect();
           return { width: rect.width, height: rect.height };
         });
+      const mobileNavLabels = window.innerWidth <= 992
+        ? Array.from(navigation.children).flatMap((cell, index) => {
+          const label = Array.from(cell.querySelectorAll('span')).find((span) => visible(span) && span.textContent?.trim());
+          if (!label) return [];
+          const range = document.createRange();
+          range.selectNodeContents(label);
+          const textRect = range.getBoundingClientRect();
+          const cellRect = cell.getBoundingClientRect();
+          return [{
+            cell: index,
+            label: label.textContent?.trim() ?? '',
+            left: textRect.left,
+            right: textRect.right,
+            cellLeft: cellRect.left,
+            cellRight: cellRect.right,
+          }];
+        })
+        : [];
 
       return {
         headerHeight: headerElement.getBoundingClientRect().height,
         clientWidth: document.documentElement.clientWidth,
         scrollWidth: document.documentElement.scrollWidth,
-        islandVisible: visible(island),
-        islandBox,
         navigationBox,
         utilityBox,
-        islandOverlapsNavigation: overlaps(islandBox, navigationBox),
-        islandOverlapsUtilities: overlaps(islandBox, utilityBox),
         utilityHeight: utilityBox.bottom - utilityBox.top,
         utilityTargets,
+        mobileNavLabels,
       };
     });
     measurements.push({ width, ...measurement });
@@ -630,19 +686,25 @@ test('header keeps monitoring separate and utilities usable at every supported w
       expect(target.width, `toolbar target width at ${width}px`).toBeGreaterThanOrEqual(44);
       expect(target.height, `toolbar target height at ${width}px`).toBeGreaterThanOrEqual(44);
     }
+    if (width <= 992) {
+      expect(measurement.mobileNavLabels, `all mobile navigation labels must be measured at ${width}px`).toHaveLength(5);
+      for (const label of measurement.mobileNavLabels) {
+        expect(label.left, `${label.label} must start inside its navigation cell at ${width}px`).toBeGreaterThanOrEqual(label.cellLeft - 0.5);
+        expect(label.right, `${label.label} must end inside its navigation cell at ${width}px`).toBeLessThanOrEqual(label.cellRight + 0.5);
+      }
+      for (let index = 1; index < measurement.mobileNavLabels.length; index += 1) {
+        const previous = measurement.mobileNavLabels[index - 1];
+        const current = measurement.mobileNavLabels[index];
+        expect(previous.right, `${previous.label} must not overlap ${current.label} at ${width}px`).toBeLessThanOrEqual(current.left + 0.5);
+      }
+    }
 
     if (width <= 992) {
       expect(measurement.headerHeight, `mobile header height at ${width}px`).toBeGreaterThanOrEqual(92);
       expect(measurement.headerHeight, `mobile header height at ${width}px`).toBeLessThanOrEqual(94);
-      expect(measurement.islandVisible, `monitoring status stays out of the crowded mobile row at ${width}px`).toBe(false);
     } else {
-      expect(measurement.headerHeight, `desktop header height at ${width}px`).toBeGreaterThanOrEqual(88);
-      expect(measurement.headerHeight, `desktop header height at ${width}px`).toBeLessThanOrEqual(90);
-      expect(measurement.islandVisible).toBe(true);
-      expect(measurement.islandOverlapsNavigation, `monitoring must not overlap navigation at ${width}px`).toBe(false);
-      expect(measurement.islandOverlapsUtilities, `monitoring must not overlap toolbar at ${width}px`).toBe(false);
-      expect(measurement.islandBox.left).toBeGreaterThanOrEqual(0);
-      expect(measurement.islandBox.right).toBeLessThanOrEqual(width);
+      expect(measurement.headerHeight, `desktop header height at ${width}px`).toBeGreaterThanOrEqual(56);
+      expect(measurement.headerHeight, `desktop header height at ${width}px`).toBeLessThanOrEqual(58);
     }
 
     if (width === 1440 || width === 320) await screenshot(page, `header-${width}`);
@@ -652,6 +714,7 @@ test('header keeps monitoring separate and utilities usable at every supported w
     await page.keyboard.press('Enter');
     const notificationContent = page.getByText('Новых уведомлений нет', { exact: true });
     await expect(notificationContent).toBeVisible();
+    expect(await notificationContent.evaluate((element) => getComputedStyle(element).fontSize)).toBe('13px');
     const popover = page.locator('[data-slot="popover-content"]');
     let previousPosition: { x: number; y: number } | null = null;
     await expect.poll(async () => {
@@ -703,13 +766,44 @@ test('header keeps monitoring separate and utilities usable at every supported w
   await page.getByRole('radio', { name: 'RU' }).click();
   await expect(page.locator('html')).toHaveAttribute('lang', 'ru');
 
+  const browser = page.context().browser();
+  if (!browser) throw new Error('Missing browser for the unauthenticated login check');
+  const loginContext = await browser.newContext({ viewport: { width: 320, height: 844 }, locale: 'ru-RU' });
+  try {
+    const loginPage = await loginContext.newPage();
+    await loginPage.goto(new URL('/login', page.url()).toString());
+    await expect(loginPage.getByRole('heading', { level: 1, name: 'Вход в систему' })).toBeVisible();
+    const loginLanguageBounds = await loginPage.getByLabel('Язык').evaluate((frame) => {
+      const frameRect = frame.getBoundingClientRect();
+      return {
+        frame: { left: frameRect.left, top: frameRect.top, right: frameRect.right, bottom: frameRect.bottom },
+        buttons: Array.from(frame.querySelectorAll<HTMLElement>('[role="radio"]')).map((button) => {
+          const rect = button.getBoundingClientRect();
+          return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom };
+        }),
+      };
+    });
+    expect(loginLanguageBounds.frame.left).toBeGreaterThanOrEqual(0);
+    expect(loginLanguageBounds.frame.right).toBeLessThanOrEqual(320);
+    expect(loginLanguageBounds.frame.bottom - loginLanguageBounds.frame.top).toBeGreaterThanOrEqual(48);
+    expect(loginLanguageBounds.buttons).toHaveLength(2);
+    for (const button of loginLanguageBounds.buttons) {
+      expect(button.left).toBeGreaterThanOrEqual(loginLanguageBounds.frame.left);
+      expect(button.right).toBeLessThanOrEqual(loginLanguageBounds.frame.right);
+      expect(button.top).toBeGreaterThanOrEqual(loginLanguageBounds.frame.top);
+      expect(button.bottom).toBeLessThanOrEqual(loginLanguageBounds.frame.bottom);
+    }
+  } finally {
+    await loginContext.close();
+  }
+
   await writeFile(`${screenshotDir}/header-breakpoints.json`, JSON.stringify(measurements, null, 2));
   await writeFile(`${screenshotDir}/header-popover-bounds.json`, JSON.stringify(popoverMeasurements, null, 2));
   expect(harness.mutations).toEqual([]);
   expectCleanBrowser(harness);
 });
 
-test('monitoring activity opens below the sticky header and navigates to its event', async ({ page }) => {
+test('activity notification opens below the sticky header and navigates to its event', async ({ page }) => {
   const event: ActivityEvent = {
     id: 'signal_created:ui-42',
     kind: 'signal_created',
@@ -736,7 +830,11 @@ test('monitoring activity opens below the sticky header and navigates to its eve
 
   const activity = page.getByRole('button', { name: /SIG-UI-0042/ });
   await expect(activity).toBeVisible();
+  await expect(page.getByText('Мониторинг', { exact: true })).toBeHidden();
   await activity.hover();
+  const liveRegion = page.getByTestId('activity-live-region');
+  await expect(liveRegion).toHaveAttribute('aria-live', 'polite');
+  await expect(liveRegion).toContainText('SIG-UI-0042');
   const metrics = await page.evaluate(() => {
     const header = document.querySelector('header');
     const island = header?.querySelector<HTMLElement>('[data-open="true"][data-place="below"]');
