@@ -124,7 +124,7 @@ const vision: typeof ru = {
     drawHint: 'Кадрды басып, объектінің айналасына тіктөртбұрыш сызыңыз.',
     imageAlt: '{{label}} түпнұсқа кадры',
     newFinding: 'Жаңа тұжырым',
-    modelBox: '{{category}} {{confidence}}%',
+    modelBox: '{{category}} · ұсыным',
     saveFinding: 'Тұжырымды сақтау',
   },
   findings: {
@@ -139,8 +139,8 @@ const vision: typeof ru = {
     note: 'Ескертпе',
     cropAlt: 'Кадрдың белгіленген аймағы',
     originManual: 'Қолмен белгіленген: {{name}}',
-    originModel: 'Модель {{model}}, сенімділік {{confidence}}%',
-    originModelBadge: 'Нейрожелі · сенімділік {{confidence}}%',
+    originModelBadge: 'Нейрожелі ұсынымы, сенімділік {{level}} — суреттен тексеріңіз',
+    originModelBadgePlain: 'Нейрожелі ұсынымы — суреттен тексеріңіз',
     modelVersion: 'Модель нұсқасы: {{model}}',
     debrisPossible: 'Контейнерден тыс ықтимал қоқыс — тексеру қажет',
     filterLabel: 'Көрсету',
@@ -168,7 +168,7 @@ const vision: typeof ru = {
     disabled: 'Мәтінді тану серверде өшірулі.',
     needsBox: 'Тану үшін кадрдағы аймақты белгілеңіз.',
     rawLabel: 'OCR таныған, түзетусіз',
-    confidence: 'сенімділік {{value}}%',
+    confidence: 'сенімділік {{level}}',
     noText: 'Мәтін табылмады',
   },
   publish: {

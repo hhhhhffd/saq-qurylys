@@ -32,8 +32,6 @@ function StatusLine({ status }: { status: AdRow['llm_status'] }) {
   );
 }
 
-const percent = (value: number) => Math.round(value * 100);
-
 const termClass = 'text-xs font-medium text-text-3';
 
 /**
@@ -116,16 +114,7 @@ export function LlmPanel({ ad, extraction, editable }: Props) {
           </div>
         </dl>
       </div>
-      {extraction.confidence != null && (
-        <details className="text-sm">
-          <summary className="inline-flex cursor-pointer items-center text-text-2 hover:text-text max-sm:min-h-11">
-            {t('llm.details')}
-          </summary>
-          <p className="m-0 mt-1 text-xs text-text-3 tabular-nums">
-            {t('llm.confidenceLabel')}: {percent(extraction.confidence)}%
-          </p>
-        </details>
-      )}
+      <p className="m-0 text-sm text-text-2">{t('llm.reviewRequired')}</p>
       {editable && (
         <div className="flex flex-col items-start gap-2">
           {accepted ? (

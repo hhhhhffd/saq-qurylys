@@ -207,6 +207,11 @@ const enums = {
     unknown: 'Не установлено',
   },
   /** "needs check": unknown or unconfirmed facts; they never add points */
+  confidence_level: {
+    high: 'высокая',
+    medium: 'средняя',
+    low: 'низкая',
+  },
   needs_check: {
     legal_basis_unknown: 'Правовое основание не проверено',
     complaint_unverified: 'Коллективное обращение не проверено',

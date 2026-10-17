@@ -121,7 +121,7 @@ const vision = {
     drawHint: 'Нажмите на кадр и протяните прямоугольник вокруг объекта.',
     imageAlt: 'Оригинальный кадр {{label}}',
     newFinding: 'Новая находка',
-    modelBox: '{{category}} {{confidence}}%',
+    modelBox: '{{category}} · подсказка',
     saveFinding: 'Сохранить находку',
   },
   findings: {
@@ -136,8 +136,8 @@ const vision = {
     note: 'Заметка',
     cropAlt: 'Выделенная область кадра',
     originManual: 'Отмечено вручную: {{name}}',
-    originModel: 'Модель {{model}}, уверенность {{confidence}}%',
-    originModelBadge: 'Нейросеть · уверенность {{confidence}}%',
+    originModelBadge: 'Подсказка нейросети, уверенность {{level}} — проверьте на снимке',
+    originModelBadgePlain: 'Подсказка нейросети — проверьте на снимке',
     modelVersion: 'Версия модели: {{model}}',
     debrisPossible: 'Возможный мусор вне контейнера — требуется проверка',
     filterLabel: 'Показать',
@@ -165,7 +165,7 @@ const vision = {
     disabled: 'Распознавание текста выключено на сервере.',
     needsBox: 'Для распознавания выделите область на кадре.',
     rawLabel: 'Распознано OCR, без исправлений',
-    confidence: 'уверенность {{value}}%',
+    confidence: 'уверенность {{level}}',
     noText: 'Текст не найден',
   },
   publish: {

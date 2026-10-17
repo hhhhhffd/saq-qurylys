@@ -174,10 +174,7 @@ export function FrameViewer({ session, frameId, frames, focusFindingId, onFrameC
                   >
                     <span className="absolute -top-px left-0 -translate-y-full bg-primary px-1 text-2xs whitespace-nowrap text-primary-foreground">
                       {finding.origin === 'model' && finding.confidence !== null
-                        ? t('viewer.modelBox', {
-                            category: e('vision_category', finding.category),
-                            confidence: Math.round(finding.confidence * 100),
-                          })
+                        ? t('viewer.modelBox', { category: e('vision_category', finding.category) })
                         : e('vision_category', finding.category)}
                     </span>
                   </span>

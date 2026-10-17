@@ -1,13 +1,10 @@
-import { Fragment, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { IconCheck, IconCopy } from '@tabler/icons-react';
+import { Fragment, useId, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AdDetail } from '@/api/types';
 import { Chip } from '@/components/Chip';
+import { CopyButton } from '@/components/CopyButton';
 import { EvidenceImage } from '@/components/evidence/EvidenceImage';
-import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useFormat } from '@/i18n/useFormat';
-import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils';
 import { splitOcr } from './segments';
 import { diffWords, type DiffPart } from './wordDiff';
@@ -32,45 +29,15 @@ function formatDuration(ms: number, units: { d: string; h: string; min: string; 
 
 const shortHash = (value: string) => `${value.slice(0, 8)}…${value.slice(-6)}`;
 
-const COPIED_MS = 1800;
-
 function Hash({ label, value }: { label: string; value: string }) {
   const { t } = useTranslation('ads');
-  const { t: tc } = useTranslation('common');
-  const [copied, setCopied] = useState(false);
-  const timer = useRef<number | undefined>(undefined);
-  useEffect(() => () => window.clearTimeout(timer.current), []);
-
-  const copy = () => {
-    navigator.clipboard.writeText(value).then(
-      () => {
-        setCopied(true);
-        window.clearTimeout(timer.current);
-        timer.current = window.setTimeout(() => setCopied(false), COPIED_MS);
-      },
-      () => toast.error(tc('error')),
-    );
-  };
-
   return (
     <span className="inline-flex min-w-0 flex-wrap items-center gap-x-1.5">
       <span className="text-xs text-text-3">{label}</span>
       <code className="rounded-sm bg-surface-sunken px-1.5 py-px font-mono text-xs text-text-2" title={value}>
         {shortHash(value)}
       </code>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button size="icon-xs" variant="ghost" aria-label={t('versions.copyHash')} onClick={copy}>
-            {copied ? <IconCheck /> : <IconCopy />}
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>{copied ? t('versions.copiedHash') : t('versions.copyHash')}</TooltipContent>
-      </Tooltip>
-      {copied && (
-        <span className="sr-only" role="status">
-          {t('versions.copiedHash')}
-        </span>
-      )}
+      <CopyButton value={value} label={t('versions.copyHash')} />
     </span>
   );
 }

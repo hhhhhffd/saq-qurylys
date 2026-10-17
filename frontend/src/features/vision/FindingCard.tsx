@@ -8,6 +8,7 @@ import { TextInput } from '@/components/form/TextInput';
 import { Button } from '@/components/ui/button';
 import { useEnum, useEnumOptions } from '@/i18n/useEnum';
 import { useFormat } from '@/i18n/useFormat';
+import { confidenceLevel } from '@/lib/confidenceLevel';
 import { FINDING_STATUSES, FINDING_STATUS_TONE, REVIEW_STATE_TONE, isFindingStatus } from './constants';
 import { FindingCrop } from './FindingCrop';
 import { OutdoorAdBox } from './OutdoorAdBox';
@@ -67,7 +68,9 @@ export function FindingCard({ finding, session, config, onShow }: Props) {
             ) : (
               <>
                 <Chip tone="info">
-                  {t('finding.originModelBadge', { confidence: finding.confidence !== null ? Math.round(finding.confidence * 100) : '—' })}
+                  {finding.confidence !== null
+                    ? t('finding.originModelBadge', { level: e('confidence_level', confidenceLevel(finding.confidence)) })
+                    : t('finding.originModelBadgePlain')}
                 </Chip>
                 <span className="[overflow-wrap:anywhere]">{t('finding.modelVersion', { model: finding.model_version ?? '—' })}</span>
               </>

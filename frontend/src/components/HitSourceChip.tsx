@@ -25,7 +25,6 @@ export function HitSourceChip({ hit }: Props) {
   const { t } = useTranslation('ads');
   const e = useEnum();
   const source = hitSource(hit);
-  const confidence = hit.detected_by === 'llm' && hit.confidence != null ? Math.round(hit.confidence * 100) : null;
 
   return (
     <>
@@ -35,7 +34,6 @@ export function HitSourceChip({ hit }: Props) {
         title={source === 'ai_hypothesis' ? t('hits.llmUnreviewedHint') : undefined}
       >
         {e('hit_source', source)}
-        {confidence !== null && <span className="tabular-nums">{`· ${confidence}%`}</span>}
       </Chip>
       {hit.uncertain && source === 'ai_hypothesis' && <Chip tone="red">{t('hits.uncertain')}</Chip>}
     </>

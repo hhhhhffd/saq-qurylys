@@ -207,6 +207,11 @@ const enums: typeof ru = {
     absent_established: 'Жоқ екені анықталған',
     unknown: 'Анықталмаған',
   },
+  confidence_level: {
+    high: 'жоғары',
+    medium: 'орташа',
+    low: 'төмен',
+  },
   needs_check: {
     legal_basis_unknown: 'Құқықтық негіз тексерілмеген',
     complaint_unverified: 'Ұжымдық өтініш тексерілмеген',

@@ -8,6 +8,8 @@ import { TextArea } from '@/components/form/TextArea';
 import { ObjectSelect } from '@/components/ObjectSelect';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
+import { useEnum } from '@/i18n/useEnum';
+import { confidenceLevel } from '@/lib/confidenceLevel';
 
 interface Props {
   finding: VisionFinding;
@@ -18,6 +20,7 @@ interface Props {
 /** OCR of the marked area, the analyst's own wording of the text, and the step into the ads feed. */
 export function OutdoorAdBox({ finding, session, config }: Props) {
   const { t } = useTranslation('vision');
+  const e = useEnum();
   const runOcr = useRunOcr();
   const publish = usePublishAd();
   const [draft, setDraft] = useState<string | null>(null);
@@ -53,7 +56,7 @@ export function OutdoorAdBox({ finding, session, config }: Props) {
         <div className="text-sm" data-testid="vision-ocr-result">
           <p className="m-0 text-xs text-text-3">
             {t('ocr.rawLabel')}
-            {finding.ocr_confidence !== null && ` · ${t('ocr.confidence', { value: Math.round(finding.ocr_confidence * 100) })}`}
+            {finding.ocr_confidence !== null && ` · ${t('ocr.confidence', { level: e('confidence_level', confidenceLevel(finding.ocr_confidence)) })}`}
             {finding.ocr_engine && ` · ${finding.ocr_engine}`}
           </p>
           <blockquote className="m-0 mt-1 border-l-2 border-border-strong pl-2 whitespace-pre-wrap text-text-2 [overflow-wrap:anywhere]">

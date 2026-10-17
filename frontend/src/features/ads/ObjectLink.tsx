@@ -9,6 +9,7 @@ import { ObjectSelect } from '@/components/ObjectSelect';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useEnum } from '@/i18n/useEnum';
+import { confidenceLevel } from '@/lib/confidenceLevel';
 import { DEFAULT_LINK_THRESHOLD } from './constants';
 
 interface Props {
@@ -109,7 +110,7 @@ export function ObjectLink({ ad, linked, editable }: Props) {
         </p>
       )}
       {lowConfidence && (
-        <p className="m-0 text-sm text-zone-yellow-ink">{t('link.lowConfidence', { threshold: Math.round(threshold * 100) })}</p>
+        <p className="m-0 text-sm text-zone-yellow-ink">{t('link.lowConfidence')}</p>
       )}
       {!lowConfidence && needsConfirmation && <p className="m-0 text-sm text-zone-yellow-ink">{t('link.needsConfirmation')}</p>}
       {target && (confidence !== null || ad.link_method) && (
@@ -118,7 +119,7 @@ export function ObjectLink({ ad, linked, editable }: Props) {
             {t('link.matchDetails')}
           </summary>
           <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
-            {confidence !== null && <span className="tabular-nums">{t('link.confidence', { value: Math.round(confidence * 100) })}</span>}
+            {confidence !== null && <span className="tabular-nums">{t('link.confidence', { level: e('confidence_level', confidenceLevel(confidence)) })}</span>}
             {ad.link_method && <Chip>{e('link_method', ad.link_method)}</Chip>}
           </div>
         </details>
