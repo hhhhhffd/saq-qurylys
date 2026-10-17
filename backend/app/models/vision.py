@@ -157,5 +157,7 @@ class VisionReview(IdMixin, Base):
     finding_id: Mapped[int] = fk("vision_finding.id")
     action: Mapped[VisionReviewAction] = mapped_column(enum_type(VisionReviewAction, "vision_review_action"))
     comment: Mapped[str | None] = mapped_column(Text)
+    # The finding status the person set with this decision, if they changed it.
+    status: Mapped[VisionFindingStatus | None] = mapped_column(enum_type(VisionFindingStatus, "vision_review_status"))
     reviewer_id: Mapped[int] = fk("app_user.id")
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())

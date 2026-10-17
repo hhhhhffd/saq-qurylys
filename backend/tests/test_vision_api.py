@@ -448,7 +448,7 @@ def test_video_task_goes_to_the_vision_queue() -> None:
     assert options["queue"].name == "vision"
 
 
-def test_unreachable_broker_keeps_the_video_queued_and_records_the_error(
+def test_unreachable_broker_fails_the_video_and_records_the_error(
     client: TestClient, db: Session, world: World, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     def broken(*args: object, **kwargs: object) -> None:
@@ -460,12 +460,12 @@ def test_unreachable_broker_keeps_the_video_queued_and_records_the_error(
     session = create_session(client, user)
     response = upload(client, user, session["id"], MP4_BYTES)
     assert response.status_code == 201
-    assert response.json()["status"] == "queued"
+    assert (response.json()["status"], response.json()["error_code"]) == ("failed", "queue_unavailable")
     job = db.scalars(select(VisionJob)).one()
     assert job.status is VisionJobStatus.failed
     assert job.error_code == "queue_unavailable"
     asset = db.scalars(select(VisionAsset)).one()
-    assert asset.status is VisionAssetStatus.queued
+    assert asset.status is VisionAssetStatus.failed
 
 
 # ---------------------------------------------------------------- findings

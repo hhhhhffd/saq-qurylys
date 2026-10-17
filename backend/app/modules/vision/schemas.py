@@ -142,12 +142,14 @@ class FindingCreate(BaseModel):
 class ReviewCreate(BaseModel):
     action: VisionReviewAction
     comment: Comment | None = None
+    status: VisionFindingStatus | None = None
 
 
 class ReviewOut(BaseModel):
     id: int
     action: VisionReviewAction
     comment: str | None
+    status: VisionFindingStatus | None = None
     reviewer_name: str | None
     created_at: datetime
 
@@ -178,3 +180,14 @@ class FindingOut(BaseModel):
 class SessionDetail(SessionListItem):
     assets: list[AssetOut]
     findings: list[FindingOut]
+
+
+class PublishAdBody(BaseModel):
+    """The text is what a person confirmed (OCR output is only a suggestion)."""
+
+    text: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=50_000)]
+    object_id: int | None = None
+
+
+class PublishAdOut(BaseModel):
+    ad_id: int

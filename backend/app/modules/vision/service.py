@@ -4,15 +4,18 @@ import logging
 import re
 import secrets
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, tzinfo
 from typing import Any
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from fastapi import UploadFile
+from fastapi import Request, UploadFile
+from minio.error import S3Error
 from PIL import Image, ImageOps, UnidentifiedImageError
 from sqlalchemy import Select, exists, func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, aliased
 
-from app import storage
+from app import audit, storage
 from app.config import get_settings
 from app.deps import PageParams
 from app.errors import api_error
@@ -36,6 +39,7 @@ from app.models.enums import (
     VisionJobStatus,
     VisionReviewAction,
     VisionReviewState,
+    VisionSessionStatus,
 )
 from app.modules.objects.service import get_object_in_scope
 from app.modules.vision.schemas import (
@@ -56,8 +60,16 @@ READ_CHUNK_BYTES = 1024 * 1024
 PREVIEW_MAX_SIDE = 640
 PREVIEW_QUALITY = 85
 # Decoding allocates width * height * 4 bytes; a larger picture is refused before it is loaded.
-MAX_PHOTO_PIXELS = 100_000_000
+MAX_PHOTO_PIXELS = 50_000_000
 PHOTO_TYPES = frozenset({"image/jpeg", "image/png", "image/webp"})
+# Major brands of the ISO base media / QuickTime files that hold video. Image containers (heic, avif, mif1) and
+# audio-only brands (M4A) share the `ftyp` box and are refused.
+VIDEO_BRANDS = frozenset(
+    {b"isom", b"iso2", b"iso4", b"iso5", b"iso6", b"mp41", b"mp42", b"avc1", b"M4V ", b"qt  ", b"dash"}
+    | {b"3gp4", b"3gp5", b"3g2a"}
+)
+DEFAULT_TIMEZONE = "Asia/Almaty"
+EXIF_ORIENTATION = 274
 EXIF_IFD = 0x8769
 GPS_IFD = 0x8825
 EXIF_DATETIME_ORIGINAL = 36867
@@ -276,6 +288,7 @@ def build_findings(db: Session, findings: list[VisionFinding]) -> list[FindingOu
                 id=review.id,
                 action=review.action,
                 comment=review.comment,
+                status=review.status,
                 reviewer_name=reviewer_name,
                 created_at=review.created_at,
             )
@@ -344,7 +357,7 @@ def sniff_media(head: bytes) -> tuple[VisionAssetKind, str]:
     photo_type = sniff_content_type(head)
     if photo_type in PHOTO_TYPES:
         return VisionAssetKind.photo, photo_type
-    if head[4:8] == b"ftyp":
+    if head[4:8] == b"ftyp" and head[8:12] in VIDEO_BRANDS:
         return VisionAssetKind.video, "video/quicktime" if head[8:12] == b"qt  " else "video/mp4"
     if head.startswith(b"\x1a\x45\xdf\xa3"):
         return VisionAssetKind.video, "video/webm" if b"webm" in head[:64] else "video/x-matroska"
@@ -360,7 +373,7 @@ def _gps_coordinate(value: Any, ref: Any, negative_ref: str) -> float | None:
     return -result if ref == negative_ref else result
 
 
-def _exif_taken_at(exif: Image.Exif) -> datetime | None:
+def _exif_taken_at(exif: Image.Exif, local_zone: tzinfo) -> datetime | None:
     ifd = exif.get_ifd(EXIF_IFD)
     raw = ifd.get(EXIF_DATETIME_ORIGINAL)
     if not isinstance(raw, str):
@@ -369,12 +382,13 @@ def _exif_taken_at(exif: Image.Exif) -> datetime | None:
         moment = datetime.strptime(raw.strip(), "%Y:%m:%d %H:%M:%S")
     except ValueError:
         return None
-    # EXIF carries no zone unless OffsetTimeOriginal is present; without it the time is kept as written, as UTC.
+    # EXIF carries no zone unless OffsetTimeOriginal is present; without it the time is the camera's local time,
+    # taken to be that of the territory of the session.
     offset = _OFFSET.match(str(ifd.get(EXIF_OFFSET_TIME_ORIGINAL, "")).strip())
     if offset:
         delta = timedelta(hours=int(offset[2]), minutes=int(offset[3]))
         return moment.replace(tzinfo=timezone(-delta if offset[1] == "-" else delta))
-    return moment.replace(tzinfo=UTC)
+    return moment.replace(tzinfo=local_zone)
 
 
 def _exif_location(exif: Image.Exif) -> tuple[float | None, float | None]:
@@ -386,19 +400,27 @@ def _exif_location(exif: Image.Exif) -> tuple[float | None, float | None]:
     return lat, lon
 
 
-def decode_photo(file: UploadFile) -> PhotoInfo:
-    """Decode the picture, read its EXIF and build the preview. An undecodable file stores nothing."""
+def decode_photo(file: UploadFile, local_zone: tzinfo) -> PhotoInfo:
+    """Decode the picture, read its EXIF and build the preview. An undecodable file stores nothing.
+
+    A JPEG is decoded at a reduced scale (`draft`), so a large photo never takes its full size in memory; the
+    dimensions are those of the upright picture, as people (and the marked areas) see it.
+    """
     file.file.seek(0)
     try:
         with Image.open(file.file) as image:
             if image.width * image.height > MAX_PHOTO_PIXELS:
                 raise api_error(422, "image_too_large", "Изображение слишком большое по числу пикселей")
             exif = image.getexif()
-            taken_at = _exif_taken_at(exif)
+            taken_at = _exif_taken_at(exif, local_zone)
             lat, lon = _exif_location(exif)
+            width, height = image.size
+            if exif.get(EXIF_ORIENTATION) in {5, 6, 7, 8}:
+                width, height = height, width
+            if image.format == "JPEG":
+                image.draft("RGB", (PREVIEW_MAX_SIDE * 2, PREVIEW_MAX_SIDE * 2))
             upright = ImageOps.exif_transpose(image)
             upright.load()
-            width, height = upright.size
             preview_image = upright.convert("RGB")
             preview_image.thumbnail((PREVIEW_MAX_SIDE, PREVIEW_MAX_SIDE))
             buffer = io.BytesIO()
@@ -408,12 +430,32 @@ def decode_photo(file: UploadFile) -> PhotoInfo:
     return PhotoInfo(width=width, height=height, taken_at=taken_at, lat=lat, lon=lon, preview=buffer.getvalue())
 
 
+def _territory_zone(db: Session, territory_id: int) -> tzinfo:
+    territory = db.get(Territory, territory_id)
+    try:
+        return ZoneInfo(territory.timezone if territory is not None else DEFAULT_TIMEZONE)
+    except ZoneInfoNotFoundError:
+        return ZoneInfo(DEFAULT_TIMEZONE)
+
+
+def _existing_asset(db: Session, session_id: int, sha256: str) -> VisionAsset | None:
+    return db.scalars(
+        select(VisionAsset).where(VisionAsset.session_id == session_id, VisionAsset.sha256 == sha256)
+    ).first()
+
+
 def store_upload(db: Session, vision_session: VisionSession, user: AppUser, file: UploadFile) -> StoredUpload:
-    """Stream the upload through sha256 and the size limit, then store it. Flushes; the caller commits.
+    """Stream the upload through sha256 and the size limit, store it, then record it. Flushes; the caller commits.
 
     The file is spooled to disk by the multipart parser and read in chunks: a video never sits in memory whole.
+    No database transaction is open while the file is hashed and sent to MinIO (up to the video limit): the
+    transaction is ended before, and the rows are inserted afterwards. The cost is that a failure after the upload
+    leaves an unreferenced object in the locked bucket (it cannot be deleted); that is logged. Two concurrent
+    uploads of the same file both store an object, and the unique (session, sha256) index lets one row through;
+    the other request returns the existing asset.
     """
     settings = get_settings()
+    session_id, territory_id = vision_session.id, vision_session.territory_id
     head = file.file.read(READ_CHUNK_BYTES)
     if not head:
         raise api_error(422, "empty_file", "Файл пуст")
@@ -430,18 +472,28 @@ def store_upload(db: Session, vision_session: VisionSession, user: AppUser, file
         chunk = file.file.read(READ_CHUNK_BYTES)
     sha256 = digest.hexdigest()
 
-    existing = db.scalars(
-        select(VisionAsset).where(VisionAsset.session_id == vision_session.id, VisionAsset.sha256 == sha256)
-    ).first()
+    existing = _existing_asset(db, session_id, sha256)
     if existing is not None:
         return StoredUpload(asset=existing, created=False, job=None)
 
-    photo = decode_photo(file) if kind is VisionAssetKind.photo else None
+    photo = decode_photo(file, _territory_zone(db, territory_id)) if kind is VisionAssetKind.photo else None
+    # Release the connection for the (possibly long) upload.
+    db.commit()
     token = secrets.token_hex(16)
-    key = f"session/{vision_session.id}/{token}{storage.extension_for(content_type)}"
+    key = f"session/{session_id}/{token}{storage.extension_for(content_type)}"
+    preview_key = f"session/{session_id}/{token}-preview.jpg"
+    file.file.seek(0)
+    try:
+        storage.put_vision_object(key, file.file, size, content_type)
+        if photo is not None:
+            storage.put_vision_object(preview_key, io.BytesIO(photo.preview), len(photo.preview), "image/jpeg")
+    except Exception:
+        logger.error("Upload to session %s failed; an unreferenced object %s may remain in the bucket", session_id, key)
+        raise
+
     name = (file.filename or "").replace("\\", "/").rsplit("/", 1)[-1].strip()[:255] or None
     asset = VisionAsset(
-        session_id=vision_session.id,
+        session_id=session_id,
         kind=kind,
         original_name=name,
         content_type=content_type,
@@ -453,34 +505,40 @@ def store_upload(db: Session, vision_session: VisionSession, user: AppUser, file
         status=VisionAssetStatus.ready if photo else VisionAssetStatus.queued,
     )
     job = None
-    if photo is not None:
-        asset.width, asset.height, asset.taken_at = photo.width, photo.height, photo.taken_at
-        asset.location = make_point(photo.lat, photo.lon)
-    db.add(asset)
-    db.flush()
-    if photo is not None:
-        preview_key = f"session/{vision_session.id}/{token}-preview.jpg"
-        db.add(
-            VisionFrame(
-                asset_id=asset.id,
-                bucket=asset.bucket,
-                s3_key=key,
-                preview_key=preview_key,
-                width=photo.width,
-                height=photo.height,
-            )
+    try:
+        with db.begin_nested():
+            if photo is not None:
+                asset.width, asset.height, asset.taken_at = photo.width, photo.height, photo.taken_at
+                asset.location = make_point(photo.lat, photo.lon)
+            db.add(asset)
+            db.flush()
+            if photo is not None:
+                db.add(
+                    VisionFrame(
+                        asset_id=asset.id,
+                        bucket=asset.bucket,
+                        s3_key=key,
+                        preview_key=preview_key,
+                        width=photo.width,
+                        height=photo.height,
+                    )
+                )
+            else:
+                job = VisionJob(
+                    asset_id=asset.id, kind=VisionJobKind.extract_frames, idempotency_key=f"extract:{asset.id}:1"
+                )
+                db.add(job)
+            db.flush()
+    except IntegrityError:
+        # The same file was recorded by a concurrent request; the object stored above stays as an orphan.
+        logger.warning(
+            "Concurrent upload of sha256 %s to session %s; object %s is unreferenced", sha256, session_id, key
         )
-    else:
-        job = VisionJob(asset_id=asset.id, kind=VisionJobKind.extract_frames, idempotency_key=f"extract:{asset.id}:1")
-        db.add(job)
-    db.flush()
+        existing = _existing_asset(db, session_id, sha256)
+        if existing is None:
+            raise
+        return StoredUpload(asset=existing, created=False, job=None)
     db.refresh(asset)
-
-    # Rows are flushed first so a constraint violation surfaces before anything reaches the locked bucket.
-    file.file.seek(0)
-    storage.put_vision_object(key, file.file, size, content_type)
-    if photo is not None:
-        storage.put_vision_object(preview_key, io.BytesIO(photo.preview), len(photo.preview), "image/jpeg")
     return StoredUpload(asset=asset, created=True, job=job)
 
 
@@ -499,11 +557,27 @@ def dispatch_extract_frames(job: VisionJob) -> bool:
     return True
 
 
+def dispatch_ocr(finding_id: int) -> bool:
+    """Queue the recognition of a marked area. Call after the status is committed; False when the broker is down."""
+    if not get_settings().events_enabled:
+        return True
+    try:
+        celery_app.send_task("vision.ocr_region", args=[finding_id], queue="vision", retry=False, ignore_result=True)
+    except Exception:
+        logger.exception("Failed to enqueue vision.ocr_region for finding %s", finding_id)
+        return False
+    return True
+
+
 def mark_job_unqueued(db: Session, job: VisionJob) -> None:
-    """The asset stays queued so that the processing can be requested again; the job records why it did not start."""
+    """Nothing will process the video, so the asset is failed too: the UI stops polling and offers a retry."""
     job.status = VisionJobStatus.failed
     job.error_code = "queue_unavailable"
     job.error_message = "Не удалось поставить обработку видео в очередь"
+    asset = db.get(VisionAsset, job.asset_id)
+    if asset is not None:
+        asset.status = VisionAssetStatus.failed
+        asset.error_code = "queue_unavailable"
     db.commit()
 
 
@@ -511,14 +585,60 @@ def mark_job_unqueued(db: Session, job: VisionJob) -> None:
 
 
 def apply_review(
-    db: Session, finding: VisionFinding, user: AppUser, action: VisionReviewAction, comment: str | None
+    db: Session,
+    finding: VisionFinding,
+    user: AppUser,
+    action: VisionReviewAction,
+    comment: str | None,
+    status: VisionFindingStatus | None = None,
 ) -> VisionReview:
-    review = VisionReview(finding_id=finding.id, action=action, comment=comment, reviewer_id=user.id)
+    """Record a decision. `status` (the person's new judgement of the finding) is stored with it."""
+    if action is VisionReviewAction.not_applicable:
+        status = VisionFindingStatus.not_applicable
+    elif status is VisionFindingStatus.not_applicable:
+        raise api_error(422, "status_not_allowed", "Статус «не применимо» выставляется действием not_applicable")
+    if action is VisionReviewAction.confirm and status is None and finding.status is VisionFindingStatus.not_applicable:
+        raise api_error(409, "finding_not_applicable", "Находка помечена как неприменимая: укажите новый статус")
+    review = VisionReview(finding_id=finding.id, action=action, comment=comment, reviewer_id=user.id, status=status)
     db.add(review)
     new_state = REVIEW_TRANSITIONS.get(action)
     if new_state is not None:
         finding.review_state = new_state
-    if action is VisionReviewAction.not_applicable:
-        finding.status = VisionFindingStatus.not_applicable
+    if status is not None:
+        finding.status = status
     db.flush()
     return review
+
+
+def read_object(bucket: str, key: str) -> bytes:
+    """A stored picture as bytes (frames are bounded by the photo limit)."""
+    try:
+        response = storage.get_client().get_object(bucket, key)
+    except S3Error as exc:
+        raise api_error(502, "vision_object_missing", "Файл недоступен в хранилище") from exc
+    return b"".join(storage.stream_object(response))
+
+
+def reopen_if_reviewed(db: Session, vision_session: VisionSession, user: AppUser, request: Request | None) -> None:
+    """New material in a session a person has marked reviewed puts it back to `open`.
+
+    `reviewed_by/at` are cleared (a reviewed session is one with a current review); the previous values stay in
+    the audit record written here.
+    """
+    if vision_session.status is not VisionSessionStatus.reviewed:
+        return
+    before = audit.snapshot(vision_session)
+    vision_session.status = VisionSessionStatus.open
+    vision_session.reviewed_by = None
+    vision_session.reviewed_at = None
+    db.flush()
+    audit.record(
+        db,
+        user,
+        "vision_session.reopen",
+        "vision_session",
+        vision_session.id,
+        before,
+        audit.snapshot(vision_session),
+        request,
+    )

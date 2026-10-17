@@ -43,7 +43,7 @@ pnpm typecheck && pnpm lint && pnpm build
 
 ## Celery contract
 
-Queues: `collect`, `archive`, `nlp`, `score`, `notify`, `default`. Tasks are implemented in each module's
+Queues: `collect`, `archive`, `nlp`, `score`, `notify`, `vision`, `default`. Tasks are implemented in each module's
 `app/modules/<module>/tasks.py` (auto-discovered) under these exact names:
 
 | Task | Queue | Schedule (UTC) |
@@ -58,9 +58,27 @@ Queues: `collect`, `archive`, `nlp`, `score`, `notify`, `default`. Tasks are imp
 | `ads.recheck_due` | collect | every 6 hours |
 | `signals.check_deadlines` | notify | daily 06:00 |
 | `notify.red_zone` | notify | on demand |
+| `vision.extract_frames(job_id)`, `vision.ocr_region(finding_id)` | vision | on demand (SAQ VISION); consumed only by `vision-worker` |
 
 Call `object_changed(object_id)` **after** committing a change to an object, its documents, complaints,
 inspections or ads. It is a no-op when `EVENTS_ENABLED=false`.
+
+## SAQ VISION (визуальные проверки)
+
+Модуль выключен по умолчанию: `VISION_ENABLED=false` (маршрутов `/api/v1/vision/*` нет). Включение — `VISION_ENABLED=true`
+в `.env` и перезапуск `api`. Видео и OCR выделенной области обрабатывает отдельный воркер очереди `vision`
+(образ `vision` = `worker` + ffmpeg; основной `worker` эту очередь не слушает):
+
+```bash
+docker compose --profile vision up -d --build vision-worker   # параллелизм: VISION_WORKER_CONCURRENCY (по умолчанию 1)
+docker compose logs -f vision-worker
+```
+
+Без воркера фото и ручные находки работают, видео остаётся в `queued` (после запуска воркера — `POST /vision/assets/{id}/retry`).
+Тесты с ffmpeg/Tesseract на хосте пропускаются; в образе: `docker build --target vision -t saq-vision-test backend`, затем
+`docker run --rm --network host -v $PWD/backend:/app:ro -e UV_PROJECT_ENVIRONMENT=/tmp/venv -e UV_CACHE_DIR=/tmp/uvcache
+-e PATH=/tmp/venv/bin:/usr/local/bin:/usr/bin:/bin saq-vision-test sh -c "uv sync --frozen --project /app && cd /app &&
+pytest -q -p no:cacheprovider tests/test_vision_*.py"` (нужны `db`, `minio` из compose на localhost:5433/9000).
 
 ## CSV import
 
