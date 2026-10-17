@@ -13,6 +13,7 @@ from app.deps import SessionDep
 from app.errors import api_error, register_error_handlers
 from app.modules.activity.router import router as activity_router
 from app.modules.ads.router import router as ads_router
+from app.modules.assignments.router import router as assignments_router
 from app.modules.assistant.router import router as assistant_router
 from app.modules.audit.router import router as audit_router
 from app.modules.auth.router import router as auth_router
@@ -113,6 +114,7 @@ for module_router in (
     nlp_router,
     risk_router,
     signals_router,
+    assignments_router,
 ):
     api.include_router(module_router)
 

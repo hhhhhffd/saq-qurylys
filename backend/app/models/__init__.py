@@ -1,4 +1,5 @@
 from app.models.ads import AdPost, AdPostVersion, DismissedSourceSuggestion, Phrase, PhraseHit, SourceAccount
+from app.models.assignment import Assignment
 from app.models.base import Base
 from app.models.construction import Complaint, ConstructionObject, Document, Inspection, LinkedEntity
 from app.models.developer import Developer
@@ -23,6 +24,7 @@ __all__ = [
     "AdPostVersion",
     "AppSetting",
     "AppUser",
+    "Assignment",
     "AuditLog",
     "Base",
     "Complaint",

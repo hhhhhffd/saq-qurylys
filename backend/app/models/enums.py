@@ -233,6 +233,7 @@ class NotificationKind(StrEnum):
     capture_failed = "capture_failed"
     citizen_report = "citizen_report"
     collector_failed = "collector_failed"
+    assignment_new = "assignment_new"
 
 
 class HolidayKind(StrEnum):
@@ -320,3 +321,9 @@ class VisionReviewAction(StrEnum):
     needs_more_evidence = "needs_more_evidence"
     not_applicable = "not_applicable"
     comment = "comment"
+
+
+class AssignmentStatus(StrEnum):
+    open = "open"
+    done = "done"
+    cancelled = "cancelled"
