@@ -3,6 +3,7 @@ import { IconPencil } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import type { ObjectDetail } from '@/api/types';
 import { useAuth } from '@/auth/useAuth';
+import { CopyButton } from '@/components/CopyButton';
 import { KeyValue } from '@/components/KeyValue';
 import { Panel } from '@/components/Panel';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,16 @@ import { useEnum } from '@/i18n/useEnum';
 import { useFormat } from '@/i18n/useFormat';
 import { DeveloperFormModal } from '../forms/DeveloperFormModal';
 import { subTitleClass } from './styles';
+
+function Copyable({ text, label }: { text: string | null; label: string }) {
+  if (!text) return null;
+  return (
+    <span className="inline-flex items-center gap-1">
+      <span className="[overflow-wrap:anywhere]">{text}</span>
+      <CopyButton value={text} label={label} />
+    </span>
+  );
+}
 
 function joinList(items: string[]): string | null {
   return items.length > 0 ? items.join(', ') : null;
@@ -31,8 +42,8 @@ export function PassportSection({ object }: { object: ObjectDetail }) {
         items={[
           { label: t('card.passport.name'), value: object.name, wide: true },
           { label: t('card.passport.aliases'), value: joinList(object.aliases), wide: true },
-          { label: t('card.passport.address'), value: object.address, wide: true },
-          { label: t('card.passport.cadastralNumber'), value: object.cadastral_number },
+          { label: t('card.passport.address'), value: <Copyable text={object.address} label={t('copy.address')} />, wide: true },
+          { label: t('card.passport.cadastralNumber'), value: <Copyable text={object.cadastral_number} label={t('copy.cadastral')} /> },
           { label: t('card.passport.landPurpose'), value: object.land_purpose },
           { label: t('card.passport.district'), value: object.district_name },
           {
@@ -62,7 +73,7 @@ export function PassportSection({ object }: { object: ObjectDetail }) {
         {developer ? (
           <KeyValue
             items={[
-              { label: t('card.passport.developer.bin'), value: <span className="tabular-nums">{developer.bin}</span> },
+              { label: t('card.passport.developer.bin'), value: <Copyable text={developer.bin} label={t('copy.bin')} /> },
               { label: t('card.passport.developer.name'), value: developer.name },
               { label: t('card.passport.developer.director'), value: developer.director },
               { label: t('card.passport.developer.authorizedCompany'), value: developer.authorized_company },

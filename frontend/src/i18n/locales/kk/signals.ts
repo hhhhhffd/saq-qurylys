@@ -138,6 +138,7 @@ const signals: typeof ru = {
     code: 'Объект коды',
     name: 'Атауы',
     cadastral: 'Кадастрлық нөмір',
+    copyCadastral: 'Кадастрлық нөмірді көшіру',
     address: 'Мекенжайы',
     landPurpose: 'Жердің нысаналы мақсаты',
     developer: 'Құрылысшы',

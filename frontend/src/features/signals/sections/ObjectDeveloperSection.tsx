@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import type { SignalSections } from '@/api/types';
+import { CopyButton } from '@/components/CopyButton';
 import { KeyValue } from '@/components/KeyValue';
 import { Panel } from '@/components/Panel';
 
@@ -12,7 +13,15 @@ export function ObjectDeveloperSection({ data }: { data: SignalSections['object_
         items={[
           { label: t('objectDeveloper.code'), value: data.object_code },
           { label: t('objectDeveloper.name'), value: data.object_name },
-          { label: t('objectDeveloper.cadastral'), value: data.cadastral_number },
+          {
+            label: t('objectDeveloper.cadastral'),
+            value: data.cadastral_number && (
+              <span className="inline-flex items-center gap-1">
+                <span>{data.cadastral_number}</span>
+                <CopyButton value={data.cadastral_number} label={t('objectDeveloper.copyCadastral')} />
+              </span>
+            ),
+          },
           { label: t('objectDeveloper.address'), value: data.address, wide: true },
           { label: t('objectDeveloper.landPurpose'), value: data.land_purpose, wide: true },
           { label: t('objectDeveloper.developer'), value: data.developer_name },

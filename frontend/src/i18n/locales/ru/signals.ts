@@ -135,6 +135,7 @@ const signals = {
     code: 'Код объекта',
     name: 'Название',
     cadastral: 'Кадастровый номер',
+    copyCadastral: 'Копировать кадастровый номер',
     address: 'Адрес',
     landPurpose: 'Назначение земли',
     developer: 'Застройщик',
