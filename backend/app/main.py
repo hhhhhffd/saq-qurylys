@@ -30,6 +30,7 @@ from app.modules.notifications.router import router as notifications_router
 from app.modules.objects.router import router as objects_router
 from app.modules.registry_sync.router import router as registry_sync_router
 from app.modules.risk.router import router as risk_router
+from app.modules.search.router import router as search_router
 from app.modules.settings.router import router as settings_router
 from app.modules.signals.router import router as signals_router
 from app.modules.territories.router import router as territories_router
@@ -95,6 +96,7 @@ for module_router in (
     holidays_router,
     developers_router,
     objects_router,
+    search_router,
     documents_router,
     inspections_router,
     complaints_router,

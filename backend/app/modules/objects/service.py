@@ -101,6 +101,7 @@ def object_rows_stmt(
                 ConstructionObject.cadastral_number.ilike(pattern),
                 func.array_to_string(ConstructionObject.aliases, " ").ilike(pattern),
                 Developer.name.ilike(pattern),
+                Developer.bin.ilike(pattern),
             )
         )
     return stmt
