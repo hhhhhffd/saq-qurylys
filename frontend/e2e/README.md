@@ -27,6 +27,11 @@ pnpm dev                                    # in another terminal
 E2E_BASE_URL=http://localhost:5173 pnpm e2e
 ```
 
+### Isolated UI regression suite
+
+With the source preview running, use `E2E_BASE_URL=http://127.0.0.1:5174 pnpm exec playwright test --config=e2e/ui-mock.config.ts`.
+This focused suite intercepts `/api/v1` with in-memory fixtures; it does not seed or access the shared database.
+
 Chromium comes from `~/.cache/ms-playwright`. `@playwright/test` is pinned to 1.63.0, the version that uses the
 installed `chromium-1243`; after changing the version run `pnpm exec playwright install chromium`.
 

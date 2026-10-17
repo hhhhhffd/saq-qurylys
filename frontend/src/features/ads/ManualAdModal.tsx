@@ -255,7 +255,7 @@ export function ManualAdModal({ open, onClose, onCreated }: Props) {
             <Button type="button" variant="secondary" onClick={close}>
               {tc('cancel')}
             </Button>
-            <Button type="submit" loading={createAd.isPending}>
+            <Button type="submit" className="max-sm:min-h-11" loading={createAd.isPending}>
               {t('manual.submit')}
             </Button>
           </DialogFooter>

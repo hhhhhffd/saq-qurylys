@@ -14,8 +14,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { ZoneBadge } from '@/components/Zone';
 import { ZoneDisclaimer } from '@/components/ZoneDisclaimer';
 import { Button } from '@/components/ui/button';
-import { SelectInput } from '@/components/form/SelectInput';
-import { useEnum, useEnumOptions } from '@/i18n/useEnum';
+import { useEnum } from '@/i18n/useEnum';
 import { useFormat } from '@/i18n/useFormat';
 import { PAGE_SIZE, SIGNAL_STATUSES } from './constants';
 import { CreateSignalModal } from './CreateSignalModal';
@@ -32,13 +31,13 @@ function parsePositiveInt(value: string | null): number | undefined {
 }
 
 const col = dataColumns<SignalRow>();
+const FILTER_STATUSES: SignalStatus[] = ['requires_confirmation', 'returned', 'responded', 'sent', 'closed'];
+const RECIPIENT_FILTER_STATUSES: SignalStatus[] = ['sent', 'responded', 'closed'];
 
 export function SignalsPage() {
   const { t } = useTranslation('signals');
-  const { t: tc } = useTranslation();
   const { canManageSignals, isRecipient } = useAuth();
   const e = useEnum();
-  const enumOptions = useEnumOptions();
   const { dateTime } = useFormat();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
@@ -89,8 +88,25 @@ export function SignalsPage() {
       cell: (info) => <ZoneBadge zone={info.getValue()} />,
     }),
     col.accessor('status', {
-      header: t('list.columns.status'),
-      cell: (info) => <SignalStatusChip status={info.getValue()} />,
+      header: t('list.columns.nextStep'),
+      cell: (info) => {
+        const rowStatus = info.getValue();
+        const canAnswer =
+          rowStatus === 'sent' &&
+          (isRecipient || (canManageSignals && info.row.original.recipient === 'mio'));
+        let nextStep: string;
+        if (canAnswer) nextStep = t('list.next.recipient');
+        else if (rowStatus === 'closed') nextStep = t('list.next.closed');
+        else if (isRecipient && rowStatus === 'responded') nextStep = t('list.next.respondedRecipient');
+        else if (isRecipient || !canManageSignals) nextStep = t('list.next.readOnly');
+        else nextStep = t(`list.next.${rowStatus}`);
+        return (
+          <div className="flex min-w-36 flex-col items-start gap-1">
+            <SignalStatusChip status={rowStatus} />
+            <span className="text-xs text-text-2">{nextStep}</span>
+          </div>
+        );
+      },
     }),
     col.accessor('recipient', {
       header: t('list.columns.recipient'),
@@ -117,36 +133,81 @@ export function SignalsPage() {
   else if (canManageSignals) emptyText = t('list.empty.manage');
   else if (isRecipient) emptyText = t('list.empty.recipient');
 
+  const subtitle = isRecipient
+    ? t('list.subtitleRecipient')
+    : canManageSignals
+      ? t('list.subtitleManage')
+      : t('list.subtitleReadOnly');
+
   return (
     <>
       <PageHeader
-        title={tc('nav.signals')}
-        subtitle={isRecipient ? t('list.subtitleRecipient') : t('list.subtitle')}
+        title={t('list.title')}
+        subtitle={subtitle}
         actions={
           canManageSignals && (
-            <Button onClick={() => setCreateOpen(true)}>
+            <Button className="min-h-11" onClick={() => setCreateOpen(true)}>
               <IconPlus />
               {t('list.create')}
             </Button>
           )
         }
       />
-      <div className="mb-4 flex flex-wrap items-end gap-3 *:max-w-80 *:min-w-52 *:flex-1">
-        <SelectInput
-          label={t('list.filters.status')}
-          placeholder={t('list.filters.statusPlaceholder')}
-          data={enumOptions('signal_status', SIGNAL_STATUSES)}
-          value={status ?? null}
-          onChange={(next) => setParam({ status: next, page: null })}
-          clearable
-        />
-        {!isRecipient && (
-          <ObjectSelect
-            label={t('list.filters.object')}
-            placeholder={t('list.filters.objectPlaceholder')}
-            value={objectId ?? null}
-            onChange={(next) => setParam({ object_id: next === null ? null : String(next), page: null })}
-          />
+      <div className="mb-4 grid gap-3">
+        <div>
+          <p className="mb-2 text-sm font-medium text-text">{t('list.filters.status')}</p>
+          <div role="group" aria-label={t('list.filters.status')} className="flex flex-wrap gap-2">
+            <Button
+              variant={status === undefined ? 'default' : 'outline'}
+              className="min-h-11"
+              aria-pressed={status === undefined}
+              onClick={() => setParam({ status: null, page: null })}
+            >
+              {t('list.filters.all')}
+            </Button>
+            {(isRecipient ? RECIPIENT_FILTER_STATUSES : FILTER_STATUSES).map((filterStatus) => (
+              <Button
+                key={filterStatus}
+                variant={status === filterStatus ? 'default' : 'outline'}
+                className="min-h-11"
+                aria-pressed={status === filterStatus}
+                onClick={() => setParam({ status: filterStatus, page: null })}
+              >
+                {t(`statusLabels.${filterStatus}`)}
+              </Button>
+            ))}
+          </div>
+        </div>
+        {isRecipient ? (
+          status !== undefined && (
+            <div>
+              <Button
+                variant="secondary"
+                className="min-h-11"
+                onClick={() => setParam({ status: null, object_id: null, page: null })}
+              >
+                {t('list.filters.clear')}
+              </Button>
+            </div>
+          )
+        ) : (
+          <div className="flex flex-wrap items-end gap-3">
+            <ObjectSelect
+              label={t('list.filters.object')}
+              placeholder={t('list.filters.objectPlaceholder')}
+              value={objectId ?? null}
+              onChange={(next) => setParam({ object_id: next === null ? null : String(next), page: null })}
+            />
+            {hasFilters && (
+              <Button
+                variant="secondary"
+                className="min-h-11"
+                onClick={() => setParam({ status: null, object_id: null, page: null })}
+              >
+                {t('list.filters.clear')}
+              </Button>
+            )}
+          </div>
         )}
       </div>
       {query.isError && !query.data ? (

@@ -68,10 +68,10 @@ export function ReturnModal({ opened, onClose, detail }: Props) {
             {...register('comment')}
           />
           <DialogFooter>
-            <Button type="button" variant="secondary" onClick={close} disabled={returnSignal.isPending}>
+            <Button className="min-h-11" type="button" variant="secondary" onClick={close} disabled={returnSignal.isPending}>
               {tc('cancel')}
             </Button>
-            <Button type="submit" loading={returnSignal.isPending}>
+            <Button className="min-h-11" type="submit" loading={returnSignal.isPending}>
               {t('actions.return')}
             </Button>
           </DialogFooter>

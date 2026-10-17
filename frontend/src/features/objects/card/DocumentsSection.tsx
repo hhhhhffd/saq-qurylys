@@ -56,6 +56,7 @@ export function DocumentsSection({ object }: { object: ObjectDetail }) {
     <Panel
       title={t('card.documents.title')}
       id="documents"
+      className={anchorTargetClass}
       flush
       actions={
         canEditRegistry && (

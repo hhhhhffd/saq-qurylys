@@ -285,7 +285,7 @@ export function ActivityIsland() {
     : undefined;
 
   return (
-    <div ref={slotRef} className="pointer-events-none min-w-0 flex-[1_1_0] self-stretch">
+    <div ref={slotRef} className="pointer-events-none min-w-0 flex-[1_1_0] self-stretch max-[62em]:w-0 max-[62em]:flex-none">
       <div role="status" aria-live="polite" aria-atomic="true" data-testid="activity-live-region" className="sr-only">
         {open && content ? content.announcement : ''}
       </div>
@@ -300,6 +300,7 @@ export function ActivityIsland() {
             'data-[open=true]:duration-[580ms] data-[open=true]:ease-[cubic-bezier(0.3,1.35,0.4,1)]',
             // Not enough room in the header row (narrow screens, long navigation): the open island hangs below the header.
             'data-[open=true]:data-[place=below]:top-[calc(100%+8px)]',
+            'max-[62em]:hidden',
             // Entering the red zone: a red edge and a soft red glow instead of the pink one, nothing that blinks.
             'data-[alert=true]:shadow-[0_0_0_1px_color-mix(in_srgb,var(--zone-red)_62%,transparent),0_8px_28px_-6px_color-mix(in_srgb,var(--zone-red)_45%,transparent)]',
             'motion-reduce:transition-none',

@@ -110,7 +110,17 @@ export function ObjectsPage() {
     col.display({
       id: 'open',
       header: () => <span className="sr-only">{common('open')}</span>,
-      cell: () => <IconChevronRight size={16} className="text-text-3" aria-hidden />,
+      cell: (info) => (
+        <Link
+          to={`/objects/${info.row.original.id}`}
+          onClick={(event) => event.stopPropagation()}
+          aria-label={`${t('list.open')}: ${info.row.original.name}`}
+          className="inline-flex min-h-11 items-center gap-1 whitespace-nowrap text-sm font-medium text-primary hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          {t('list.open')}
+          <IconChevronRight size={16} aria-hidden />
+        </Link>
+      ),
     }),
   ]);
 
@@ -133,6 +143,7 @@ export function ObjectsPage() {
           )
         }
       />
+      <p className="mb-4 text-sm text-text-2">{t('list.description')}</p>
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <InputGroup className="max-w-90 min-w-48 flex-1 basis-60">
           <InputGroupAddon>

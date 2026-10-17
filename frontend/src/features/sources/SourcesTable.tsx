@@ -117,10 +117,12 @@ export function SourcesTable({ accounts, collectors }: Props) {
         if (!error) return <span className="text-text-3">—</span>;
         return (
           <div className="flex max-w-72 flex-col gap-0.5 text-sm">
-            <span className="line-clamp-3 text-zone-red-ink" title={error}>
-              {error}
-            </span>
+            <strong className="font-medium text-zone-red-ink">{t('collectors.collectionFailed')}</strong>
             <span className="text-text-3 tabular-nums">{dateTime(at)}</span>
+            <details className="text-xs text-text-2">
+              <summary className="inline-flex cursor-pointer items-center max-sm:min-h-11">{t('collectors.errorDetails')}</summary>
+              <span className="mt-1 block [overflow-wrap:anywhere]">{error}</span>
+            </details>
           </div>
         );
       },
@@ -139,6 +141,7 @@ export function SourcesTable({ accounts, collectors }: Props) {
                   <Button
                     variant="secondary"
                     size="sm"
+                    className="max-sm:min-h-11"
                     disabled={blocker !== null}
                     loading={collect.isPending && collect.variables === row.original.id}
                     onClick={() => collect.mutate(row.original.id)}

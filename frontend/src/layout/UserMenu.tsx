@@ -33,7 +33,7 @@ export function UserMenu() {
         <button
           type="button"
           aria-label={t('header.userMenu')}
-          className="rounded outline-none focus-visible:ring-1 focus-visible:ring-focus"
+          className="grid h-11 min-w-11 place-items-center rounded outline-none focus-visible:ring-2 focus-visible:ring-focus"
         >
           <Avatar>
             <AvatarFallback>{initials(user.full_name || user.username)}</AvatarFallback>
