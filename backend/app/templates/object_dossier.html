@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="{{ t.lang }}">
+<head>
+<meta charset="utf-8">
+<title>{{ d.title }} {{ obj_code }}</title>
+<style>
+  @page {
+    size: A4;
+    margin: {{ '36mm' if demo else '30mm' }} 15mm 26mm 15mm;
+    @top-center { content: element(page-header); width: 100%; }
+    @bottom-left { content: element(page-footer); width: 150mm; }
+    @bottom-right { content: "{{ t.page }} " counter(page) " {{ t.page_of }} " counter(pages); font-size: 8pt; color: #555; }
+  }
+  html { font-family: "DejaVu Sans", "Liberation Sans", sans-serif; font-size: 9.5pt; color: #1c1c1e; line-height: 1.35; }
+  #page-header { position: running(page-header); font-size: 8pt; color: #555; border-bottom: 0.5pt solid #999; padding-bottom: 2mm; }
+  #page-header .brand { font-weight: bold; color: #1c1c1e; }
+  #page-footer { position: running(page-footer); font-size: 8pt; color: #555; }
+  .disclaimer { margin: 1mm 0 0; font-style: italic; }
+  h1 { font-size: 16pt; margin: 0 0 3mm; }
+  h2 { font-size: 11.5pt; margin: 6mm 0 2mm; padding-bottom: 1mm; border-bottom: 0.5pt solid #bbb; break-after: avoid; }
+  h3 { font-size: 10pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; vertical-align: top; padding: 1.2mm 2mm; border: 0.5pt solid #ccc; overflow-wrap: break-word; }
+  .hash { word-break: break-all; font-size: 7.5pt; }
+  th { background: #f0f0f2; font-weight: bold; }
+  table.kv th { width: 38%; }
+  tr { break-inside: avoid; }
+  .num { text-align: right; white-space: nowrap; }
+  .muted { color: #666; }
+  .zone { display: inline-block; padding: 0.3mm 2.5mm; border-radius: 2mm; font-weight: bold; color: #fff; }
+  .zone-red { background: #b3261e; }
+  .zone-yellow { background: #8a6d00; }
+  .zone-green { background: #2e6b3a; }
+  figure { margin: 2mm 0 0; break-inside: avoid; }
+  figure img { max-width: 100%; max-height: 190mm; object-fit: contain; border: 0.5pt solid #ccc; }
+  figcaption { font-size: 8pt; color: #555; margin-top: 1mm; overflow-wrap: anywhere; }
+  .note { white-space: pre-wrap; }
+  .demo-banner { margin: 0 0 1mm; font-weight: bold; font-size: 9pt; letter-spacing: 0.5pt; color: #b3261e; }
+  .demo-watermark { position: fixed; top: 105mm; left: 5mm; width: 190mm; text-align: center; white-space: nowrap; transform: rotate(-30deg); font-size: 30pt; font-weight: bold; color: rgba(179, 38, 30, 0.14); }
+  .cover { break-after: page; padding-top: 45mm; }
+  .cover h1 { font-size: 24pt; margin-bottom: 8mm; }
+  .cover .object-name { font-size: 16pt; font-weight: bold; margin: 0 0 6mm; }
+  .toc { break-after: page; }
+  .toc ol { list-style: none; margin: 0; padding: 0; }
+  .toc li { margin: 0 0 2.5mm; font-size: 11pt; }
+  .toc a { color: #1c1c1e; text-decoration: none; }
+  .toc a::after { content: leader('.') target-counter(attr(href), page); }
+  ul.plain { margin: 0 0 2mm; padding-left: 5mm; }
+</style>
+</head>
+<body>
+{% if demo %}<div class="demo-watermark">{{ t.demo }}</div>{% endif %}
+<div id="page-header">
+  {% if demo %}<p class="demo-banner">{{ t.demo }}. {{ t.demo_note }}</p>{% endif %}
+  <span class="brand">{{ t.product }}</span> &middot; {{ d.title }} {{ obj_code }}
+  <p class="disclaimer">{{ t.disclaimer }}</p>
+</div>
+<div id="page-footer">
+  <p class="disclaimer">{{ t.disclaimer }}</p>
+</div>
+
+<section class="cover">
+  <h1>{{ d.title }}</h1>
+  <p class="object-name">{{ obj_name }}</p>
+  <table class="kv">
+    <tr><th>{{ d.passport.code }}</th><td>{{ obj_code }}</td></tr>
+    <tr><th>{{ d.passport.address }}</th><td>{{ address }}</td></tr>
+    <tr><th>{{ d.territory }}</th><td>{{ territory }}</td></tr>
+    <tr><th>{{ d.formed_at }}</th><td>{{ formed_at }}</td></tr>
+    <tr><th>{{ d.formed_by }}</th><td>{{ formed_by }}</td></tr>
+  </table>
+</section>
+
+<section class="toc">
+  <h1>{{ d.contents }}</h1>
+  <ol>
+    {% for section in sections %}
+    <li><a href="#{{ section.id }}">{{ section.title }}</a></li>
+    {% endfor %}
+  </ol>
+</section>
+
+<h2 id="sec-passport">{{ titles['sec-passport'] }}</h2>
+<table class="kv">
+  {% for label, value in passport %}
+  <tr><th>{{ label }}</th><td class="note">{{ value }}</td></tr>
+  {% endfor %}
+</table>
+
+<h2 id="sec-risk">{{ titles['sec-risk'] }}</h2>
+{% if risk.has_score %}
+<table class="kv">
+  <tr>
+    <th>{{ d.risk.zone }}</th>
+    <td>{% if risk.zone %}<span class="zone zone-{{ risk.zone }}">{{ risk.zone_label }}</span>{% else %}{{ t.empty }}{% endif %}</td>
+  </tr>
+  <tr><th>{{ d.risk.score }}</th><td>{% if risk.score is not none %}{{ risk.score }} / 100{% else %}{{ t.empty }}{% endif %}</td></tr>
+  {% if risk.legal_basis %}<tr><th>{{ t.legal_basis.label }}</th><td>{{ risk.legal_basis }}</td></tr>{% endif %}
+</table>
+<h3>{{ d.risk.why }}</h3>
+{% if risk.why %}
+<p>{{ d.risk.why_intro }}</p>
+<ul class="plain">{% for name in risk.why %}<li>{{ name }}</li>{% endfor %}</ul>
+{% else %}
+<p class="muted">{{ d.risk.why_none }}</p>
+{% endif %}
+<table>
+  <tr><th>{{ d.risk.factor }}</th><th>{{ d.risk.triggered }}</th><th class="num">{{ d.risk.weight }}</th></tr>
+  {% for factor in risk.factors %}
+  <tr><td>{{ factor.name }}</td><td>{{ t.yes if factor.triggered else t.no }}</td><td class="num">{{ factor.weight }}</td></tr>
+  {% endfor %}
+</table>
+<h3>{{ d.risk.needs_check }}</h3>
+{% if risk.needs_check %}
+<p class="muted">{{ t.needs_check.intro }}</p>
+<ul class="plain">{% for name in risk.needs_check %}<li>{{ name }}</li>{% endfor %}</ul>
+{% else %}
+<p class="muted">{{ d.risk.needs_check_none }}</p>
+{% endif %}
+{% else %}
+<p class="muted">{{ d.risk.no_score }}</p>
+{% endif %}
+
+<h2 id="sec-documents">{{ titles['sec-documents'] }}</h2>
+{% if documents %}
+<table>
+  <tr>
+    <th>{{ d.documents.doc_type }}</th><th>{{ d.documents.number }}</th><th>{{ d.documents.issued_at }}</th>
+    <th>{{ d.documents.issuer }}</th><th>{{ d.documents.check_status }}</th><th>{{ d.documents.checked_at }}</th>
+    <th>{{ d.documents.source }}</th>
+  </tr>
+  {% for doc in documents %}
+  <tr>
+    <td>{{ doc.doc_type }}{% if doc.note %}<br><span class="muted note">{{ doc.note }}</span>{% endif %}</td>
+    <td>{{ doc.number }}</td><td>{{ doc.issued_at }}</td><td>{{ doc.issuer }}</td>
+    <td>{{ doc.check_status }}</td><td>{{ doc.checked_at }}</td><td>{{ doc.source }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p class="muted">{{ d.documents.none }}</p>
+{% endif %}
+
+<h2 id="sec-inspections">{{ titles['sec-inspections'] }}</h2>
+{% if inspections %}
+<table>
+  <tr><th>{{ d.inspections.inspected_at }}</th><th class="num">{{ d.inspections.readiness }}</th><th>{{ d.inspections.inspector }}</th><th>{{ d.inspections.note }}</th></tr>
+  {% for item in inspections %}
+  <tr><td>{{ item.inspected_at }}</td><td class="num">{{ item.readiness }}</td><td>{{ item.inspector }}</td><td class="note">{{ item.note }}</td></tr>
+  {% endfor %}
+</table>
+{% else %}
+<p class="muted">{{ d.inspections.none }}</p>
+{% endif %}
+
+<h2 id="sec-complaints">{{ titles['sec-complaints'] }}</h2>
+{% if complaints %}
+<table>
+  <tr><th>{{ d.complaints.received_at }}</th><th>{{ d.complaints.source }}</th><th>{{ d.complaints.kind }}</th><th>{{ d.complaints.summary }}</th><th>{{ d.complaints.status }}</th></tr>
+  {% for item in complaints %}
+  <tr><td>{{ item.received_at }}</td><td>{{ item.source }}</td><td>{{ item.kind }}</td><td class="note">{{ item.summary }}</td><td>{{ item.status }}</td></tr>
+  {% endfor %}
+</table>
+{% else %}
+<p class="muted">{{ d.complaints.none }}</p>
+{% endif %}
+
+<h2 id="sec-publications">{{ titles['sec-publications'] }}</h2>
+{% if ads %}
+{% if ads_capped %}<p class="muted">{{ ads_capped }}</p>{% endif %}
+<table>
+  <tr>
+    <th>{{ d.publications.date }}</th><th>{{ d.publications.platform }}</th><th>{{ d.publications.author }}</th>
+    <th>{{ d.publications.url }}</th><th>{{ d.publications.status }}</th><th>{{ d.publications.text }}</th>
+  </tr>
+  {% for ad in ads %}
+  <tr>
+    <td>{{ ad.date }}</td><td>{{ ad.platform }}</td><td>{{ ad.author }}</td><td class="hash">{{ ad.url }}</td>
+    <td>{{ ad.status }}</td><td>{{ ad.text }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p class="muted">{{ d.publications.none }}</p>
+{% endif %}
+
+<h2 id="sec-signals">{{ titles['sec-signals'] }}</h2>
+{% if cards %}
+<table>
+  <tr>
+    <th>{{ d.signals.number }}</th><th>{{ d.signals.status }}</th><th>{{ d.signals.recipient }}</th>
+    <th>{{ d.signals.sent_at }}</th><th>{{ d.signals.due_date }}</th><th>{{ d.signals.response_at }}</th>
+  </tr>
+  {% for card in cards %}
+  <tr>
+    <td>{{ card.number }}</td><td>{{ card.status }}</td><td>{{ card.recipient }}</td>
+    <td>{{ card.sent_at }}</td><td>{{ card.due_date }}</td><td>{{ card.response_at }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p class="muted">{{ d.signals.none }}</p>
+{% endif %}
+
+<h2 id="sec-inventory">{{ titles['sec-inventory'] }}</h2>
+{% if attachments %}
+<table>
+  <tr>
+    <th class="num">{{ d.inventory.number }}</th><th>{{ d.inventory.kind }}</th><th>{{ d.inventory.owner }}</th>
+    <th>{{ d.inventory.captured_at }}</th><th>{{ d.inventory.sha256 }}</th><th>{{ d.inventory.source }}</th>
+  </tr>
+  {% for item in attachments %}
+  <tr>
+    <td class="num">{{ item.number }}</td><td>{{ item.kind }}</td><td>{{ item.owner }}</td>
+    <td>{{ item.captured_at }}</td><td class="hash">{{ item.sha256 }}</td><td class="hash">{{ item.source_url }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% if images_capped %}<p class="muted">{{ images_capped }}</p>{% endif %}
+{% for item in attachments if item.note %}
+<p class="muted">{{ d.attachment }} {{ item.number }}: {{ item.note }}</p>
+{% endfor %}
+{% if images %}
+<h3>{{ d.inventory.images }}</h3>
+{% for item in images %}
+<figure>
+  <img src="{{ item.image }}" alt="{{ d.attachment }} {{ item.number }}">
+  <figcaption>
+    {{ d.attachment }} {{ item.number }} &middot; {{ item.kind }} &middot; {{ item.owner }}
+    &middot; {{ d.inventory.captured_at }}: {{ item.captured_at }} &middot; {{ d.inventory.sha256 }}: {{ item.sha256 }}
+    {% if item.source_url %}<br>{{ d.inventory.source }}: {{ item.source_url }}{% endif %}
+  </figcaption>
+</figure>
+{% endfor %}
+{% endif %}
+{% else %}
+<p class="muted">{{ d.inventory.none }}</p>
+{% endif %}
+</body>
+</html>

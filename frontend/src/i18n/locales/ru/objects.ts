@@ -310,6 +310,10 @@ const objects = {
       showLess: 'Свернуть',
     },
   },
+  dossier: {
+    button: 'Сформировать дело',
+    error: 'Не удалось сформировать дело',
+  },
 };
 
 export default objects;

@@ -313,6 +313,10 @@ const objects: typeof ru = {
       showLess: 'Жинау',
     },
   },
+  dossier: {
+    button: 'Іс жасау',
+    error: 'Іс жасау мүмкін болмады',
+  },
 };
 
 export default objects;

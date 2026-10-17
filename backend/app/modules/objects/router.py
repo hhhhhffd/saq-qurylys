@@ -1,7 +1,7 @@
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, File, Query, Request, UploadFile
+from fastapi import APIRouter, File, Query, Request, Response, UploadFile
 from sqlalchemy import func, select
 
 from app import audit
@@ -16,7 +16,7 @@ from app.modules.developers.schemas import DeveloperOut
 from app.modules.documents.schemas import DocumentOut
 from app.modules.inspections.schemas import InspectionOut
 from app.modules.linked_entities.schemas import LinkedEntityOut
-from app.modules.objects import importer
+from app.modules.objects import dossier, importer
 from app.modules.objects.schemas import (
     LatestScore,
     ObjectCreate,
@@ -148,6 +148,19 @@ def import_objects(
 @router.get("/{object_id}", response_model=ObjectDetail)
 def get_object(object_id: int, session: SessionDep, user: StaffUser, scope: ScopeDep) -> ObjectDetail:
     return build_detail(session, get_object_in_scope(session, scope, object_id))
+
+
+@router.get("/{object_id}/dossier.pdf")
+def object_dossier(object_id: int, session: SessionDep, user: StaffUser, scope: ScopeDep, request: Request) -> Response:
+    obj = get_object_in_scope(session, scope, object_id)
+    document = dossier.render_pdf(session, obj, user, user.locale.value)
+    audit.record(session, user, "object.dossier", "object", obj.id, None, None, request)
+    session.commit()
+    return Response(
+        content=document,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="{obj.code}-dossier.pdf"', "Cache-Control": "no-store"},
+    )
 
 
 @router.patch("/{object_id}", response_model=ObjectDetail)
