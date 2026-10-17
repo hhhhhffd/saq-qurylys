@@ -159,7 +159,7 @@ export function GlobalSearch() {
   return (
     <div
       ref={rootRef}
-      className="relative w-80 flex-none max-[62em]:order-2 max-[62em]:w-auto max-[62em]:basis-full max-[62em]:pb-2"
+      className="relative order-last basis-full pb-2"
     >
       <InputGroup className="h-10 text-base">
         <InputGroupAddon>

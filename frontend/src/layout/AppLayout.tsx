@@ -1,4 +1,4 @@
-import { Suspense, useRef, type CSSProperties } from 'react';
+import { Suspense, useEffect, useRef, type CSSProperties } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import {
   IconBuildingSkyscraper,
@@ -54,6 +54,19 @@ export function AppLayout() {
   const assistantEnabled = useAssistantEnabled();
   const assistant = usePanelState();
   const askAiRef = useRef<HTMLButtonElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
+
+  // The header wraps into one to three rows (search row, large font, narrow screens); the assistant panel and the
+  // anchor offsets read its real height from --header-h.
+  useEffect(() => {
+    const header = headerRef.current;
+    if (!header) return;
+    const observer = new ResizeObserver(() => {
+      document.documentElement.style.setProperty('--header-h', `${header.offsetHeight}px`);
+    });
+    observer.observe(header);
+    return () => observer.disconnect();
+  }, []);
   const [largeFont, setLargeFont] = useLargeFont();
   const assistantOpen = assistantEnabled && assistant.open;
 
@@ -79,8 +92,8 @@ export function AppLayout() {
       className="min-h-dvh"
       style={{ '--assistant-w': assistant.expanded ? 'min(640px, 60vw)' : 'min(400px, 40vw)' } as CSSProperties}
     >
-      <header data-print="hide" className="sticky top-0 z-40 border-b border-border bg-surface-raised">
-        <div className="mx-auto flex min-h-14 max-w-(--page-max) items-center gap-x-6 px-(--gutter) [html[data-font=large]_&]:flex-wrap [html[data-font=large]_&]:gap-y-0 max-[62em]:min-h-12 max-[62em]:flex-wrap max-[62em]:gap-x-1 max-[62em]:gap-y-0">
+      <header ref={headerRef} data-print="hide" className="sticky top-0 z-40 border-b border-border bg-surface-raised">
+        <div className="mx-auto flex min-h-14 max-w-(--page-max) flex-wrap items-center gap-x-6 gap-y-0 px-(--gutter) max-[62em]:min-h-12 max-[62em]:flex-wrap max-[62em]:gap-x-1 max-[62em]:gap-y-0">
           <Link
             to="/"
             aria-label={t('appName')}

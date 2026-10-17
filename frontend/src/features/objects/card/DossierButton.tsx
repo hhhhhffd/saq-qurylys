@@ -23,7 +23,7 @@ export function DossierButton({ objectId, code }: { objectId: number; code: stri
   };
 
   return (
-    <Button variant="secondary" loading={loading} onClick={() => void download()}>
+    <Button className="min-h-11" variant="secondary" loading={loading} onClick={() => void download()}>
       <IconFileDescription />
       {t('dossier.button')}
     </Button>
