@@ -30,7 +30,7 @@ export function useAssistantChat(userId: number) {
   const active = conversations.find((conversation) => conversation.id === activeId) ?? null;
   const messages = active?.messages ?? [];
 
-  // Saved when a stream ends, not on every token.
+  // Saved when a stream ends, not on every token (generate() also saves right after the question is added).
   useEffect(() => {
     if (!streaming) saveConversations(userId, conversations);
   }, [userId, conversations, streaming]);
@@ -47,9 +47,11 @@ export function useAssistantChat(userId: number) {
     setStreaming(true);
     setAnnouncement(t('status.thinking'));
     const placeholder: ChatMessage = { id: answerId, role: 'assistant', content: '' };
-    setConversations((all) =>
-      [{ id: conversationId, title, messages: [...history, placeholder] }, ...all.filter((c) => c.id !== conversationId)].slice(0, MAX_CONVERSATIONS),
-    );
+    const started = { id: conversationId, title, messages: [...history, placeholder] };
+    const withStarted = [started, ...conversations.filter((c) => c.id !== conversationId)].slice(0, MAX_CONVERSATIONS);
+    setConversations(withStarted);
+    // The question must survive a reload or logout while the answer is still streaming.
+    saveConversations(userId, withStarted);
 
     const patch = (change: (answer: ChatMessage) => ChatMessage) =>
       setConversations((all) =>
@@ -61,6 +63,7 @@ export function useAssistantChat(userId: number) {
       );
     const finishTools = (answer: ChatMessage): ChatMessage => ({ ...answer, tools: answer.tools?.map((tool) => ({ ...tool, done: true })) });
     let failed = false;
+    let finished = false;
 
     const onEvent = (event: AssistantEvent) => {
       if (event.type === 'sources') patch((answer) => ({ ...answer, sources: event.sources }));
@@ -73,9 +76,13 @@ export function useAssistantChat(userId: number) {
       } else if (event.type === 'delta') patch((answer) => ({ ...finishTools(answer), content: answer.content + event.text }));
       else if (event.type === 'error') {
         failed = true;
+        finished = true;
         patch((answer) => ({ ...finishTools(answer), status: 'error', errorCode: event.code }));
         setAnnouncement(t('status.failed'));
-      } else patch(finishTools);
+      } else {
+        finished = true;
+        patch(finishTools);
+      }
     };
 
     try {
@@ -92,8 +99,11 @@ export function useAssistantChat(userId: number) {
         { signal: controller.signal },
       );
       await readEvents(response, onEvent);
-      patch(finishTools);
-      if (!failed) setAnnouncement(t('status.ready'));
+      if (!finished) {
+        // The connection closed without `done` or `error`: the answer is cut off.
+        patch((answer) => ({ ...finishTools(answer), status: 'error', errorCode: 'stream_interrupted' }));
+        setAnnouncement(t('status.failed'));
+      } else if (!failed) setAnnouncement(t('status.ready'));
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
         patch((answer) => ({ ...finishTools(answer), status: 'stopped' }));

@@ -5,6 +5,15 @@ const linkClass = 'text-link underline underline-offset-2 hover:text-accent-text
 
 const isInternal = (href: string) => href.startsWith('/') && !href.startsWith('//');
 
+/** Hostname of an absolute URL, so the officer sees where the text points; links outside SAQ are never clickable. */
+function externalHost(href: string): string | null {
+  try {
+    return new URL(href).hostname || null;
+  } catch {
+    return null;
+  }
+}
+
 const components: Components = {
   a: ({ href, children }) =>
     href && isInternal(href) ? (
@@ -12,9 +21,10 @@ const components: Components = {
         {children}
       </Link>
     ) : (
-      <a href={href} target="_blank" rel="noopener noreferrer" className={linkClass}>
+      <>
         {children}
-      </a>
+        {href && externalHost(href) && <span className="text-text-3"> ({externalHost(href)})</span>}
+      </>
     ),
   p: ({ children }) => <p className="m-0 [&:not(:first-child)]:mt-2">{children}</p>,
   ul: ({ children }) => <ul className="my-2 list-disc pl-5 first:mt-0 last:mb-0">{children}</ul>,
@@ -31,7 +41,7 @@ const components: Components = {
   blockquote: ({ children }) => <blockquote className="my-2 border-l-2 border-border-strong pl-3 text-text-3">{children}</blockquote>,
 };
 
-/** Model answer as markdown: no raw HTML, SAQ paths navigate in the app, other links open in a new tab. */
+/** Model answer as markdown: no raw HTML, SAQ paths navigate in the app, other links stay plain text with their host (a prompt-injected link must not be clickable). */
 export function AssistantMarkdown({ children }: { children: string }) {
   return <Markdown components={components}>{children}</Markdown>;
 }

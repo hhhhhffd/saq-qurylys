@@ -38,6 +38,7 @@ export type AssistantEvent =
 export const MAX_CONVERSATIONS = 20;
 export const MAX_API_MESSAGES = 20;
 export const MAX_MESSAGE_LENGTH = 4000;
+const MAX_STORED_MESSAGES = 40;
 const TITLE_LENGTH = 60;
 
 export function titleFrom(text: string): string {
@@ -76,11 +77,26 @@ export async function readEvents(response: Response, onEvent: (event: AssistantE
 
 const storageKey = (userId: number) => `saq_ai_conversations_${userId}`;
 
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
+
+const isMessage = (value: unknown): boolean =>
+  isRecord(value) && (value.role === 'user' || value.role === 'assistant') && typeof value.content === 'string';
+
+function isConversation(value: unknown): value is Conversation {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'string' &&
+    typeof value.title === 'string' &&
+    Array.isArray(value.messages) &&
+    value.messages.every(isMessage)
+  );
+}
+
 export function loadConversations(userId: number): Conversation[] {
   try {
     const raw = localStorage.getItem(storageKey(userId));
     const parsed: unknown = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? (parsed as Conversation[]).slice(0, MAX_CONVERSATIONS) : [];
+    return Array.isArray(parsed) ? parsed.filter(isConversation).slice(0, MAX_CONVERSATIONS) : [];
   } catch {
     return [];
   }
@@ -88,7 +104,8 @@ export function loadConversations(userId: number): Conversation[] {
 
 export function saveConversations(userId: number, conversations: Conversation[]): void {
   try {
-    localStorage.setItem(storageKey(userId), JSON.stringify(conversations));
+    const capped = conversations.map((c) => ({ ...c, messages: c.messages.slice(-MAX_STORED_MESSAGES) }));
+    localStorage.setItem(storageKey(userId), JSON.stringify(capped));
   } catch {
     // History is best-effort: storage can be blocked or full.
   }

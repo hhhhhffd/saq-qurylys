@@ -1322,9 +1322,8 @@ test.describe('Ask AI panel', () => {
     });
     await expect(panel.getByText('Ищу объекты: Северный')).toBeVisible();
     await expect(panel.getByRole('listitem').filter({ hasText: 'пункт два' })).toBeVisible();
-    const external = panel.getByRole('link', { name: 'документацию' });
-    await expect(external).toHaveAttribute('target', '_blank');
-    await expect(external).toHaveAttribute('rel', 'noopener noreferrer');
+    await expect(panel.getByRole('link', { name: 'документацию' })).toHaveCount(0);
+    await expect(panel.getByText('документацию (example.invalid)')).toBeVisible();
 
     const sourcesToggle = panel.getByRole('button', { name: 'Источники (2)' });
     await expect(sourcesToggle).toHaveAttribute('aria-expanded', 'false');
@@ -1405,6 +1404,20 @@ test.describe('Ask AI panel', () => {
     const chats = harness.mutations.filter((item) => item.path === '/assistant/chat');
     expect(chats).toHaveLength(2);
     expect(chats[1]?.body).toEqual(chats[0]?.body);
+  });
+
+  test('a stream that ends without done is shown as an error with Retry', async ({ page }) => {
+    const cut = sse([{ type: 'delta', text: 'Начало' }]);
+    const harness = await installMocks(page, 'mio_officer', { assistantReplies: [cut] });
+    await page.goto('/work');
+    await page.getByRole('button', { name: panelName }).click();
+    const panel = page.getByRole('complementary', { name: panelName });
+    await panel.getByRole('button', { name: /С чего начать день\?/ }).click();
+    await expect(panel.getByRole('alert')).toContainText('Связь прервалась');
+    await panel.getByRole('button', { name: 'Повторить' }).click();
+    await expect(panel.getByText('жёлтой', { exact: true })).toBeVisible();
+    await expect(panel.getByRole('alert')).toHaveCount(0);
+    expect(harness.mutations.filter((item) => item.path === '/assistant/chat')).toHaveLength(2);
   });
 
   test('Stop aborts the stream and keeps the answer marked as stopped', async ({ page }) => {

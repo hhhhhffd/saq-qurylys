@@ -70,7 +70,7 @@ export function AppLayout() {
 
   return (
     <div
-      className={cn('min-h-dvh', assistantOpen && 'min-[62em]:pr-(--assistant-w)')}
+      className="min-h-dvh"
       style={{ '--assistant-w': assistant.expanded ? 'min(640px, 60vw)' : 'min(400px, 40vw)' } as CSSProperties}
     >
       <header className="sticky top-0 z-40 border-b border-border bg-surface-raised">
@@ -183,13 +183,16 @@ export function AppLayout() {
           </div>
         )}
       </header>
-      <main className="mx-auto max-w-(--page-max) px-(--gutter) pt-6 pb-14">
-        <Suspense fallback={<LoadingBlock />}>
-          <div className="animate-in duration-200 fade-in-0 slide-in-from-bottom-1">
-            <Outlet />
-          </div>
-        </Suspense>
-      </main>
+      {/* The docked panel starts below the header, so only the content makes room for it and the header keeps its full width. */}
+      <div className={cn(assistantOpen && 'min-[62em]:pr-(--assistant-w)')}>
+        <main className="mx-auto max-w-(--page-max) px-(--gutter) pt-6 pb-14">
+          <Suspense fallback={<LoadingBlock />}>
+            <div className="animate-in duration-200 fade-in-0 slide-in-from-bottom-1">
+              <Outlet />
+            </div>
+          </Suspense>
+        </main>
+      </div>
       {assistantEnabled && (
         <AssistantPanel open={assistantOpen} expanded={assistant.expanded} onToggleExpanded={assistant.toggleExpanded} onClose={closeAssistant} />
       )}
