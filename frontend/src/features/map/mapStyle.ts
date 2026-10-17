@@ -1,13 +1,12 @@
 import type { Map as MapLibreMap, StyleSpecification } from '@/lib/maplibre';
 
-export const MAP_STYLE_URL = import.meta.env.VITE_MAP_STYLE_URL || 'https://tiles.openfreemap.org/styles/dark';
+export const MAP_STYLE_URL = import.meta.env.VITE_MAP_STYLE_URL || 'https://tiles.openfreemap.org/styles/positron';
 
-/** MapLibre's controls and attribution in the dark theme; its CSS is unlayered, so the overrides need `!`. */
+/** MapLibre's controls and attribution in the light theme; its CSS is unlayered, so the overrides need `!`. */
 export const MAP_CONTROLS_CLASS = [
   '[&_.maplibregl-ctrl-group]:rounded! [&_.maplibregl-ctrl-group]:border! [&_.maplibregl-ctrl-group]:border-border-strong! [&_.maplibregl-ctrl-group]:bg-surface-raised! [&_.maplibregl-ctrl-group]:shadow-none!',
-  '[&_.maplibregl-ctrl-group_button]:border-border! [&_.maplibregl-ctrl-icon]:invert! [&_.maplibregl-ctrl-group_button:hover]:bg-hover!',
+  '[&_.maplibregl-ctrl-group_button]:border-border! [&_.maplibregl-ctrl-group_button:hover]:bg-hover!',
   '[&_.maplibregl-ctrl-attrib]:bg-surface-glass! [&_.maplibregl-ctrl-attrib]:text-text-3! [&_.maplibregl-ctrl-attrib_a]:text-text-2!',
-  '[&_.maplibregl-ctrl-attrib-button]:invert!',
 ].join(' ');
 
 /** Used when the style above cannot be loaded (offline, blocked host): plain OpenStreetMap raster tiles. */
@@ -35,13 +34,13 @@ export function readToken(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
-/** Colors of the indigo basemap that have no token: water and parks sit between the page and the panel colors. */
-const WATER = '#14112f';
-const PARK = '#161232';
-const LAND_LIGHT = '#15112b';
-const BUILDING = '#1a1536';
-const ROAD_MINOR = '#1f1a42';
-const ROAD_MAJOR = '#2a2457';
+/** Colors of the light basemap that have no token: lilac-tinted water, parks and roads that stay visible on the page color. */
+const WATER = '#dde2f4';
+const PARK = '#e7eee8';
+const LAND_LIGHT = '#efedf7';
+const BUILDING = '#e6e2f1';
+const ROAD_MINOR = '#d3cee6';
+const ROAD_MAJOR = '#bdb5dc';
 
 /**
  * Recolors the loaded style to the app palette. Layers are matched by type and id prefix, so other styles
@@ -57,10 +56,8 @@ export function recolorBasemap(map: MapLibreMap): void {
     const { id } = layer;
     switch (layer.type) {
       case 'raster':
-        // Fallback OSM tiles: dim and desaturate so they do not glare next to the dark UI.
-        map.setPaintProperty(id, 'raster-brightness-max', 0.3);
-        map.setPaintProperty(id, 'raster-saturation', -0.6);
-        map.setPaintProperty(id, 'raster-contrast', 0.15);
+        // Fallback OSM tiles: soften the colors so they sit calmly next to the UI.
+        map.setPaintProperty(id, 'raster-saturation', -0.5);
         break;
       case 'background':
         set(id, 'background-color', background);

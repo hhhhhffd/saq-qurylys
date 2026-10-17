@@ -139,6 +139,36 @@
     padding: 0 !important;
   }
 
+  /* Scroll containers would clip wide tables on paper: let everything grow and wrap instead. */
+  div,
+  section,
+  table,
+  td,
+  th {
+    overflow: visible !important;
+    max-width: 100% !important;
+  }
+
+  table {
+    width: 100% !important;
+    table-layout: auto !important;
+  }
+
+  td,
+  th {
+    white-space: normal !important;
+  }
+
+  /* Long URLs may break anywhere, but short cells (dates, headers) keep a readable width. */
+  td {
+    min-width: 8ch;
+    overflow-wrap: anywhere;
+  }
+
+  @page {
+    margin: 12mm;
+  }
+
   section,
   article,
   tr,

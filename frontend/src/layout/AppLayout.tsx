@@ -78,7 +78,7 @@ export function AppLayout() {
       style={{ '--assistant-w': assistant.expanded ? 'min(640px, 60vw)' : 'min(400px, 40vw)' } as CSSProperties}
     >
       <header data-print="hide" className="sticky top-0 z-40 border-b border-border bg-surface-raised">
-        <div className="mx-auto flex min-h-14 max-w-(--page-max) items-center gap-6 px-(--gutter) max-[62em]:min-h-12 max-[62em]:flex-wrap max-[62em]:gap-x-1 max-[62em]:gap-y-0">
+        <div className="mx-auto flex min-h-14 max-w-(--page-max) items-center gap-x-6 px-(--gutter) [html[data-font=large]_&]:flex-wrap [html[data-font=large]_&]:gap-y-0 max-[62em]:min-h-12 max-[62em]:flex-wrap max-[62em]:gap-x-1 max-[62em]:gap-y-0">
           <Link
             to="/"
             aria-label={t('appName')}
@@ -88,7 +88,7 @@ export function AppLayout() {
           </Link>
 
           <nav
-            className={`-mx-3 flex min-w-0 flex-1 items-center overflow-x-auto [scrollbar-width:none] max-[62em]:order-3 max-[62em]:mx-0 max-[62em]:grid max-[62em]:gap-0 max-[62em]:overflow-visible [&::-webkit-scrollbar]:hidden ${canSeeRegistry ? 'max-[62em]:basis-full max-[62em]:grid-cols-5' : 'max-[62em]:w-fit max-[62em]:flex-none max-[62em]:basis-auto max-[62em]:grid-cols-1'}`}
+            className={`-mx-3 flex min-w-0 flex-1 items-center [html[data-font=large]_&]:order-3 [html[data-font=large]_&]:mx-0 [html[data-font=large]_&]:basis-full overflow-x-auto [scrollbar-width:none] max-[62em]:order-3 max-[62em]:mx-0 max-[62em]:grid max-[62em]:gap-0 max-[62em]:overflow-visible [&::-webkit-scrollbar]:hidden ${canSeeRegistry ? 'max-[62em]:basis-full max-[62em]:grid-cols-5' : 'max-[62em]:w-fit max-[62em]:flex-none max-[62em]:basis-auto max-[62em]:grid-cols-1'}`}
             aria-label={t('header.menu')}
           >
             {canSeeRegistry && (
@@ -173,7 +173,7 @@ export function AppLayout() {
                 onClick={() => (assistantOpen ? closeAssistant() : assistant.setOpen(true))}
               >
                 <IconSparkles />
-                <span className="max-[75em]:hidden">{t('header.askAi')}</span>
+                <span className="max-[75em]:[html:not([data-font=large])_&]:hidden">{t('header.askAi')}</span>
               </Button>
             )}
             <Button
@@ -184,7 +184,7 @@ export function AppLayout() {
               onClick={() => setLargeFont(!largeFont)}
             >
               <IconTextSize />
-              <span className="max-[75em]:sr-only">{t('header.largeFont')}</span>
+              <span className="max-[75em]:[html:not([data-font=large])_&]:sr-only">{t('header.largeFont')}</span>
             </Button>
             <LanguageSwitch />
             <NotificationsBell />
@@ -210,7 +210,9 @@ export function AppLayout() {
         </main>
       </div>
       {assistantEnabled && (
-        <AssistantPanel open={assistantOpen} expanded={assistant.expanded} onToggleExpanded={assistant.toggleExpanded} onClose={closeAssistant} />
+        <div data-print="hide">
+          <AssistantPanel open={assistantOpen} expanded={assistant.expanded} onToggleExpanded={assistant.toggleExpanded} onClose={closeAssistant} />
+        </div>
       )}
     </div>
   );

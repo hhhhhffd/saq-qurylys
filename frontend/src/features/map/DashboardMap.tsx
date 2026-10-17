@@ -23,7 +23,7 @@ import {
   recolorBasemap,
 } from './mapStyle';
 
-// Frame and popup, restyled for the dark theme. MapLibre's own CSS is light and unlayered, so it beats Tailwind's
+// Frame and popup, restyled for the light theme. MapLibre's own CSS is light and unlayered, so it beats Tailwind's
 // layered utilities: the overrides of its classes need `!` (the controls are in MAP_CONTROLS_CLASS).
 const FRAME_CLASS = `relative h-[var(--map-h,320px)] overflow-hidden rounded-lg bg-surface-sunken shadow-1 ${MAP_CONTROLS_CLASS}`;
 const POPUP_CLASS = [
