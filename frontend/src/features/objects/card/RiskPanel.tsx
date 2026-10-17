@@ -59,16 +59,22 @@ function RiskSummary({ zone, breakdown }: { zone: Zone; breakdown: RiskBreakdown
     .sort((a, b) => b.weight - a.weight)
     .slice(0, SUMMARY_FACTORS_MAX)
     .map((factor) => lower(e('risk_factor', factor.code)));
-  const reason = factors.length > 0 ? factors.join('; ') : t(`card.risk.summary.noFactors.${zone}`);
+  // A triggered factor with a small weight does not make a zone; in the green zone it is only worth a mention.
+  const reason =
+    factors.length === 0
+      ? t(`card.risk.summary.noFactors.${zone}`)
+      : zone === 'green'
+        ? t('card.risk.summary.greenWithFactors', { factors: factors.join('; ') })
+        : factors.join('; ');
 
   const checks = (breakdown?.needs_check ?? [])
     .slice(0, SUMMARY_CHECKS_MAX)
     .map((item) => lower(e('needs_check', item.code)));
   const todo =
-    zone === 'green'
-      ? t('card.risk.summary.noChecks')
-      : checks.length > 0
-        ? t('card.risk.summary.check', { items: checks.join('; ') })
+    checks.length > 0
+      ? t('card.risk.summary.check', { items: checks.join('; ') })
+      : zone === 'green'
+        ? t('card.risk.summary.noChecks')
         : t('card.risk.summary.checkGeneric');
 
   return (
