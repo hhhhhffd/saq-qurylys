@@ -27,8 +27,9 @@
 - Настройки (`app/config.py`): `vision_enabled`, `s3_bucket_vision="vision"`, `vision_max_photo_mb=25`,
   `vision_max_video_mb=1024`, `vision_max_duration_seconds=1800`, `vision_frame_interval_seconds=3`,
   `vision_max_frames=400`, `vision_detector_backend="disabled"`. Concurrency — параметр команды `vision-worker`.
-- Режим детектора в Этапах 0–3 — только `disabled`. API и UI честно показывают «детектор выключен»; находки
-  создаёт человек, OCR — настоящий Tesseract.
+- Режим детектора: `disabled` (по умолчанию; находки создаёт человек, OCR — настоящий Tesseract) или
+  `experimental_pretrained` (Этап 4: Grounding DINO tiny без дообучения, `VISION_DETECTOR_BACKEND=grounding_dino`).
+  API (`/vision/config`) и UI всегда показывают режим; результаты модели — подсказки для человека, не вердикт.
 
 ## 3. Данные (миграция `0006`)
 
@@ -57,18 +58,37 @@
   Текущее `review_state` находки обновляется, история — здесь и в `audit_log`.
 - `AdOrigin` получает значение `vision`; CHECK `ad_post` расширяется в той же миграции.
 
-`vision_detection` и `vision_run` (Этап 4) пока не создаются: без реального детектора им нечего хранить.
+### Этап 4 (миграция `0008`)
+
+- **vision_run** — один проход детектора: `session_id`, `asset_id` (nullable: NULL — вся сессия), `status`
+  (`queued|running|completed|failed`), `model_version` (`grounding-dino-tiny@<12 символов коммита>`), `config` JSONB
+  (пороги, промпты, `max_side`, `device`, `batch_size`), `frames_total/frames_done`, `error_code`,
+  `started_at/finished_at`, `created_by` (NULL — запущен автоматически), `created_at`.
+- **vision_detection** — сырые рамки: `run_id`, `frame_id`, `category`, `label` (сработавшая фраза), `bbox`
+  (доли кадра), `confidence`, `group_key` (одна физическая сущность на соседних кадрах одного ассета).
+- `vision_finding.run_id`, `vision_finding.detection_id` (nullable FK: репрезентативная рамка группы).
+- Категория `debris` (мусор/навалы) добавлена в CHECK `vision_finding.category`.
+- Группировка: детекции одной категории на **последовательных пригодных кадрах одного ассета** с IoU ≥ 0.3 (в долях
+  кадра) образуют группу (жадное сопоставление по убыванию IoU, один к одному); на группу — одна находка модели,
+  репрезентативная рамка — с максимальной уверенностью. Фото — каждая рамка своя группа. Счётчики не раздуваются.
+- Правила статуса (план §5): `fence|site_gate|waste_container|wheel_wash|outdoor_ad` → `observed`; `debris` →
+  `possible_noncompliance` (проверяет человек); **отсутствие категории никогда не порождает находку** — итог прогона
+  `summary` показывает по каждой категории число найденных групп, 0 читается как «не обнаружено — данных недостаточно
+  для вывода». Все находки модели: `origin=model`, `review_state=pending`, `confidence`, `model_version`, `run_id`.
+  Решения людей новым прогоном не затрагиваются: прогон только добавляет свои находки (повторы объектов между
+  прогонами возможны — это отдельные находки на проверку).
 
 ## 4. API (`/api/v1/vision`, только `StaffUser`, территориальный scope, ошибки `api_error`)
 
 | Метод | Путь | Назначение |
 |---|---|---|
-| GET | `/vision/config` | `{enabled, detector_mode, ocr_enabled, max_photo_mb, max_video_mb}` |
+| GET | `/vision/config` | `{enabled, detector_mode: disabled\|experimental_pretrained, detector_model, ocr_enabled, max_photo_mb, max_video_mb, max_duration_seconds}` |
 | POST | `/vision/sessions` | JSON `{object_id?, territory_id?, source, captured_at?, note?}` → `SessionDetail` |
 | GET | `/vision/sessions` | фильтры `object_id, source, status`, `limit/offset` → `Page[SessionListItem]` |
-| GET | `/vision/sessions/{id}` | `SessionDetail` (assets с прогрессом, кадры-превью первой страницы, находки) |
+| GET | `/vision/sessions/{id}` | `SessionDetail` (assets с прогрессом, находки, `runs[]` с `summary` по категориям) |
 | PATCH | `/vision/sessions/{id}` | `{object_id?, note?, source?, captured_at?}` — ручная привязка к ЖК |
 | POST | `/vision/sessions/{id}/reviewed` | отметить сессию проверенной (не автоматически) |
+| POST | `/vision/sessions/{id}/reanalyze` | новый прогон детектора по всем пригодным кадрам → `SessionDetail`; 409 `detector_disabled`, 409 `run_in_progress` |
 | POST | `/vision/sessions/{id}/assets` | multipart `file` (одно фото или видео) → `AssetOut`, 201 / 200 при дубле |
 | POST | `/vision/assets/{id}/retry` | повторить упавшую обработку видео |
 | GET | `/vision/assets/{id}/content` | оригинал (стрим) |
@@ -100,8 +120,26 @@
   рекламы, балл только после подтверждения связи человеком, как сейчас). `ad_post_id` записывается в находку
   под `SELECT … FOR UPDATE` — повтор возвращает ту же публикацию.
 
-## 6. Что не делаем в Этапах 0–3
+- Детектор (Этап 4): задача `vision.detect(run_id)` (очередь `vision`, `acks_late`, лимиты 3300/3360 с). Модель
+  загружается один раз на процесс воркера (ленивый кэш); `torch`/`transformers` импортируются только в образах
+  `vision`/`vision-gpu`, API их не импортирует. Только `usable` кадры; оригинал читается из MinIO, уменьшается до
+  `VISION_DETECTOR_MAX_SIDE` (по умолчанию 800 px по длинной стороне) — рамки в долях, поэтому не зависят от масштаба.
+  Кадры одного размера идут пачкой (`VISION_DETECTOR_BATCH_SIZE`; 0 → 2 на CPU, 8 на GPU), по ходу пишется
+  `frames_done`. Детекции и находки пишутся одной транзакцией с завершением прогона: упавшая попытка ничего не оставляет,
+  повторная доставка начинает заново (своё без решений удаляется), завершённый прогон — no-op. Ошибки:
+  `detector_unavailable`, `detector_error`, `frame_missing`, `storage_error|storage_unavailable`, `processing_timeout`,
+  `queue_unavailable`.
+- Автозапуск (если бэкенд не `disabled`): **один прогон на ассет** — после успешного `extract_frames` видео и после
+  загрузки фото (фото-кадр создаётся синхронно). Пачка из N фото даёт N мелких прогонов в очереди воркера (каждый — один
+  кадр; модель загружена один раз), а не один прогон на всю сессию: так прогресс и сбой изолированы по файлам. Ручной
+  `reanalyze` — один прогон на всю сессию (`asset_id = NULL`); пока в сессии есть прогон в очереди или выполняется,
+  повторный запрос — 409. `processing` сессии истинно и пока прогон `queued|running`.
+- Устройство: `VISION_DETECTOR_DEVICE=auto|cpu|cuda` (`auto` → CUDA, если видна). Образ `vision` — CPU-колёса torch,
+  `vision-gpu` — CUDA 12.8; в прогон записывается фактическое устройство (`config.device`). Запускать нужно один из
+  воркеров `vision-worker` / `vision-worker-gpu`, не оба. Оценка качества и скорости — [SAQ_VISION_EVAL.md](SAQ_VISION_EVAL.md).
 
-Детектор объектов, `vision_detection`/`vision_run`, повторный анализ моделью, импорт с носителя/камер, resumable
+## 6. Что не делаем
+
+Дообучение и метрики precision/recall (нет размеченного набора), сравнение версий моделей, импорт с носителя/камер, resumable
 upload, Object Lock-ретеншн сверх настроек evidence (бакет `vision` создаётся с Object Lock и той же политикой
 `EVIDENCE_LOCK_MODE`/`EVIDENCE_RETENTION_DAYS`).
