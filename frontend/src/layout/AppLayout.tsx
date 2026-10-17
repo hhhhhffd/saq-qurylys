@@ -104,7 +104,7 @@ export function AppLayout() {
           </Link>
 
           <nav
-            className={`-mx-3 flex min-w-0 flex-1 items-center [html[data-font=large]_&]:order-3 [html[data-font=large]_&]:mx-0 [html[data-font=large]_&]:basis-full overflow-x-auto [scrollbar-width:none] max-[62em]:order-3 max-[62em]:mx-0 max-[62em]:grid max-[62em]:gap-0 max-[62em]:overflow-visible [&::-webkit-scrollbar]:hidden ${canSeeRegistry ? 'max-[62em]:basis-full max-[62em]:grid-cols-5' : 'max-[62em]:w-fit max-[62em]:flex-none max-[62em]:basis-auto max-[62em]:grid-cols-1'}`}
+            className={`-mx-3 flex min-w-0 flex-1 items-center [html[data-font=large]_&]:order-3 [html[data-font=large]_&]:mx-0 [html[data-font=large]_&]:basis-full flex-wrap max-[62em]:order-3 max-[62em]:mx-0 max-[62em]:grid max-[62em]:gap-0 ${canSeeRegistry ? 'max-[62em]:basis-full max-[62em]:grid-cols-5' : 'max-[62em]:w-fit max-[62em]:flex-none max-[62em]:basis-auto max-[62em]:grid-cols-1'}`}
             aria-label={t('header.menu')}
           >
             {canSeeRegistry && (
