@@ -11,7 +11,7 @@ settings = get_settings()
 
 celery_app = Celery("saq_qurylys", broker=settings.redis_url, backend=settings.redis_url)
 
-QUEUES = ("collect", "archive", "nlp", "score", "notify", "default")
+QUEUES = ("collect", "archive", "nlp", "score", "notify", "vision", "default")
 
 # Task names are the contract between modules; each module implements its own in `<module>/tasks.py`.
 celery_app.conf.update(
@@ -41,6 +41,7 @@ celery_app.conf.update(
         "collect.run_all": {"queue": "collect"},
         "collect.source": {"queue": "collect"},
         "registry.sync_homeportal": {"queue": "collect"},
+        "vision.*": {"queue": "vision"},
         "risk.recalc_object": {"queue": "score"},
         "risk.sweep_due": {"queue": "score"},
         "signals.check_deadlines": {"queue": "notify"},

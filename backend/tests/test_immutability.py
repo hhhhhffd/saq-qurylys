@@ -7,8 +7,26 @@ from sqlalchemy.orm import Session
 
 from app import audit
 from app.config import get_settings
-from app.models import AdPostVersion, Document, Evidence, RiskFactorChange
-from app.models.enums import AdVersionSource, DocType, EvidenceKind, LockMode
+from app.models import (
+    AdPostVersion,
+    Document,
+    Evidence,
+    RiskFactorChange,
+    VisionFinding,
+    VisionReview,
+    VisionSession,
+)
+from app.models.enums import (
+    AdVersionSource,
+    DocType,
+    EvidenceKind,
+    LockMode,
+    VisionCategory,
+    VisionFindingOrigin,
+    VisionFindingStatus,
+    VisionReviewAction,
+    VisionSource,
+)
 from tests.conftest import World, make_object
 from tests.support_ads import add_ad
 
@@ -82,6 +100,27 @@ def test_later_versions_of_a_publication_are_append_only(db: Session, world: Wor
     _assert_append_only(db, "UPDATE ad_post_version SET text = 'forged' WHERE id = :id", id=version.id)
     _assert_append_only(db, "DELETE FROM ad_post_version WHERE id = :id", id=version.id)
     _assert_append_only(db, "TRUNCATE ad_post_version")
+
+
+def test_vision_reviews_are_append_only(db: Session, world: World) -> None:
+    user = world.users["mio_ust"]
+    vision_session = VisionSession(territory_id=world.ust.id, source=VisionSource.drone, created_by=user.id)
+    db.add(vision_session)
+    db.flush()
+    finding = VisionFinding(
+        session_id=vision_session.id,
+        category=VisionCategory.fence,
+        status=VisionFindingStatus.observed,
+        origin=VisionFindingOrigin.manual,
+    )
+    db.add(finding)
+    db.flush()
+    review = VisionReview(finding_id=finding.id, action=VisionReviewAction.comment, comment="ok", reviewer_id=user.id)
+    db.add(review)
+    db.flush()
+    _assert_append_only(db, "UPDATE vision_review SET comment = 'forged' WHERE id = :id", id=review.id)
+    _assert_append_only(db, "DELETE FROM vision_review WHERE id = :id", id=review.id)
+    _assert_append_only(db, "TRUNCATE vision_review")
 
 
 def test_evidence_requires_exactly_one_owner(db: Session, world: World) -> None:
