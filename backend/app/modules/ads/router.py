@@ -7,7 +7,7 @@ from fastapi import APIRouter, File, Form, Query, Request, Response, UploadFile
 from redis.exceptions import RedisError
 from sqlalchemy import func, select
 
-from app import audit, storage
+from app import audit
 from app.collectors import COLLECTOR_PLATFORMS, account_enabled, enabled_sources, platform_enabled
 from app.collectors import lock as collect_lock
 from app.collectors.aggregator import check_search_url
@@ -15,14 +15,12 @@ from app.config import get_settings
 from app.deps import ScopeDep, SessionDep, StaffUser
 from app.errors import api_error, forbidden
 from app.events import objects_changed
-from app.geo import make_point
 from app.models import AdPost, ConstructionObject, PhraseHit, SourceAccount, Territory
 from app.models.enums import (
     AdOrigin,
     AdStatus,
     CaptureStatus,
     DetectedBy,
-    EvidenceKind,
     LinkMethod,
     LlmStatus,
     OcrStatus,
@@ -57,7 +55,6 @@ from app.modules.nlp.service import finding_for_hit, recompute_weights, supporte
 from app.modules.nlp.text import strip_ocr_marker
 from app.modules.objects.service import get_object_in_scope
 from app.schemas import Page
-from app.storage import EvidenceLink
 from app.uploads import PHOTO_TYPES, read_upload
 from app.worker.celery_app import celery_app
 
@@ -236,41 +233,21 @@ def create_manual_ad(
     ):
         raise api_error(409, "ad_exists", "Эта публикация уже внесена")
     fields = _new_ad_fields(session, scope, user, object_id)
-    ad = AdPost(
+    ad = service.create_manual_ad(
+        session,
+        user,
+        request,
         platform=platform,
         url=url,
         external_id=external_id,
         text=text,
         published_at=published_at,
-        captured_at=datetime.now(UTC),
         is_outdoor=is_outdoor,
-        location=make_point(lat, lon),
+        lat=lat,
+        lon=lon,
+        photos=payloads,
         ocr_status=OcrStatus.pending if payloads else None,
-        **fields,
-    )
-    session.add(ad)
-    session.flush()
-    evidence_ids = [
-        storage.put_evidence(
-            session,
-            data,
-            EvidenceKind.photo,
-            content_type,
-            link=EvidenceLink(ad_post_id=ad.id),
-            created_by=user.id,
-        ).id
-        for data, content_type in payloads
-    ]
-    session.refresh(ad)
-    audit.record(
-        session,
-        user,
-        "ad.manual_create",
-        "ad_post",
-        ad.id,
-        None,
-        {**audit.snapshot(ad), "evidence_ids": evidence_ids},
-        request,
+        fields=fields,
     )
     session.commit()
     if not service.dispatch_pipeline(ad.id, capture=False, requested_by=user.id):
