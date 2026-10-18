@@ -39,14 +39,30 @@ def _local(value: str | None, tz: ZoneInfo, *, with_time: bool = True) -> str:
     return parsed.strftime("%d.%m.%Y %H:%M" if with_time and "T" in value else "%d.%m.%Y")
 
 
-def _embedded_image(evidence: Evidence, labels: dict[str, Any]) -> tuple[str | None, str | None]:
-    """(data URI, note) for one evidence file: images are embedded, other kinds are only listed."""
-    if evidence.content_type not in EMBEDDED_IMAGE_TYPES or evidence.size_bytes > MAX_EMBEDDED_BYTES:
-        return None, labels["not_embedded"]
+def _embedded_image(
+    evidence: Evidence, labels: dict[str, Any], max_bytes: int = MAX_EMBEDDED_BYTES
+) -> tuple[str | None, str | None, int]:
+    """Embed one bounded image and return its actual byte count; other evidence is listed only."""
+    if evidence.content_type not in EMBEDDED_IMAGE_TYPES or max_bytes <= 0:
+        return None, labels["not_embedded"], 0
+    limit = min(MAX_EMBEDDED_BYTES, max_bytes)
+    if evidence.size_bytes > limit:
+        return None, labels["not_embedded"], 0
+    chunks: list[bytes] = []
+    actual_size = 0
+    oversized = False
     try:
         response = storage.open_evidence(evidence)
         try:
-            data = response.read()
+            while True:
+                chunk = response.read(limit - actual_size + 1)
+                if not chunk:
+                    break
+                chunks.append(chunk)
+                actual_size += len(chunk)
+                if actual_size > limit:
+                    oversized = True
+                    break
         finally:
             response.close()
             response.release_conn()
@@ -54,8 +70,11 @@ def _embedded_image(evidence: Evidence, labels: dict[str, Any]) -> tuple[str | N
         logger.warning(
             "Evidence %s is missing in storage; the PDF lists it without the image", evidence.id, exc_info=True
         )
-        return None, labels["unavailable"]
-    return f"data:{evidence.content_type};base64,{base64.b64encode(data).decode('ascii')}", None
+        return None, labels["unavailable"], 0
+    if oversized:
+        return None, labels["not_embedded"], 0
+    data = b"".join(chunks)
+    return f"data:{evidence.content_type};base64,{base64.b64encode(data).decode('ascii')}", None, len(data)
 
 
 def _format_value(value: Any, labels: dict[str, Any]) -> str:
@@ -74,7 +93,15 @@ def _format_value(value: Any, labels: dict[str, Any]) -> str:
     return str(value)
 
 
-def build_context(session: Session, view: CardView, locale: str = "ru") -> dict[str, Any]:
+def build_context(
+    session: Session,
+    view: CardView,
+    locale: str = "ru",
+    *,
+    draft: bool = False,
+    allowed_evidence_ids: set[int] | None = None,
+    max_embedded_total_bytes: int | None = None,
+) -> dict[str, Any]:
     labels = get_labels(locale)
     card, sections = view.card, view.card.sections
     tz = ZoneInfo(view.timezone)
@@ -86,18 +113,29 @@ def build_context(session: Session, view: CardView, locale: str = "ru") -> dict[
         for item in sections.get(key, [])
         for evidence_id in item["evidence_ids"]
     ]
+    if allowed_evidence_ids is not None:
+        evidence_ids = [evidence_id for evidence_id in evidence_ids if evidence_id in allowed_evidence_ids]
+    remaining_embed_bytes = max_embedded_total_bytes
     evidence_rows = {
         row.id: row
         for row in session.scalars(select(Evidence).where(Evidence.id.in_(evidence_ids)).order_by(Evidence.id))
     }
 
     def evidence_items(ids: list[int]) -> list[dict[str, Any]]:
+        nonlocal remaining_embed_bytes
         items = []
         for evidence_id in ids:
             row = evidence_rows.get(evidence_id)
             if row is None:
                 continue
-            image, note = _embedded_image(row, labels)
+            if allowed_evidence_ids is not None and row.id not in allowed_evidence_ids:
+                continue
+            image_limit = MAX_EMBEDDED_BYTES
+            if remaining_embed_bytes is not None:
+                image_limit = min(image_limit, remaining_embed_bytes)
+            image, note, embedded_bytes = _embedded_image(row, labels, image_limit)
+            if remaining_embed_bytes is not None:
+                remaining_embed_bytes -= embedded_bytes
             items.append(
                 {
                     "id": row.id,
@@ -152,6 +190,8 @@ def build_context(session: Session, view: CardView, locale: str = "ru") -> dict[
 
     return {
         "t": labels,
+        "draft": draft,
+        "draft_label": ("ЧЕРНОВИК · НЕ НАПРАВЛЕНО" if locale != "kk" else "ЖОБА · ЖІБЕРІЛМЕГЕН"),
         "number": card.number,
         "meta": meta,
         "zone": zone,
@@ -247,5 +287,21 @@ def render_document(html: str) -> Document:
     return HTML(string=html, base_url=str(TEMPLATES_DIR)).render()
 
 
-def render_pdf(session: Session, view: CardView, locale: str = "ru") -> bytes:
-    return bytes(render_document(render_html(build_context(session, view, locale))).write_pdf())
+def render_pdf(
+    session: Session,
+    view: CardView,
+    locale: str = "ru",
+    *,
+    draft: bool = False,
+    allowed_evidence_ids: set[int] | None = None,
+    max_embedded_total_bytes: int | None = None,
+) -> bytes:
+    context = build_context(
+        session,
+        view,
+        locale,
+        draft=draft,
+        allowed_evidence_ids=allowed_evidence_ids,
+        max_embedded_total_bytes=max_embedded_total_bytes,
+    )
+    return bytes(render_document(render_html(context)).write_pdf())

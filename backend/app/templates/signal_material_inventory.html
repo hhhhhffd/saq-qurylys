@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="{{ locale }}">
+<head>
+<meta charset="utf-8">
+<title>{{ t.inventory_title }} № {{ card_number }}</title>
+<style>
+  @page {
+    size: A4 landscape;
+    margin: 22mm 12mm 18mm 12mm;
+    @top-center { content: element(page-header); width: 100%; }
+    @bottom-right { content: "{{ t.page }} " counter(page) " / " counter(pages); font-size: 8pt; color: #555; }
+  }
+  html {
+    font-family: "DejaVu Sans", "Liberation Sans", sans-serif;
+    font-size: 10.5pt;
+    color: #1c1c1e;
+    line-height: 1.35;
+  }
+  #page-header { position: running(page-header); border-bottom: 0.5pt solid #999; padding-bottom: 2mm; color: #555; }
+  h1 { font-size: 15pt; margin: 0 0 2mm; }
+  h2 { font-size: 12pt; margin: 5mm 0 2mm; }
+  p { margin: 1.5mm 0; }
+  .draft { color: #9b1c1c; font-weight: bold; font-size: 11pt; text-align: center; }
+  .watermark {
+    position: fixed;
+    top: 105mm;
+    left: 35mm;
+    transform: rotate(-25deg);
+    color: rgba(155, 28, 28, 0.10);
+    font-size: 28pt;
+    font-weight: bold;
+    white-space: nowrap;
+  }
+  .file-card { margin: 0 0 4mm; padding: 3mm; border: 0.7pt solid #9ba3ad; border-radius: 1mm; break-inside: avoid; }
+  .file-heading { display: flex; justify-content: space-between; gap: 4mm; align-items: flex-start; padding-bottom: 2mm; border-bottom: 0.5pt solid #ccd1d8; }
+  .filename { min-width: 0; font-weight: bold; overflow-wrap: anywhere; }
+  .status { flex: 0 0 auto; font-weight: bold; text-align: right; }
+  .status-omitted { color: #8b1e1e; }
+  .file-description { margin: 2mm 0; }
+  .metadata { display: flex; flex-wrap: wrap; column-gap: 6mm; row-gap: 1mm; margin: 2mm 0 0; }
+  .metadata-item { width: calc(50% - 3mm); min-width: 0; overflow-wrap: anywhere; }
+  .metadata-label { font-weight: bold; }
+  .wide { width: 100%; }
+  .hash, .url { overflow-wrap: anywhere; word-break: break-word; font-family: monospace; }
+  .omission-note { margin-top: 2mm; padding-top: 2mm; border-top: 0.5pt solid #c98a8a; color: #741919; }
+  .omission-list { margin: 0; padding-left: 6mm; }
+  .omission-list li { margin: 1.5mm 0; break-inside: avoid; }
+  .muted { color: #555; }
+  .empty { padding: 3mm; border: 0.5pt solid #bbb; }
+  @media print {
+    .file-card { border-radius: 0; }
+    a { color: inherit; text-decoration: none; }
+  }
+</style>
+</head>
+<body>
+{% if is_draft %}<div class="watermark">{{ t.draft }}</div>{% endif %}
+<header id="page-header">SAQ · {{ t.inventory_title }} · № {{ card_number }}</header>
+{% if is_draft %}<p class="draft">{{ t.draft }}</p>{% endif %}
+<h1>{{ t.inventory_title }} № {{ card_number }}</h1>
+<p>{{ t.inventory_intro }} {{ t.formed_at }}: {{ generated_at }}</p>
+<p class="muted">{{ t.inventory_note }}</p>
+<p class="muted">{{ t.self_exclusion }}</p>
+
+<h2>{{ t.inventory_title }}</h2>
+<section class="files" aria-label="{{ t.inventory_title }}">
+  {% for item in attachments %}
+    <article class="file-card">
+      <div class="file-heading">
+        <div class="filename"><span class="metadata-label">{{ t.inventory_file }}:</span> {{ item.filename }}</div>
+        <div class="status {% if item.included == t.omitted %}status-omitted{% endif %}">
+          <span class="metadata-label">{{ t.inventory_included }}:</span> {{ item.included }}
+        </div>
+      </div>
+      <p class="file-description"><span class="metadata-label">{{ t.inventory_label }}:</span> {{ item.label }}
+        <span class="muted"> · {{ t.inventory_source }}: {{ item.source_label }}</span>
+      </p>
+      <div class="metadata">
+        <div class="metadata-item"><span class="metadata-label">{{ t.inventory_id }}:</span> {{ item.evidence_id }}</div>
+        <div class="metadata-item"><span class="metadata-label">{{ t.inventory_type }}:</span> {{ item.content_type }}</div>
+        <div class="metadata-item"><span class="metadata-label">{{ t.inventory_size }}:</span> {{ item.size_bytes }}</div>
+        <div class="metadata-item"><span class="metadata-label">{{ t.inventory_capture }}:</span> {{ item.captured_at }}</div>
+        <div class="metadata-item wide"><span class="metadata-label">{{ t.inventory_sha }}:</span>
+          <div class="hash">{{ item.sha256 }}</div>
+        </div>
+        <div class="metadata-item wide"><span class="metadata-label">{{ t.inventory_url }}:</span>
+          {% if item.source_url.startswith('http://') or item.source_url.startswith('https://') %}
+            <a class="url" href="{{ item.source_url }}">{{ item.source_url }}</a>
+          {% else %}<span class="url">{{ item.source_url }}</span>{% endif %}
+        </div>
+      </div>
+      {% if item.note %}<div class="omission-note"><span class="metadata-label">{{ t.omission_reason }}:</span> {{ item.note }}</div>{% endif %}
+    </article>
+  {% else %}
+    <p class="empty">{{ t.empty_rows }}</p>
+  {% endfor %}
+</section>
+
+<h2>{{ t.omission_title }}</h2>
+{% if omissions %}
+<ul class="omission-list">
+  {% for item in omissions %}
+    <li><strong>{{ item.filename }}</strong> — {{ item.label }} · {{ item.source_label }}: {{ item.note }}</li>
+  {% endfor %}
+</ul>
+{% else %}<p>{{ t.no_omissions }}</p>{% endif %}
+</body>
+</html>

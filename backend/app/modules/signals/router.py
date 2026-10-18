@@ -8,19 +8,20 @@ from sqlalchemy.orm import Session
 
 from app import audit, storage
 from app.config import get_settings
-from app.deps import CurrentUser, PageDep, ScopeDep, SessionDep, require_roles
+from app.deps import CurrentUser, PageDep, ScopeDep, SessionDep, StaffUser, require_roles
 from app.errors import api_error
 from app.models import AppUser, SignalCard, Territory
 from app.models.enums import EvidenceKind, Recipient, Role, SignalStatus, Zone
 from app.modules.objects.service import get_object_in_scope
 from app.modules.settings.service import load_settings
-from app.modules.signals import mail, pdf, service
+from app.modules.signals import mail, materials, pdf, service
 from app.modules.signals.schemas import (
     ConfirmAndSend,
     CreateSignal,
     ResponseBody,
     ReturnBody,
     SignalDetail,
+    SignalMaterials,
     SignalPatch,
     SignalRow,
 )
@@ -447,4 +448,44 @@ def signal_pdf(signal_id: int, session: SessionDep, user: CurrentUser, scope: Sc
         content=document,
         media_type="application/pdf",
         headers={"Content-Disposition": f'inline; filename="{view.card.number}.pdf"', "Cache-Control": "no-store"},
+    )
+
+
+@router.get("/{signal_id}/materials", response_model=SignalMaterials)
+def signal_materials(
+    signal_id: int,
+    session: SessionDep,
+    user: StaffUser,
+    scope: ScopeDep,
+    include_evidence: Annotated[bool | None, Query()] = None,
+    evidence_id: Annotated[list[int] | None, Query()] = None,
+) -> SignalMaterials:
+    view = service.get_card_view(session, user, scope, signal_id)
+    return materials.build_preview(session, view, user, scope, include_evidence, evidence_id)
+
+
+@router.get("/{signal_id}/package.zip")
+def signal_materials_package(
+    signal_id: int,
+    session: SessionDep,
+    user: StaffUser,
+    scope: ScopeDep,
+    request: Request,
+    include_evidence: Annotated[bool | None, Query()] = None,
+    evidence_id: Annotated[list[int] | None, Query()] = None,
+) -> Response:
+    view = service.get_card_view(session, user, scope, signal_id)
+    package, filename, fallback = materials.build_package(
+        session,
+        view,
+        user,
+        scope,
+        request,
+        include_evidence,
+        evidence_id,
+    )
+    return Response(
+        content=package,
+        media_type="application/zip",
+        headers=materials.package_response_headers(filename, fallback),
     )

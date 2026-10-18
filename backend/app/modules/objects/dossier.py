@@ -196,10 +196,10 @@ def build_context(session: Session, obj: ConstructionObject, user: AppUser, loca
                 if is_image and embedded_bytes + row.size_bytes > MAX_EMBEDDED_TOTAL_BYTES:
                     note = inv["over_budget"]
                 else:
-                    image, note = _embedded_image(row, labels)
+                    image, note, actual_bytes = _embedded_image(row, labels, MAX_EMBEDDED_TOTAL_BYTES - embedded_bytes)
                     if image is not None:
                         embedded += 1
-                        embedded_bytes += row.size_bytes
+                        embedded_bytes += actual_bytes
             attachments.append(
                 {
                     "number": len(attachments) + 1,

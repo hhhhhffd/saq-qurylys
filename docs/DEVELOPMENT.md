@@ -49,6 +49,13 @@ The object and signal registry XLSX exports are generated with the locked `openp
 list filters, role checks and territory scope as their corresponding API lists; each export is capped at 10,000
 rows and returns `413 too_many_export_rows` rather than silently truncating a larger result.
 
+Signal-card material packages use the locked `python-docx` dependency plus the existing XLSX/PDF renderers. The
+staff-only preview and ZIP endpoints use only the card's saved snapshot and relation-checked, territory-authorized
+evidence; publication evidence must also belong to the card's object. The cover letter lists only files actually
+included in the package, while unavailable or integrity-mismatched evidence appears in the inventory. Evidence is
+read with bounded limits (50 files, 20 MiB per file, 60 MiB total). Package downloads add an audit entry but do not
+change card status or dispatch state. No schema migration is required.
+
 ## Frontend
 
 ```bash

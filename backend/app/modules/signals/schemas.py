@@ -1,6 +1,6 @@
 from datetime import date, datetime
 from enum import StrEnum
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
@@ -101,3 +101,47 @@ class SignalDetail(SignalRow):
     responded_by: int | None
     created_by: int | None
     audit: list[SignalAuditEntry]
+
+
+MaterialKind = Literal["cover_docx", "signal_pdf", "publications_xlsx", "inventory_pdf", "evidence"]
+
+
+class SignalMaterialFile(BaseModel):
+    kind: MaterialKind
+    filename: str
+    evidence_id: int | None
+    content_type: str | None
+    size_bytes: int | None
+    sha256: str | None
+    captured_at: datetime | None
+    source_label: str
+    source_url: str | None
+    available: bool
+    selected: bool
+    missing_reason: str | None
+
+
+class SignalMissingMaterial(BaseModel):
+    source_label: str
+    reason: str
+
+
+class SignalMaterialLimits(BaseModel):
+    max_evidence_files: int
+    max_file_bytes: int
+    max_total_bytes: int
+
+
+class SignalMaterials(BaseModel):
+    signal_id: int
+    number: str
+    status: SignalStatus
+    recipient: Recipient | None
+    is_draft: bool
+    formed_at: datetime
+    snapshot_at: datetime
+    snapshot_publications_capped: bool
+    files: list[SignalMaterialFile]
+    missing_materials: list[SignalMissingMaterial]
+    warnings: list[str]
+    limits: SignalMaterialLimits
