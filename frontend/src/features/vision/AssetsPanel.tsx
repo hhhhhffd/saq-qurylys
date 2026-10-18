@@ -1,10 +1,12 @@
-import { IconMovie, IconPhoto, IconRefresh } from '@tabler/icons-react';
+import { IconMovie, IconPhoto, IconPlayerPlayFilled, IconRefresh, IconX } from '@tabler/icons-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useRetryAsset } from '@/api/hooks/vision';
+import { useAssetVideo, useRetryAsset } from '@/api/hooks/vision';
 import type { VisionAsset } from '@/api/types';
 import { Chip } from '@/components/Chip';
 import { Panel } from '@/components/Panel';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import { useEnum } from '@/i18n/useEnum';
 import { ASSET_STATUS_TONE, formatSize, formatTimestamp } from './constants';
 
@@ -13,6 +15,7 @@ export function AssetsPanel({ assets }: { assets: VisionAsset[] }) {
   const { t: tc } = useTranslation();
   const e = useEnum();
   const retry = useRetryAsset();
+  const [playing, setPlaying] = useState<number | null>(null);
   const nameOf = (asset: VisionAsset) => asset.original_name ?? t('assets.unnamed', { id: asset.id });
 
   return (
@@ -49,6 +52,12 @@ export function AssetsPanel({ assets }: { assets: VisionAsset[] }) {
                   </span>
                 )}
                 <Chip tone={ASSET_STATUS_TONE[asset.status]}>{e('vision_asset_status', asset.status)}</Chip>
+                {asset.kind === 'video' && asset.status === 'ready' && (
+                  <Button size="xs" variant="secondary" onClick={() => setPlaying(playing === asset.id ? null : asset.id)}>
+                    {playing === asset.id ? <IconX /> : <IconPlayerPlayFilled />}
+                    {playing === asset.id ? tc('close') : t('assets.play')}
+                  </Button>
+                )}
                 {asset.status === 'failed' && asset.kind === 'video' && (
                   <Button
                     size="xs"
@@ -60,6 +69,7 @@ export function AssetsPanel({ assets }: { assets: VisionAsset[] }) {
                     {tc('retry')}
                   </Button>
                 )}
+                {playing === asset.id && <AssetVideo assetId={asset.id} label={nameOf(asset)} />}
                 {asset.status === 'failed' && asset.error_code && (
                   <span className="basis-full text-xs text-zone-red-ink">
                     {tc(`errors.${asset.error_code}`, { defaultValue: asset.error_code })}
@@ -72,4 +82,18 @@ export function AssetsPanel({ assets }: { assets: VisionAsset[] }) {
       )}
     </Panel>
   );
+}
+
+function AssetVideo({ assetId, label }: { assetId: number; label: string }) {
+  const { t } = useTranslation();
+  const { data, isPending, isError } = useAssetVideo(assetId);
+  if (isError) return <span className="basis-full text-xs text-zone-red-ink">{t('states.loadError')}</span>;
+  if (isPending) {
+    return (
+      <span className="flex basis-full justify-center py-6">
+        <Spinner className="size-4" />
+      </span>
+    );
+  }
+  return <video src={data.url} controls autoPlay muted playsInline aria-label={label} className="mt-1 block max-h-[60vh] w-full basis-full rounded bg-black" />;
 }

@@ -101,6 +101,7 @@ const vision: typeof ru = {
     empty: 'Әзірге файл жоқ.',
     frames: '{{count}} кадр',
     unnamed: '№{{id}} файл',
+    play: 'Көру',
   },
   frames: {
     title: 'Кадрлар',

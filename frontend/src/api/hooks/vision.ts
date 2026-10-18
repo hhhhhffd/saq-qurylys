@@ -97,6 +97,20 @@ export function useFrameImage(frameId: number | null, variant: 'preview' | 'orig
   });
 }
 
+/** The original video of an asset, loaded only when the player is opened (same blob handling as frames). */
+export function useAssetVideo(assetId: number | null) {
+  return useQuery({
+    queryKey: qk.visionBlob('asset', assetId ?? 0, 'original'),
+    queryFn: async ({ signal }) => {
+      const blob = await apiBlob(`/vision/assets/${assetId}/content`, signal);
+      return { blob, url: URL.createObjectURL(blob) };
+    },
+    enabled: assetId != null,
+    staleTime: Infinity,
+    gcTime: 5 * 60_000,
+  });
+}
+
 function useInvalidateVision() {
   const qc = useQueryClient();
   return () => qc.invalidateQueries({ queryKey: qk.vision });

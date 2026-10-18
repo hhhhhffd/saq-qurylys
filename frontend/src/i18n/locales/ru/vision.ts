@@ -98,6 +98,7 @@ const vision = {
     empty: 'Файлов пока нет.',
     frames: '{{count}} кадр.',
     unnamed: 'Файл №{{id}}',
+    play: 'Смотреть',
   },
   frames: {
     title: 'Кадры',
