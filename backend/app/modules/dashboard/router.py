@@ -1,6 +1,6 @@
 from collections import Counter
 from datetime import UTC, date, datetime, timedelta
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Query, Request, Response
 from sqlalchemy import select
@@ -92,6 +92,7 @@ def management_report(
     start: Annotated[date, Query(alias="from")],
     end: Annotated[date, Query(alias="to")],
     territory_id: Annotated[int | None, Query()] = None,
+    zones: Annotated[Literal["priority", "all"], Query()] = "priority",
 ) -> Response:
     """PDF report for heads of departments: figures for the period over the user's territory (or one territory
     of it) in plain words."""
@@ -103,7 +104,7 @@ def management_report(
         raise api_error(403, "territory_forbidden", "Территория вне вашей зоны ответственности")
     if territory_id is not None and session.get(Territory, territory_id) is None:
         raise api_error(404, "territory_not_found", "Территория не найдена")
-    document = report.render_pdf(session, user, scope, report.Period(start, end), territory_id)
+    document = report.render_pdf(session, user, scope, report.Period(start, end), territory_id, zones)
     audit.record(
         session,
         user,
@@ -111,7 +112,7 @@ def management_report(
         "report",
         None,
         None,
-        {"from": start.isoformat(), "to": end.isoformat(), "territory_id": territory_id},
+        {"from": start.isoformat(), "to": end.isoformat(), "territory_id": territory_id, "zones": zones},
         request,
     )
     session.commit()

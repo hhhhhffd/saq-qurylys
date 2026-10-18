@@ -2,13 +2,23 @@
 
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
-from typing import Any
+from typing import Any, Literal
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import Date, Select, func, select
+from sqlalchemy import Date, Select, case, func, select
 from sqlalchemy.orm import Session
 
-from app.models import AdPost, AppUser, Complaint, ConstructionObject, Inspection, SignalCard, Territory
+from app.models import (
+    AdPost,
+    AppUser,
+    Complaint,
+    ConstructionObject,
+    Developer,
+    District,
+    Inspection,
+    SignalCard,
+    Territory,
+)
 from app.models.enums import AdStatus, SignalStatus, Zone
 from app.modules.dashboard.service import build_timeline
 from app.modules.risk.queries import AD_TIMESTAMP
@@ -19,9 +29,23 @@ from app.scope import TerritoryScope
 
 MAX_PERIOD_DAYS = 366
 MAX_LISTED = 30
+ReportZones = Literal["priority", "all"]
 # The country lives in one reporting time zone; a period is whole local days.
 REPORT_TZ = ZoneInfo("Asia/Almaty")
 ZONE_ORDER: tuple[Zone | None, ...] = (Zone.red, Zone.yellow, Zone.green, None)
+REGISTER_LABELS = {
+    "title": "Перечень ЖК на дату формирования",
+    "priority": "Красные и жёлтые",
+    "all": "Все объекты",
+    "empty_priority": "Красных и жёлтых объектов в доступной территории нет.",
+    "empty_all": "В доступной территории объекты не найдены.",
+    "object": "ЖК / адрес",
+    "developer": "Застройщик / БИН",
+    "risk": "Зона / балл",
+    "assessment": "Последняя оценка / статус",
+    "no_score": "Без оценки",
+    "demo": "ДЕМО",
+}
 
 
 @dataclass(frozen=True)
@@ -53,6 +77,14 @@ def _in_period(column: Any, period: Period) -> Any:
 
 def _count(session: Session, stmt: Select[Any]) -> int:
     return session.scalar(select(func.count()).select_from(stmt.subquery())) or 0
+
+
+def _format_assessment_date(value: datetime | None, missing: str) -> str:
+    if value is None:
+        return missing
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=UTC)
+    return value.astimezone(REPORT_TZ).strftime("%d.%m.%Y %H:%M")
 
 
 def _zones_at(session: Session, scope: TerritoryScope, at: datetime) -> dict[int, Zone]:
@@ -93,7 +125,13 @@ def _zone_changes(
 
 
 def build_context(
-    session: Session, user: AppUser, scope: TerritoryScope, period: Period, territory_id: int | None, now: datetime
+    session: Session,
+    user: AppUser,
+    scope: TerritoryScope,
+    period: Period,
+    territory_id: int | None,
+    now: datetime,
+    zones: ReportZones = "priority",
 ) -> dict[str, Any]:
     labels = get_labels(user.locale.value)
     t = labels["management_report"]
@@ -109,9 +147,57 @@ def build_context(
     end_moment = min(period.end_at, now)
     at_start = _zone_counts(session, scope, period.start_at)
     at_end = _zone_counts(session, scope, end_moment)
+
+    # Read the current projection once so the register and the "now" counters share a snapshot.
+    current_stmt = (
+        select(ConstructionObject, Developer.name, Developer.bin, District.name, Territory.name)
+        .outerjoin(Developer, Developer.id == ConstructionObject.developer_id)
+        .outerjoin(District, District.id == ConstructionObject.district_id)
+        .join(Territory, Territory.id == ConstructionObject.territory_id)
+    )
+    current_stmt = scope.restrict(current_stmt, ConstructionObject.territory_id)
+    zone_order = case(
+        (ConstructionObject.zone == Zone.red, 0),
+        (ConstructionObject.zone == Zone.yellow, 1),
+        (ConstructionObject.zone == Zone.green, 2),
+        else_=3,
+    )
+    current_rows = session.execute(
+        current_stmt.order_by(
+            zone_order,
+            ConstructionObject.score.desc().nulls_last(),
+            ConstructionObject.code,
+            ConstructionObject.name,
+            ConstructionObject.id,
+        )
+    ).all()
     current: dict[Zone | None, int] = dict.fromkeys(ZONE_ORDER, 0)
-    for zone in session.scalars(scope.restrict(select(ConstructionObject.zone), ConstructionObject.territory_id)):
-        current[zone] += 1
+    register_rows = []
+    for obj, developer_name, developer_bin, district_name, object_territory_name in current_rows:
+        current[obj.zone] += 1
+        if zones == "priority" and obj.zone not in (Zone.red, Zone.yellow):
+            continue
+        location = " · ".join(value for value in (district_name, object_territory_name) if value)
+        register_rows.append(
+            {
+                "name": obj.name,
+                "code": obj.code,
+                "address": obj.address or labels["empty"],
+                "location": location or labels["empty"],
+                "developer": developer_name or labels["empty"],
+                "developer_bin": developer_bin,
+                "score": obj.score,
+                "zone": zone_names[obj.zone.value if obj.zone else None],
+                "zone_code": obj.zone.value if obj.zone else "none",
+                "assessment_date": _format_assessment_date(obj.last_scored_at, labels["empty"]),
+                "key_status": (
+                    labels["dossier"]["key_status"].get(obj.key_status.value, obj.key_status.value)
+                    if obj.key_status
+                    else labels["empty"]
+                ),
+                "is_demo": obj.is_demo,
+            }
+        )
 
     def zone_key(zone: Zone | None) -> str:
         return zone.value if zone else "none"
@@ -224,6 +310,13 @@ def build_context(
         "formed_on": now.astimezone(REPORT_TZ).strftime("%d.%m.%Y"),
         "summary": summary,
         "zones": zones_table,
+        "register": {
+            **REGISTER_LABELS,
+            "mode": REGISTER_LABELS[zones],
+            "empty": REGISTER_LABELS["empty_priority" if zones == "priority" else "empty_all"],
+            "as_of": now.astimezone(REPORT_TZ).strftime("%d.%m.%Y %H:%M"),
+        },
+        "register_rows": register_rows,
         "changes": changes_rows,
         "changes_total": len(changes),
         "signals": [
@@ -240,12 +333,21 @@ def build_context(
         "complaints_total": len(complaints),
         "complaints_collective": sum(is_collective for (is_collective,) in complaints),
         "inspections_total": inspections,
+        "note": (
+            t["note"] + " Балл и зона помогают определить приоритет проверки; официальная передача материалов "
+            "оформляется отдельной сигнальной карточкой."
+        ),
     }
 
 
 def render_pdf(
-    session: Session, user: AppUser, scope: TerritoryScope, period: Period, territory_id: int | None
+    session: Session,
+    user: AppUser,
+    scope: TerritoryScope,
+    period: Period,
+    territory_id: int | None,
+    zones: ReportZones = "priority",
 ) -> bytes:
-    context = build_context(session, user, scope, period, territory_id, datetime.now(UTC))
+    context = build_context(session, user, scope, period, territory_id, datetime.now(UTC), zones)
     html = _env.get_template("management_report.html").render(**context)
     return bytes(render_document(html).write_pdf())
