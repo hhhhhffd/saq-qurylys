@@ -10,11 +10,12 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app import seed, seed_versions, storage
-from app.models import AdPost, AdPostVersion, ConstructionObject, Developer, District, Evidence, LinkedEntity
+from app.models import AdPost, AdPostVersion, AppUser, ConstructionObject, Developer, District, Evidence, LinkedEntity
 from app.models.enums import AdOrigin, AdStatus, AdVersionSource, CaptureStatus, EvidenceKind, ScoreTrigger, Zone
 from app.modules.ads import service
 from app.modules.nlp.service import analyze_ad
 from app.modules.risk.service import recalculate
+from app.scope import build_scope
 from tests.test_seed_demo import EXPECTED
 
 NAME = "ЖК «Малахит»"
@@ -78,7 +79,8 @@ def test_the_demo_publication_keeps_its_original_its_edit_and_the_moment_it_was_
         assert body == (seed.SEED_DATA_DIR / file_name).read_bytes()
         assert row.sha256 == hashlib.sha256(body).hexdigest() and row.size_bytes == len(body)
 
-    detail = service.build_detail(db, ad)
+    demo_mio = db.scalars(select(AppUser).where(AppUser.username == "demo_mio")).one()
+    detail = service.build_detail(db, ad, build_scope(db, demo_mio))
     assert [(v.id, v.evidence_id) for v in detail.versions] == [(version.id, edited_shot.id)]
     assert detail.original_captured_at == ad.captured_at
     assert detail.original_evidence is not None and detail.original_evidence.id == original_shot.id

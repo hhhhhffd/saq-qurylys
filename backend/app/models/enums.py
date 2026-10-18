@@ -138,6 +138,25 @@ class AdStatus(StrEnum):
     removed_saved = "removed_saved"
 
 
+class AdReviewState(StrEnum):
+    unreviewed = "unreviewed"
+    reviewed = "reviewed"
+    deferred = "deferred"
+    irrelevant = "irrelevant"
+
+
+class AdQueueReason(StrEnum):
+    capture_pending = "capture_pending"
+    capture_failed = "capture_failed"
+    ocr_pending = "ocr_pending"
+    ocr_failed = "ocr_failed"
+    llm_pending = "llm_pending"
+    llm_failed = "llm_failed"
+    uncertain_object = "uncertain_object"
+    unreviewed_phrase_hits = "unreviewed_phrase_hits"
+    manual_review = "manual_review"
+
+
 class CaptureStatus(StrEnum):
     pending = "pending"
     done = "done"

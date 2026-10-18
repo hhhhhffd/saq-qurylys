@@ -10,12 +10,14 @@ from sqlalchemy.orm import Session
 from app import storage
 from app.models import AdPost, AuditLog, Evidence, PhraseHit, SourceAccount
 from app.models.enums import (
+    AdReviewState,
     AdStatus,
     CaptureStatus,
     DetectedBy,
     EvidenceKind,
     LinkMethod,
     LlmStatus,
+    OcrStatus,
     PhraseCategory,
     Platform,
 )
@@ -74,6 +76,7 @@ def test_receiving_bodies_cannot_use_ads(client: TestClient, db: Session, world:
     assert client.post(f"{ADS}/capture", headers=headers, json={"url": "https://example.kz/a"}).status_code == 403
     assert client.post(f"{ADS}/manual", headers=headers, data={"text": "x", "platform": "other"}).status_code == 403
     assert client.patch(f"{ADS}/{ad.id}", headers=headers, json={"status": "verification"}).status_code == 403
+    assert client.patch(f"{ADS}/{ad.id}/triage", headers=headers, json={"state": "deferred"}).status_code == 403
     assert client.post(f"{ADS}/{ad.id}/accept-llm", headers=headers).status_code == 403
     assert client.get("/api/v1/source-accounts", headers=headers).status_code == 403
     assert client.get("/api/v1/phrases", headers=headers).status_code == 403
@@ -82,6 +85,23 @@ def test_receiving_bodies_cannot_use_ads(client: TestClient, db: Session, world:
 def test_anonymous_requests_are_rejected(client: TestClient) -> None:
     for path in (ADS, "/api/v1/source-accounts", "/api/v1/phrases"):
         assert client.get(path).status_code == 401
+
+
+def test_triage_write_requires_auth_and_respects_territory_scope(client: TestClient, db: Session, world: World) -> None:
+    foreign = add_ad(db, world.semey, "Не менять чужой разбор", review_state=AdReviewState.deferred)
+
+    anonymous = client.patch(f"{ADS}/{foreign.id}/triage", json={"state": "irrelevant"})
+    assert anonymous.status_code == 401
+
+    out_of_scope = client.patch(
+        f"{ADS}/{foreign.id}/triage",
+        headers=auth(world.users["mio_ust"]),
+        json={"state": "irrelevant"},
+    )
+    assert out_of_scope.status_code == 404
+
+    db.refresh(foreign)
+    assert foreign.review_state is AdReviewState.deferred
 
 
 # ---------------------------------------------------------------- reading
@@ -136,6 +156,192 @@ def test_list_is_sorted_filtered_and_scoped(client: TestClient, db: Session, wor
     assert foreign.id in {item["id"] for item in region["items"]} and region["total"] == 5
     assert client.get(ADS, headers=auth(world.users["mio_semey"])).json()["total"] == 1
     assert client.get(f"{ADS}/{foreign.id}", headers=headers).status_code == 404
+
+
+def test_queue_defaults_to_unreviewed_and_requeues_reviewed_with_new_unresolved_work(
+    client: TestClient, db: Session, world: World
+) -> None:
+    headers = auth(world.users["mio_ust"])
+    manual = add_ad(db, world.ust, "обычная публикация", llm_status=LlmStatus.none)
+    clean_reviewed = add_ad(
+        db, world.ust, "уже разобрана", llm_status=LlmStatus.done, review_state=AdReviewState.reviewed
+    )
+    stale_reviewed = add_ad(
+        db, world.ust, "появилась новая работа", llm_status=LlmStatus.failed, review_state=AdReviewState.reviewed
+    )
+    deferred = add_ad(db, world.ust, "отложена", review_state=AdReviewState.deferred)
+    hit(db, stale_reviewed, PhraseCategory.booking, 0, 1)
+
+    queue = client.get(ADS, headers=headers, params={"queue": "true"}).json()
+    queue_rows = {item["id"]: item for item in queue["items"]}
+    assert set(queue_rows) == {manual.id, stale_reviewed.id}
+    assert queue_rows[manual.id]["queue_reasons"] == ["manual_review"]
+    assert queue_rows[stale_reviewed.id]["queue_reasons"] == ["llm_failed", "unreviewed_phrase_hits"]
+    assert queue["total"] == 2
+
+    reviewed = client.get(ADS, headers=headers, params={"queue": "true", "review_state": "reviewed"}).json()
+    assert {item["id"] for item in reviewed["items"]} == {clean_reviewed.id, stale_reviewed.id}
+    deferred_rows = client.get(ADS, headers=headers, params={"queue": "true", "review_state": "deferred"}).json()
+    assert [item["id"] for item in deferred_rows["items"]] == [deferred.id]
+
+    ordinary = client.get(ADS, headers=headers).json()
+    assert ordinary["total"] == 4
+    assert {item["id"] for item in ordinary["items"]} == {manual.id, clean_reviewed.id, stale_reviewed.id, deferred.id}
+
+
+def test_duplicate_advisory_is_scoped_capped_and_paginated(client: TestClient, db: Session, world: World) -> None:
+    account = SourceAccount(platform=Platform.instagram, handle="known_source", territory_id=world.ust.id)
+    other_account = SourceAccount(platform=Platform.instagram, handle="other_source", territory_id=world.ust.id)
+    db.add_all([account, other_account])
+    db.flush()
+    group = [
+        add_ad(
+            db,
+            world.ust,
+            "Точный одинаковый текст",
+            platform=Platform.instagram,
+            source_account_id=account.id,
+            url=f"https://instagram.com/p/{i}",
+        )
+        for i in range(22)
+    ]
+    foreign = add_ad(
+        db,
+        world.semey,
+        "Точный одинаковый текст",
+        platform=Platform.instagram,
+        source_account_id=account.id,
+        url="https://instagram.com/p/foreign",
+    )
+    add_ad(
+        db,
+        world.ust,
+        "Точный одинаковый текст",
+        platform=Platform.instagram,
+        source_account_id=other_account.id,
+    )
+    add_ad(db, world.ust, "Похожий, но другой текст", source_account_id=account.id)
+    headers = auth(world.users["mio_ust"])
+
+    listing = client.get(ADS, headers=headers).json()
+    rows = {item["id"]: item for item in listing["items"]}
+    row = rows[group[0].id]
+    assert row["duplicate_count"] == 21
+    assert len(row["duplicate_instances"]) == 20 and row["duplicate_instances_truncated"] is True
+    assert {item["source_label"] for item in row["duplicate_instances"]} == {"known_source"}
+    assert foreign.id not in rows and listing["total"] == 24
+
+    last_page = client.get(
+        ADS,
+        headers=headers,
+        params={"duplicate_of": group[0].id, "limit": 5, "offset": 20},
+    ).json()
+    all_group_ids = client.get(ADS, headers=headers, params={"duplicate_of": group[0].id, "limit": 50}).json()
+    assert last_page["total"] == 22
+    assert [item["id"] for item in last_page["items"]] == [item["id"] for item in all_group_ids["items"][20:]]
+    assert client.get(f"{ADS}?duplicate_of={foreign.id}", headers=headers).status_code == 404
+
+
+def test_triage_records_reopen_and_does_not_change_ad_facts_or_emit_object_events(
+    client: TestClient, db: Session, world: World, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    obj = make_object(db, world.ust, "ЖК для триажа")
+    ad = add_ad(
+        db,
+        world.ust,
+        "Бронь квартир",
+        object_id=obj.id,
+        status=AdStatus.verification,
+        max_phrase_weight=17,
+        total_phrase_weight=23,
+    )
+    hit(db, ad, PhraseCategory.booking, 0, 5)
+    events: list[list[int]] = []
+    monkeypatch.setattr("app.modules.ads.router.objects_changed", lambda ids: events.append(ids))
+    headers = auth(world.users["mio_ust"])
+
+    blocked = client.patch(f"{ADS}/{ad.id}/triage", headers=headers, json={"state": "reviewed"})
+    assert blocked.status_code == 409 and blocked.json()["detail"]["code"] == "reviewed_unresolved"
+
+    deferred = client.patch(
+        f"{ADS}/{ad.id}/triage",
+        headers=headers,
+        json={"state": "deferred", "note": "вернуться после уточнения связи"},
+    )
+    assert deferred.status_code == 200, deferred.text
+    body = deferred.json()
+    assert body["review_state"] == "deferred" and body["reviewed_by"] == world.users["mio_ust"].id
+    assert body["reviewed_at"] and body["review_note"] == "вернуться после уточнения связи"
+
+    reopened = client.patch(f"{ADS}/{ad.id}/triage", headers=headers, json={"state": "unreviewed"})
+    assert reopened.status_code == 200 and reopened.json()["review_state"] == "unreviewed"
+    assert reopened.json()["review_note"] == "вернуться после уточнения связи"
+
+    db.refresh(ad)
+    assert (ad.status, ad.object_id, ad.max_phrase_weight, ad.total_phrase_weight) == (
+        AdStatus.verification,
+        obj.id,
+        17,
+        23,
+    )
+    assert events == []
+    audit_rows = list(
+        db.scalars(
+            select(AuditLog).where(AuditLog.action == "ad.triage", AuditLog.entity_id == ad.id).order_by(AuditLog.id)
+        )
+    )
+    assert len(audit_rows) == 2
+    assert audit_rows[0].before["review_state"] == "unreviewed"
+    assert audit_rows[0].after["review_state"] == "deferred"
+    assert audit_rows[1].after["review_state"] == "unreviewed"
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("capture_status", CaptureStatus.pending),
+        ("capture_status", CaptureStatus.failed),
+        ("ocr_status", OcrStatus.pending),
+        ("ocr_status", OcrStatus.failed),
+        ("llm_status", LlmStatus.pending),
+        ("llm_status", LlmStatus.failed),
+    ],
+)
+def test_reviewed_triage_waits_for_pending_or_failed_pipeline(
+    client: TestClient, db: Session, world: World, field: str, value: CaptureStatus | OcrStatus | LlmStatus
+) -> None:
+    values: dict[str, object] = {field: value}
+    if field == "capture_status":
+        values["url"] = "https://example.kz/post"
+    ad = add_ad(db, world.ust, "Обработка ещё не завершена", **values)
+
+    response = client.patch(f"{ADS}/{ad.id}/triage", headers=auth(world.users["mio_ust"]), json={"state": "reviewed"})
+
+    assert response.status_code == 409 and response.json()["detail"]["code"] == "reviewed_unresolved"
+    db.refresh(ad)
+    assert ad.review_state is AdReviewState.unreviewed
+
+
+def test_irrelevant_triage_allows_unknown_but_blocks_confirmed_facts_and_links(
+    client: TestClient, db: Session, world: World
+) -> None:
+    headers = auth(world.users["mio_ust"])
+    unknown = add_ad(db, world.ust, "Неизвестная формулировка")
+    hit(db, unknown, PhraseCategory.booking, 0, 2)
+    allowed = client.patch(f"{ADS}/{unknown.id}/triage", headers=headers, json={"state": "irrelevant"})
+    assert allowed.status_code == 200 and allowed.json()["review_state"] == "irrelevant"
+
+    confirmed = add_ad(db, world.ust, "Подтверждённый факт")
+    hit(db, confirmed, PhraseCategory.booking, 0, 2, confirmed=True)
+    blocked_fact = client.patch(f"{ADS}/{confirmed.id}/triage", headers=headers, json={"state": "irrelevant"})
+    assert blocked_fact.status_code == 409
+    assert blocked_fact.json()["detail"]["code"] == "irrelevant_has_facts"
+
+    obj = make_object(db, world.ust, "Связанный объект")
+    linked = add_ad(db, world.ust, "Связанная публикация", object_id=obj.id, status=AdStatus.captured)
+    blocked_link = client.patch(f"{ADS}/{linked.id}/triage", headers=headers, json={"state": "irrelevant"})
+    assert blocked_link.status_code == 409
+    assert blocked_link.json()["detail"]["code"] == "irrelevant_has_facts"
 
 
 def test_detail_has_hits_evidence_llm_and_linked_object(

@@ -5,7 +5,7 @@ from urllib.parse import urlsplit
 
 from fastapi import APIRouter, File, Form, Query, Request, Response, UploadFile
 from redis.exceptions import RedisError
-from sqlalchemy import func, select
+from sqlalchemy import and_, exists, func, or_, select
 
 from app import audit
 from app.collectors import COLLECTOR_PLATFORMS, account_enabled, enabled_sources, platform_enabled
@@ -18,6 +18,7 @@ from app.events import objects_changed
 from app.models import AdPost, ConstructionObject, PhraseHit, SourceAccount, Territory
 from app.models.enums import (
     AdOrigin,
+    AdReviewState,
     AdStatus,
     CaptureStatus,
     DetectedBy,
@@ -31,6 +32,7 @@ from app.modules.ads.schemas import (
     AdDetail,
     AdPatch,
     AdRow,
+    AdTriage,
     CaptureRequest,
     CollectorStatus,
     CollectQueued,
@@ -106,17 +108,45 @@ def list_ads(
     status: Annotated[AdStatus | None, Query()] = None,
     is_demo: Annotated[bool | None, Query()] = None,
     q: Annotated[str | None, Query(max_length=200)] = None,
+    queue: bool = False,
+    review_state: Annotated[AdReviewState | None, Query()] = None,
+    duplicate_of: Annotated[int | None, Query(gt=0)] = None,
 ) -> Page[AdRow]:
     stmt = select(AdPost, ConstructionObject.name).outerjoin(
         ConstructionObject, ConstructionObject.id == AdPost.object_id
     )
     stmt = scope.restrict(stmt, AdPost.territory_id)
+    if queue and review_state is None:
+        unresolved = or_(
+            AdPost.status == AdStatus.verification,
+            AdPost.capture_status.in_((CaptureStatus.pending, CaptureStatus.failed)),
+            AdPost.ocr_status.in_((OcrStatus.pending, OcrStatus.failed)),
+            AdPost.llm_status.in_((LlmStatus.pending, LlmStatus.failed)),
+            exists(select(PhraseHit.id).where(PhraseHit.ad_post_id == AdPost.id, PhraseHit.confirmed.is_(None))),
+        )
+        stmt = stmt.where(
+            or_(
+                AdPost.review_state == AdReviewState.unreviewed,
+                and_(AdPost.review_state == AdReviewState.reviewed, unresolved),
+            )
+        )
+    elif review_state is not None:
+        stmt = stmt.where(AdPost.review_state == review_state)
     if platform is not None:
         stmt = stmt.where(AdPost.platform == platform)
     if object_id is not None:
         stmt = stmt.where(AdPost.object_id == object_id)
     if status is not None:
         stmt = stmt.where(AdPost.status == status)
+    if duplicate_of is not None:
+        anchor = service.get_ad_in_scope(session, scope, duplicate_of)
+        if anchor.source_account_id is None or not anchor.text:
+            raise api_error(
+                422,
+                "duplicate_group_unavailable",
+                "У этой публикации нет сохранённого источника и текста для точной группировки",
+            )
+        stmt = stmt.where(AdPost.source_account_id == anchor.source_account_id, AdPost.text == anchor.text)
     if is_demo is not None:
         stmt = stmt.where(AdPost.is_demo == is_demo)
     if q and q.strip():
@@ -131,10 +161,13 @@ def list_ads(
     total = session.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0
     # Posts without a known publication date are ordered by the time they were captured or entered.
     recency = func.coalesce(AdPost.published_at, AdPost.captured_at, AdPost.created_at)
-    rows = session.execute(
-        stmt.order_by(AdPost.max_phrase_weight.desc(), recency.desc(), AdPost.id.desc()).limit(limit).offset(offset)
-    )
-    return Page(items=[service.build_row(ad, object_name) for ad, object_name in rows], total=total)
+    rows = [
+        (ad, object_name)
+        for ad, object_name in session.execute(
+            stmt.order_by(AdPost.max_phrase_weight.desc(), recency.desc(), AdPost.id.desc()).limit(limit).offset(offset)
+        )
+    ]
+    return Page(items=service.build_rows(session, rows, scope), total=total)
 
 
 @router.post("/ads/capture", response_model=AdDetail, status_code=201)
@@ -156,7 +189,7 @@ def capture_ad(
             raise api_error(409, "ad_exists", "Эта публикация уже зафиксирована")
         response.status_code = 200
         if existing.capture_status not in {None, CaptureStatus.failed}:
-            return service.build_detail(session, existing)
+            return service.build_detail(session, existing, scope)
         before = audit.snapshot(existing)
         existing.capture_status = CaptureStatus.pending
         existing.capture_error = None
@@ -164,7 +197,7 @@ def capture_ad(
         session.commit()
         if not service.dispatch_pipeline(existing.id, capture=True, requested_by=user.id):
             service.mark_capture_unqueued(session, existing)
-        return service.build_detail(session, existing)
+        return service.build_detail(session, existing, scope)
 
     fields = _new_ad_fields(session, scope, user, body.object_id)
     source = service.resolve_source_account(session, platform, url)
@@ -185,7 +218,7 @@ def capture_ad(
     session.commit()
     if not service.dispatch_pipeline(ad.id, capture=True, requested_by=user.id):
         service.mark_capture_unqueued(session, ad)
-    return service.build_detail(session, ad)
+    return service.build_detail(session, ad, scope)
 
 
 @router.post("/ads/manual", response_model=AdDetail, status_code=201)
@@ -252,12 +285,66 @@ def create_manual_ad(
     session.commit()
     if not service.dispatch_pipeline(ad.id, capture=False, requested_by=user.id):
         service.mark_capture_unqueued(session, ad)
-    return service.build_detail(session, ad)
+    return service.build_detail(session, ad, scope)
 
 
 @router.get("/ads/{ad_id}", response_model=AdDetail)
 def get_ad(ad_id: int, session: SessionDep, user: StaffUser, scope: ScopeDep) -> AdDetail:
-    return service.build_detail(session, service.get_ad_in_scope(session, scope, ad_id))
+    return service.build_detail(session, service.get_ad_in_scope(session, scope, ad_id), scope)
+
+
+@router.patch("/ads/{ad_id}/triage", response_model=AdDetail)
+def triage_ad(
+    ad_id: int, body: AdTriage, session: SessionDep, user: StaffUser, scope: ScopeDep, request: Request
+) -> AdDetail:
+    """Record a staff triage decision without changing publication facts, status, or risk inputs."""
+    ad = service.get_ad_in_scope(session, scope, ad_id, for_update=True)
+    has_unreviewed_hits = bool(
+        session.scalar(select(exists().where(PhraseHit.ad_post_id == ad.id, PhraseHit.confirmed.is_(None))))
+    )
+    has_confirmed_hits = bool(
+        session.scalar(select(exists().where(PhraseHit.ad_post_id == ad.id, PhraseHit.confirmed.is_(True))))
+    )
+    pipeline_unresolved = (
+        ad.capture_status in {CaptureStatus.pending, CaptureStatus.failed}
+        or ad.ocr_status in {OcrStatus.pending, OcrStatus.failed}
+        or ad.llm_status in {LlmStatus.pending, LlmStatus.failed}
+    )
+    verification_link = ad.status is AdStatus.verification
+    confirmed_link = ad.object_id is not None and not verification_link
+
+    if body.state is AdReviewState.reviewed:
+        unresolved: list[str] = []
+        if has_unreviewed_hits:
+            unresolved.append("подтвердите или отклоните все найденные формулировки")
+        if verification_link:
+            unresolved.append("подтвердите или снимите неопределённую связь с ЖК в карточке публикации")
+        if pipeline_unresolved:
+            unresolved.append("дождитесь завершения или устраните ошибку обработки публикации")
+        if unresolved:
+            raise api_error(
+                409,
+                "reviewed_unresolved",
+                "Чтобы отметить публикацию разобранной, сначала " + "; ".join(unresolved),
+            )
+    elif body.state is AdReviewState.irrelevant and (has_confirmed_hits or confirmed_link):
+        actions: list[str] = []
+        if has_confirmed_hits:
+            actions.append("отклоните подтверждённые формулировки через действия у формулировок")
+        if confirmed_link:
+            actions.append("снимите подтверждённую связь с ЖК в карточке публикации")
+        raise api_error(409, "irrelevant_has_facts", "Сначала " + "; ".join(actions))
+
+    before = audit.snapshot(ad)
+    ad.review_state = body.state
+    if "note" in body.model_fields_set:
+        ad.review_note = body.note
+    ad.reviewed_by = user.id
+    ad.reviewed_at = datetime.now(UTC)
+    session.flush()
+    audit.record(session, user, "ad.triage", "ad_post", ad.id, before, audit.snapshot(ad), request)
+    session.commit()
+    return service.build_detail(session, ad, scope)
 
 
 def _confirmed_status(ad: AdPost) -> AdStatus:
@@ -308,7 +395,7 @@ def update_ad(
     audit.record(session, user, "ad.update", "ad_post", ad.id, before, audit.snapshot(ad), request)
     session.commit()
     objects_changed(affected)
-    return service.build_detail(session, ad)
+    return service.build_detail(session, ad, scope)
 
 
 @router.post("/ads/{ad_id}/hits/{hit_id}/confirm", response_model=PhraseHitOut)
@@ -365,7 +452,7 @@ def accept_llm(ad_id: int, session: SessionDep, user: StaffUser, scope: ScopeDep
     session.commit()
     if ad.object_id is not None:
         objects_changed([ad.object_id])
-    return service.build_detail(session, ad)
+    return service.build_detail(session, ad, scope)
 
 
 # ---------------------------------------------------------------- source accounts

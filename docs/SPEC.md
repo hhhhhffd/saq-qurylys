@@ -101,6 +101,16 @@ API: префикс `/api/v1`, JSON, даты ISO 8601 (UTC в БД, отобр�
 - **Наружная реклама**: ручной ввод (текст, фото, геоточка, `is_outdoor=true`).
 - **Коллекторы (фаза 2, раздел 10.1)**: `collectors/base.py`: `class Collector(Protocol): platform; capture_urls: bool; def handles(account) -> bool; def collect(account, since, is_known) -> Iterable[CollectedPost]`. `CollectedPost` несёт `media_urls`. Реестр коллекторов по `platform`; регистрируются только включённые (`collectors.register_enabled`). Сборщик возвращает и уже известные посты окна, чтобы заметить правку текста.
 
+### 5.1. Очередь ручного разбора публикаций
+
+`ad_post.review_state` хранит отдельное состояние триажа: `unreviewed|reviewed|deferred|irrelevant`; оно не заменяет `AdStatus` (`captured|verification|removed_saved`) и не меняет подтверждённые фразы, факты, коэффициенты, готовность или риск. Каждое действие записывает `reviewed_by`, `reviewed_at`, `review_note` и audit event. Повторная публикация остаётся доступной в обычном списке и навигации.
+
+`GET /ads?queue=true` без `review_state` показывает исторические `unreviewed` публикации и `reviewed`, для которых сейчас появились незавершённые причины. `deferred` и `irrelevant` не возвращаются в очередь автоматически; их можно найти фильтром состояния и вернуть в работу через triage `state=unreviewed`. Без `queue` и `review_state` существующая лента не меняется. `queue_reasons` содержит только применимые к текущей записи коды: `capture_pending|capture_failed`, `ocr_pending|ocr_failed`, `llm_pending|llm_failed`, `uncertain_object`, `unreviewed_phrase_hits`, `manual_review`. `llm_status=none|disabled` сам по себе не является ошибкой.
+
+Перевод в `reviewed` требует завершить текущую обработку, решить связь со статусом `verification` и подтвердить либо отклонить все `phrase_hit` (`confirmed` не `NULL`). Перевод в `irrelevant` блокируется при подтверждённых формулировках или подтверждённой связи с ЖК; сначала их надо отклонить или снять существующими действиями. Неизвестные данные сами по себе не блокируют нерелевантность. `deferred` и возврат в `unreviewed` доступны всегда. Triage не вызывает пересчёт риска или `objects_changed`.
+
+Дубликаты — только подсказка: точное непустое сохранённое `text` и известный `source_account_id`, с учётом территориального scope. `duplicate_count` считает другие записи; `duplicate_instances` показывает до 20 соседних публикаций (`id`, `url`, `platform`, сохранённая подпись источника), а `duplicate_instances_truncated` указывает на остальные. Они доступны через обычные страницы `GET /ads?duplicate_of={id}&limit=&offset=`. Дубликаты не скрываются, не объединяются и не удаляются.
+
 ## 6. Оценка риска (модель кейса Codemasters 8.0)
 
 Риск — оценка необходимости проверки, а не юридическое заключение. Расчёт детерминирован: одинаковые подтверждённые данные дают одинаковый результат.
@@ -227,8 +237,9 @@ Auth
 - `POST /objects/{id}/linked-entities` · `DELETE /linked-entities/{id}`
 
 Реклама
-- `GET /ads?platform=&object_id=&status=&q=&limit=&offset=` (сортировка: `max_phrase_weight desc, published_at desc`) → `{items:[AdRow], total}`
+- `GET /ads?platform=&object_id=&status=&q=&queue=&review_state=&duplicate_of=&limit=&offset=` (сортировка: `max_phrase_weight desc, published_at desc`) → `{items:[AdRow], total}`
 - `GET /ads/{id}` → `AdDetail` (+ `phrase_hits`, `evidence`, `llm_extraction`, `linked_object`)
+- `PATCH /ads/{id}/triage` `{state: unreviewed|reviewed|deferred|irrelevant, note?}` → `AdDetail`; 409 `reviewed_unresolved` или `irrelevant_has_facts`, если сохраняются блокирующие данные
 - `POST /ads/capture` `{url, object_id?, platform?}` → `AdDetail` (`capture_status=pending`)
 - `POST /ads/manual` (multipart: text, platform, url?, object_id?, published_at, is_outdoor, lat, lon, photos[])
 - `PATCH /ads/{id}` `{object_id?, status?, payment_schemes?, claimed_readiness_pct?, price_before_completion?}`

@@ -5,7 +5,7 @@ from datetime import UTC, datetime, timedelta
 import httpx
 from celery import chain
 from fastapi import Request
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, tuple_
 from sqlalchemy.orm import Session
 
 from app import audit, storage
@@ -29,6 +29,9 @@ from app.models import (
 )
 from app.models.enums import (
     AdOrigin,
+    AdQueueReason,
+    AdReviewState,
+    AdStatus,
     AdVersionSource,
     CaptureStatus,
     EvidenceKind,
@@ -37,7 +40,15 @@ from app.models.enums import (
     Platform,
     Role,
 )
-from app.modules.ads.schemas import AdDetail, AdRow, AdVersionOut, LinkedObject, PhraseHitOut, VisionSourceOut
+from app.modules.ads.schemas import (
+    AdDetail,
+    AdRow,
+    AdVersionOut,
+    DuplicateInstance,
+    LinkedObject,
+    PhraseHitOut,
+    VisionSourceOut,
+)
 from app.modules.ads.urls import handle_from_url
 from app.modules.ads.versions import record_version
 from app.modules.evidence.schemas import EvidenceOut
@@ -51,24 +62,128 @@ from app.storage import EvidenceLink
 from app.worker.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
+MAX_DUPLICATE_INSTANCES = 20
 
 
-def get_ad_in_scope(session: Session, scope: TerritoryScope, ad_id: int) -> AdPost:
+def get_ad_in_scope(session: Session, scope: TerritoryScope, ad_id: int, *, for_update: bool = False) -> AdPost:
     """Out-of-scope publications are reported as missing so their existence is not disclosed."""
-    ad = session.get(AdPost, ad_id)
-    if ad is None or not scope.contains(ad.territory_id):
+    stmt = scope.restrict(select(AdPost).where(AdPost.id == ad_id), AdPost.territory_id)
+    if for_update:
+        stmt = stmt.with_for_update().execution_options(populate_existing=True)
+    ad = session.scalar(stmt)
+    if ad is None:
         raise api_error(404, "ad_not_found", "Публикация не найдена")
     return ad
 
 
-def build_row(ad: AdPost, object_name: str | None) -> AdRow:
-    return AdRow.model_validate(ad).model_copy(update={"object_name": object_name})
+def queue_reasons(ad: AdPost, has_unreviewed_hits: bool) -> list[AdQueueReason]:
+    if ad.review_state in {AdReviewState.deferred, AdReviewState.irrelevant}:
+        return []
+    reasons: list[AdQueueReason] = []
+    if ad.capture_status is not None and ad.capture_status.value in {"pending", "failed"}:
+        reasons.append(AdQueueReason(f"capture_{ad.capture_status.value}"))
+    if ad.ocr_status is not None and ad.ocr_status.value in {"pending", "failed"}:
+        reasons.append(AdQueueReason(f"ocr_{ad.ocr_status.value}"))
+    if ad.llm_status.value in {"pending", "failed"}:
+        reasons.append(AdQueueReason(f"llm_{ad.llm_status.value}"))
+    if ad.status is AdStatus.verification:
+        reasons.append(AdQueueReason.uncertain_object)
+    if has_unreviewed_hits:
+        reasons.append(AdQueueReason.unreviewed_phrase_hits)
+    if not reasons and ad.review_state is AdReviewState.unreviewed:
+        reasons.append(AdQueueReason.manual_review)
+    return reasons
 
 
-def build_detail(session: Session, ad: AdPost) -> AdDetail:
+def duplicate_metadata(
+    session: Session, ads: Sequence[AdPost], scope: TerritoryScope
+) -> dict[tuple[int, str], tuple[int, list[DuplicateInstance]]]:
+    keys = {(ad.source_account_id, ad.text) for ad in ads if ad.source_account_id is not None and ad.text}
+    if not keys:
+        return {}
+
+    base = select(
+        AdPost.source_account_id.label("source_account_id"),
+        AdPost.text.label("text"),
+        AdPost.id.label("id"),
+        AdPost.url.label("url"),
+        AdPost.platform.label("platform"),
+        SourceAccount.handle.label("source_label"),
+        func.count().over(partition_by=(AdPost.source_account_id, AdPost.text)).label("group_size"),
+        func.row_number()
+        .over(partition_by=(AdPost.source_account_id, AdPost.text), order_by=AdPost.id)
+        .label("instance_rank"),
+    ).join(SourceAccount, SourceAccount.id == AdPost.source_account_id)
+    base = scope.restrict(base, AdPost.territory_id)
+    base = scope.restrict(base, SourceAccount.territory_id).where(
+        tuple_(AdPost.source_account_id, AdPost.text).in_(keys)
+    )
+    grouped = base.subquery()
+    rows = session.execute(
+        select(grouped)
+        .where(grouped.c.group_size > 1, grouped.c.instance_rank <= MAX_DUPLICATE_INSTANCES + 1)
+        .order_by(grouped.c.source_account_id, grouped.c.text, grouped.c.id)
+    )
+
+    groups: dict[tuple[int, str], tuple[int, list[DuplicateInstance]]] = {}
+    for row in rows:
+        key = (row.source_account_id, row.text)
+        if key not in groups:
+            groups[key] = (
+                row.group_size - 1,
+                [],
+            )
+        groups[key][1].append(
+            DuplicateInstance(id=row.id, url=row.url, platform=row.platform, source_label=row.source_label)
+        )
+    return groups
+
+
+def _row_with_metadata(
+    ad: AdPost,
+    object_name: str | None,
+    has_unreviewed_hits: bool,
+    duplicates: dict[tuple[int, str], tuple[int, list[DuplicateInstance]]],
+) -> AdRow:
+    count = 0
+    instances: list[DuplicateInstance] = []
+    truncated = False
+    key = (ad.source_account_id, ad.text) if ad.source_account_id is not None and ad.text else None
+    if key is not None and key in duplicates:
+        count, group = duplicates[key]
+        instances = [item for item in group if item.id != ad.id][:MAX_DUPLICATE_INSTANCES]
+        truncated = count > len(instances)
+    return AdRow.model_validate(ad).model_copy(
+        update={
+            "object_name": object_name,
+            "queue_reasons": queue_reasons(ad, has_unreviewed_hits),
+            "duplicate_count": count,
+            "duplicate_instances": instances,
+            "duplicate_instances_truncated": truncated,
+        }
+    )
+
+
+def build_rows(session: Session, rows: Sequence[tuple[AdPost, str | None]], scope: TerritoryScope) -> list[AdRow]:
+    ads = [ad for ad, _ in rows]
+    if not ads:
+        return []
+    ad_ids = [ad.id for ad in ads]
+    unreviewed_hit_ad_ids = set(
+        session.scalars(
+            select(PhraseHit.ad_post_id)
+            .where(PhraseHit.ad_post_id.in_(ad_ids), PhraseHit.confirmed.is_(None))
+            .distinct()
+        )
+    )
+    duplicates = duplicate_metadata(session, ads, scope)
+    return [_row_with_metadata(ad, object_name, ad.id in unreviewed_hit_ad_ids, duplicates) for ad, object_name in rows]
+
+
+def build_detail(session: Session, ad: AdPost, scope: TerritoryScope) -> AdDetail:
     obj = session.get(ConstructionObject, ad.object_id) if ad.object_id is not None else None
-    hits = session.scalars(
-        select(PhraseHit).where(PhraseHit.ad_post_id == ad.id).order_by(PhraseHit.start, PhraseHit.id)
+    hits = list(
+        session.scalars(select(PhraseHit).where(PhraseHit.ad_post_id == ad.id).order_by(PhraseHit.start, PhraseHit.id))
     )
     evidence = [
         EvidenceOut.model_validate(item)
@@ -91,7 +206,7 @@ def build_detail(session: Session, ad: AdPost) -> AdDetail:
         else None
     )
     return AdDetail(
-        **build_row(ad, obj.name if obj else None).model_dump(),
+        **build_rows(session, [(ad, obj.name if obj else None)], scope)[0].model_dump(),
         phrase_hits=[PhraseHitOut.from_hit(hit, text, finding_for_hit(hit, extraction)) for hit in hits],
         evidence=evidence,
         llm_extraction=extraction,

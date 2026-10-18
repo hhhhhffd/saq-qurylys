@@ -6,6 +6,8 @@ from pydantic import BaseModel, Field, StringConstraints, field_validator, model
 from app.models import PhraseHit
 from app.models.enums import (
     AdOrigin,
+    AdQueueReason,
+    AdReviewState,
     AdStatus,
     AdVersionSource,
     CaptureStatus,
@@ -25,6 +27,13 @@ from app.schemas import ORMModel
 Url = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)]
 Lat = Annotated[float, Field(ge=-90, le=90)]
 Lon = Annotated[float, Field(ge=-180, le=180)]
+
+
+class DuplicateInstance(BaseModel):
+    id: int
+    url: str | None
+    platform: Platform
+    source_label: str
 
 
 class AdRow(ORMModel):
@@ -48,6 +57,14 @@ class AdRow(ORMModel):
     price_before_completion: bool
     llm_status: LlmStatus
     status: AdStatus
+    review_state: AdReviewState
+    reviewed_by: int | None
+    reviewed_at: datetime | None
+    review_note: str | None
+    queue_reasons: list[AdQueueReason] = Field(default_factory=list)
+    duplicate_count: int = 0
+    duplicate_instances: list[DuplicateInstance] = Field(default_factory=list)
+    duplicate_instances_truncated: bool = False
     max_phrase_weight: int
     total_phrase_weight: int
     is_outdoor: bool
@@ -164,6 +181,11 @@ class AdPatch(BaseModel):
 
 class HitConfirm(BaseModel):
     confirmed: bool
+
+
+class AdTriage(BaseModel):
+    state: AdReviewState
+    note: Annotated[str, StringConstraints(strip_whitespace=True, max_length=2000)] | None = None
 
 
 Handle = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=255)]

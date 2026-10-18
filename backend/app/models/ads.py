@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, column_property, mapped_column
 from app.models.base import Base, IdMixin, TimestampMixin, enum_type, fk, point
 from app.models.enums import (
     AdOrigin,
+    AdReviewState,
     AdStatus,
     AdVersionSource,
     CaptureStatus,
@@ -47,6 +48,8 @@ class AdPost(IdMixin, TimestampMixin, Base):
         Index("ix_ad_post_object_published", "object_id", "published_at"),
         Index("ix_ad_post_sort", "max_phrase_weight", "published_at"),
         Index("ix_ad_post_status", "status"),
+        Index("ix_ad_post_territory_review_state", "territory_id", "review_state"),
+        Index("ix_ad_post_source_account", "source_account_id"),
         Index("ix_ad_post_last_checked_at", "last_checked_at"),
         Index("ix_ad_post_location", "location", postgresql_using="gist"),
     )
@@ -73,6 +76,12 @@ class AdPost(IdMixin, TimestampMixin, Base):
         enum_type(LlmStatus, "llm_status"), server_default=LlmStatus.none.value
     )
     status: Mapped[AdStatus] = mapped_column(enum_type(AdStatus, "ad_status"), server_default=AdStatus.captured.value)
+    review_state: Mapped[AdReviewState] = mapped_column(
+        enum_type(AdReviewState, "ad_review_state"), server_default=AdReviewState.unreviewed.value
+    )
+    reviewed_by: Mapped[int | None] = fk("app_user.id", nullable=True)
+    reviewed_at: Mapped[datetime | None]
+    review_note: Mapped[str | None] = mapped_column(Text)
     max_phrase_weight: Mapped[int] = mapped_column(server_default="0")
     total_phrase_weight: Mapped[int] = mapped_column(server_default="0")
     is_outdoor: Mapped[bool] = mapped_column(server_default="false")
