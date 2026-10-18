@@ -1,4 +1,4 @@
-import type { AdStatus, PaymentScheme, Platform } from '@/api/types';
+import type { AdReviewState, AdStatus, PaymentScheme, Platform } from '@/api/types';
 
 export const PAGE_SIZE = 20;
 
@@ -14,6 +14,7 @@ export const PLATFORMS: readonly Platform[] = [
 /** A URL capture never produces outdoor advertising. */
 export const CAPTURE_PLATFORMS: readonly Platform[] = PLATFORMS.filter((platform) => platform !== 'outdoor');
 export const AD_STATUSES: readonly AdStatus[] = ['captured', 'verification', 'removed_saved'];
+export const AD_REVIEW_STATES: readonly AdReviewState[] = ['unreviewed', 'reviewed', 'deferred', 'irrelevant'];
 export const PAYMENT_SCHEMES: readonly PaymentScheme[] = [
   'booking',
   'down_payment',
@@ -31,6 +32,10 @@ export function parsePlatform(value: string | null | undefined): Platform | null
 
 export function parseAdStatus(value: string | null | undefined): AdStatus | null {
   return AD_STATUSES.find((status) => status === value) ?? null;
+}
+
+export function parseReviewState(value: string | null | undefined): AdReviewState | null {
+  return AD_REVIEW_STATES.find((state) => state === value) ?? null;
 }
 
 export function parsePaymentSchemes(values: readonly string[]): PaymentScheme[] {

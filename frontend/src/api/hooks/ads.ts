@@ -7,6 +7,7 @@ import type {
   AdListParams,
   AdPatch,
   AdRow,
+  AdTriage,
   CaptureRequest,
   CollectorStatus,
   CollectQueued,
@@ -98,6 +99,17 @@ export function useConfirmHit() {
     mutationFn: ({ adId, hitId, confirmed }: { adId: number; hitId: number; confirmed: boolean }) =>
       api<unknown>(`/ads/${adId}/hits/${hitId}/confirm`, { method: 'POST', body: { confirmed } }),
     onSuccess: () => invalidateAdData(qc),
+  });
+}
+
+export function useTriageAd() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: AdTriage }) =>
+      api<AdDetail>(`/ads/${id}/triage`, { method: 'PATCH', body: data }),
+    // The review state is a filter of the feed: `qk.ads` covers both the lists and the card.
+    onSuccess: () => void qc.invalidateQueries({ queryKey: qk.ads }),
+    meta: { success: 'saved' },
   });
 }
 

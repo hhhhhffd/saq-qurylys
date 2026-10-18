@@ -36,6 +36,7 @@ export type ComplaintStatus = 'new' | 'in_review' | 'closed';
 export type LinkedEntityKind = 'ad_account' | 'sales_office' | 'phone' | 'website' | 'bank_details';
 
 export type Platform = 'instagram' | 'tiktok' | 'telegram' | 'website' | 'aggregator' | 'outdoor' | 'other';
+export type AdReviewState = 'unreviewed' | 'reviewed' | 'deferred' | 'irrelevant';
 export type AdStatus = 'captured' | 'verification' | 'removed_saved';
 export type CaptureStatus = 'pending' | 'done' | 'failed';
 export type AdOrigin = 'manual' | 'capture' | 'collector' | 'citizen';
@@ -616,6 +617,10 @@ export interface AdRow {
   price_before_completion: boolean;
   llm_status: LlmStatus;
   status: AdStatus;
+  review_state: AdReviewState;
+  reviewed_by: number | null;
+  reviewed_at: string | null;
+  review_note: string | null;
   max_phrase_weight: number;
   total_phrase_weight: number;
   is_outdoor: boolean;
@@ -653,6 +658,7 @@ export interface AdListParams {
   platform?: Platform;
   object_id?: number;
   status?: AdStatus;
+  review_state?: AdReviewState;
   is_demo?: boolean;
   q?: string;
   limit?: number;
@@ -665,6 +671,11 @@ export interface AdPatch {
   payment_schemes?: PaymentScheme[];
   claimed_readiness_pct?: number | null;
   price_before_completion?: boolean;
+}
+
+export interface AdTriage {
+  state: AdReviewState;
+  note?: string | null;
 }
 
 export interface CaptureRequest {

@@ -15,12 +15,14 @@ import { EvidenceThumbs } from '@/components/evidence/EvidenceImage';
 import { useEnum } from '@/i18n/useEnum';
 import { useFormat } from '@/i18n/useFormat';
 import { cn } from '@/lib/utils';
+import { AdTriagePanel } from './AdTriagePanel';
 import { AdVersionsPanel } from './AdVersionsPanel';
 import { HighlightedText } from './HighlightedText';
 import { LlmPanel } from './LlmPanel';
 import { ObjectLink } from './ObjectLink';
 import { PaymentSchemes } from './PaymentSchemes';
 import { PhraseHitList } from './PhraseHitList';
+import { REVIEW_TONE } from './reviewTone';
 import { isHttpUrl } from './url';
 
 const sectionClass = 'flex flex-col gap-2.5 border-t border-border pt-3';
@@ -95,6 +97,7 @@ export function AdCard({ ad, highlighted = false, focusHitId = null }: Props) {
           <Chip tone={STATUS_TONE[view.status]}>
             {view.status === 'verification' ? t('card.linkNeedsReview') : e('ad_status', view.status)}
           </Chip>
+          <Chip tone={REVIEW_TONE[view.review_state]}>{e('ad_review_state', view.review_state)}</Chip>
           {/* A removed post whose link is still unconfirmed stays `verification`: the removal is its own fact. */}
           {view.removed_detected_at !== null && view.status !== 'removed_saved' && (
             <Chip tone={STATUS_TONE.removed_saved}>{e('ad_status', 'removed_saved')}</Chip>
@@ -248,6 +251,8 @@ export function AdCard({ ad, highlighted = false, focusHitId = null }: Props) {
           <EvidenceThumbs evidence={detail.evidence} size={88} />
         </div>
       )}
+
+      <AdTriagePanel ad={view} editable={canEditRegistry} />
 
       {detail && <AdVersionsPanel ad={detail} />}
     </article>

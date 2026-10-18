@@ -103,6 +103,12 @@ const enums = {
     verification: 'На верификации',
     removed_saved: 'Публикация удалена, сведения сохранены',
   },
+  ad_review_state: {
+    unreviewed: 'Не разобрано',
+    reviewed: 'Разобрано',
+    deferred: 'Отложено',
+    irrelevant: 'Не относится',
+  },
   capture_status: { pending: 'Фиксация…', done: 'Снимок сохранён', failed: 'Ошибка фиксации' },
   ad_origin: {
     manual: 'Внесено вручную',

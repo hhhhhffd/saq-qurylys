@@ -14,7 +14,7 @@ import { AdFilters, type AdFilterValues } from './AdFilters';
 import { AdsPager } from './AdsPager';
 import { CaptureModal } from './CaptureModal';
 import { ManualAdModal } from './ManualAdModal';
-import { PAGE_SIZE, parseAdStatus, parseDemo, parseId, parsePlatform } from './constants';
+import { PAGE_SIZE, parseAdStatus, parseDemo, parseId, parsePlatform, parseReviewState } from './constants';
 
 function FeedSkeleton({ count = 3 }: { count?: number }) {
   const { t } = useTranslation();
@@ -45,6 +45,7 @@ export function AdsPage() {
     platform: parsePlatform(params.get('platform')),
     objectId: parseId(params.get('object_id')),
     status: parseAdStatus(params.get('status')),
+    reviewState: parseReviewState(params.get('review_state')),
     demo: parseDemo(params.get('is_demo')),
     q: params.get('q') ?? '',
   };
@@ -56,6 +57,7 @@ export function AdsPage() {
     platform: filters.platform ?? undefined,
     object_id: filters.objectId ?? undefined,
     status: filters.status ?? undefined,
+    review_state: filters.reviewState ?? undefined,
     is_demo: filters.demo ?? undefined,
     q: filters.q.trim() || undefined,
     limit: PAGE_SIZE,
@@ -85,6 +87,7 @@ export function AdsPage() {
     const next: Record<string, string | null> = { page: null };
     if (patch.platform !== undefined) next.platform = patch.platform;
     if (patch.status !== undefined) next.status = patch.status;
+    if (patch.reviewState !== undefined) next.review_state = patch.reviewState;
     if (patch.demo !== undefined) next.is_demo = patch.demo === null ? null : String(patch.demo);
     if (patch.q !== undefined) next.q = patch.q;
     if (patch.objectId !== undefined) next.object_id = patch.objectId === null ? null : String(patch.objectId);

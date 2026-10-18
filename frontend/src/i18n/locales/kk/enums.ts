@@ -105,6 +105,12 @@ const enums: typeof ru = {
     verification: 'Верификацияда',
     removed_saved: 'Жарияланым жойылған, мәліметтер сақталған',
   },
+  ad_review_state: {
+    unreviewed: 'Қарастырылмаған',
+    reviewed: 'Қарастырылған',
+    deferred: 'Кейінге қалдырылған',
+    irrelevant: 'Қатысы жоқ',
+  },
   capture_status: { pending: 'Тіркелуде…', done: 'Сурет сақталған', failed: 'Тіркеу қатесі' },
   ad_origin: {
     manual: 'Қолмен енгізілген',
