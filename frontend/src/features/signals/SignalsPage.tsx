@@ -8,6 +8,7 @@ import { useAuth } from '@/auth/useAuth';
 import { dataColumns } from '@/components/dataColumns';
 import { DataTable } from '@/components/DataTable';
 import { DemoBadge } from '@/components/DemoBadge';
+import { ExportButton } from '@/components/ExportButton';
 import { ErrorBlock } from '@/components/QueryState';
 import { ObjectSelect } from '@/components/ObjectSelect';
 import { PageHeader } from '@/components/PageHeader';
@@ -145,12 +146,17 @@ export function SignalsPage() {
         title={t('list.title')}
         subtitle={subtitle}
         actions={
-          canManageSignals && (
-            <Button className="min-h-11" onClick={() => setCreateOpen(true)}>
-              <IconPlus />
-              {t('list.create')}
-            </Button>
-          )
+          <>
+            {!isRecipient && (
+              <ExportButton path="/signals/export.xlsx" params={{ status, object_id: objectId }} filename="signals.xlsx" />
+            )}
+            {canManageSignals && (
+              <Button className="min-h-11" onClick={() => setCreateOpen(true)}>
+                <IconPlus />
+                {t('list.create')}
+              </Button>
+            )}
+          </>
         }
       />
       <div className="mb-4 grid gap-3">

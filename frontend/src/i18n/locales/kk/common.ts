@@ -24,6 +24,7 @@ const common: typeof ru = {
   all: 'Барлығы',
   actions: 'Әрекеттер',
   upload: 'Жүктеу',
+  exportExcel: 'Excel-ге жүктеу',
   download: 'Жүктеп алу',
   open: 'Ашу',
   details: 'Толығырақ',

@@ -9,6 +9,7 @@ import { useAuth } from '@/auth/useAuth';
 import { dataColumns } from '@/components/dataColumns';
 import { DataTable } from '@/components/DataTable';
 import { DemoBadge } from '@/components/DemoBadge';
+import { ExportButton } from '@/components/ExportButton';
 import { ErrorBlock } from '@/components/QueryState';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -129,18 +130,25 @@ export function ObjectsPage() {
       <PageHeader
         title={t('list.title')}
         actions={
-          canEditRegistry && (
-            <>
-              <Button variant="secondary" onClick={() => setImportOpen(true)}>
-                <IconUpload />
-                {t('list.importCsv')}
-              </Button>
-              <Button onClick={() => setCreateOpen(true)}>
-                <IconPlus />
-                {t('list.create')}
-              </Button>
-            </>
-          )
+          <>
+            <ExportButton
+              path="/objects/export.xlsx"
+              params={{ zone: zone ?? undefined, district_id: districtId ?? undefined, q: q || undefined }}
+              filename="objects.xlsx"
+            />
+            {canEditRegistry && (
+              <>
+                <Button variant="secondary" onClick={() => setImportOpen(true)}>
+                  <IconUpload />
+                  {t('list.importCsv')}
+                </Button>
+                <Button onClick={() => setCreateOpen(true)}>
+                  <IconPlus />
+                  {t('list.create')}
+                </Button>
+              </>
+            )}
+          </>
         }
       />
       <p className="mb-4 text-sm text-text-2">{t('list.description')}</p>

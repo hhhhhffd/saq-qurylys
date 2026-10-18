@@ -22,6 +22,7 @@ const common = {
   actions: 'Действия',
   upload: 'Загрузить',
   download: 'Скачать',
+  exportExcel: 'Выгрузить в Excel',
   open: 'Открыть',
   details: 'Подробнее',
   import: 'Импорт',
