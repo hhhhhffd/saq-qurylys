@@ -4,8 +4,8 @@ Reference data (territories, risk factors, phrases, settings) and the initial ad
 created when missing and never overwritten. Optional files in app/seed_data/ are described in
 app/seed_data/README.md. `--pilot` additionally imports the public snapshot of real objects of the pilot city,
 `--demo` loads demo users and the fictional demo_objects.json and demo_network.json, the first with its dated
-history (demo_history.json); `--replay-history` recomputes the replayed score history of every object (the time
-machine, SPEC 10.5).
+history (demo_history.json), then the living demo around them (seed_activity.py, seed_vision.py);
+`--replay-history` recomputes the replayed score history of every object (the time machine, SPEC 10.5).
 """
 
 import argparse
@@ -667,7 +667,8 @@ def run(demo: bool, pilot: bool = False, replay_history: bool = False) -> None:
         seed_history.replay_all(factory)
     if not demo:
         return
-    from app.seed_versions import seed_demo_versions  # imported here: that module builds on this one
+    from app.seed_activity import seed_demo_activity  # imported here: the modules below build on this one
+    from app.seed_versions import seed_demo_versions
 
     with factory() as session:
         credentials = seed_demo_users(session)
@@ -679,12 +680,16 @@ def run(demo: bool, pilot: bool = False, replay_history: bool = False) -> None:
         ]
         seed_history.seed_demo_history(session, object_ids)  # after `ads`: the older ads need no processing chain
         session.commit()
-    for username, password in credentials:
-        print(f"demo user {username}: {password}")  # shown once; only the hash is stored
-    if credentials:
-        print("Passwords above are shown once. Set DEMO_USER_PASSWORD to choose your own.")
+        for username, password in credentials:  # printed before the long part: a failure there must not lose them
+            print(f"demo user {username}: {password}")  # shown once; only the hash is stored
+        if credentials:
+            print("Passwords above are shown once. Set DEMO_USER_PASSWORD to choose your own.")
+        # The living demo: sources and their publications, complaints, citizen reports, VISION sessions, signal cards,
+        # assignments. It scores the objects itself, so cards come from real scores; the chain below only repeats it.
+        activity_ads, touched = seed_demo_activity(session)
+        ads += activity_ads
     with_ads = {object_id for _, object_id in ads}
-    dispatch_demo_processing(ads, [object_id for object_id in object_ids if object_id not in with_ads])
+    dispatch_demo_processing(ads, [oid for oid in {*object_ids, *touched} if oid not in with_ads])
     logger.info("Demo data ready (new objects: %s, new ads: %s)", len(object_ids), len(ads))
 
 

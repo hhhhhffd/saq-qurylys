@@ -189,5 +189,5 @@ def test_the_demo_run_loads_the_publication_and_queues_its_processing(
     ad = _publication(db)
     [(ads, objects_without_ads)] = queued
     assert (ad.id, ad.object_id) in ads and ad.object_id not in objects_without_ads
-    assert db.scalar(select(func.count()).select_from(AdPostVersion)) == 1
+    assert db.scalar(select(func.count()).select_from(AdPostVersion).where(AdPostVersion.ad_post_id == ad.id)) == 1
     capsys.readouterr()  # the demo user passwords printed by the run

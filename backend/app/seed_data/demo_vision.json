@@ -1,0 +1,463 @@
+{
+ "sessions": [
+  {
+   "object": "ЖК «Хрустальный город»",
+   "source": "drone",
+   "captured_at": "-6d",
+   "status": "reviewed",
+   "note": "Облёт площадки ЖК «Хрустальный город» (демо): ограждение, въезд, рекламный щит",
+   "scene": {
+    "name": "ЖК «Хрустальный город»",
+    "banner": "Бронь квартиры за 10%",
+    "progress": 0.35
+   },
+   "assets": [
+    {
+     "name": "DJI_0412.MP4",
+     "kind": "video",
+     "file": "demo_flight_crystal.mp4",
+     "duration_s": 10,
+     "frames_s": [
+      0,
+      3,
+      6,
+      9
+     ],
+     "lat": 50.01571,
+     "lon": 82.69907
+    },
+    {
+     "name": "DJI_0413.JPG",
+     "kind": "photo",
+     "t": 2.0,
+     "lat": 50.01611,
+     "lon": 82.69877000000001
+    },
+    {
+     "name": "DJI_0414.JPG",
+     "kind": "photo",
+     "t": 6.0,
+     "lat": 50.015409999999996,
+     "lon": 82.69947
+    }
+   ],
+   "findings": [
+    {
+     "asset": 0,
+     "feature": "billboard",
+     "category": "outdoor_ad",
+     "status": "possible_noncompliance",
+     "confidence": 0.93,
+     "frame_s": 3,
+     "note": "Рекламный щит у въезда: бронь квартиры за 10%",
+     "review": "confirmed",
+     "review_comment": "Реклама внесения денег до ввода дома; оформлена как публикация",
+     "ocr_text": "Бронь квартиры за 10% ЖК «Хрустальный город»",
+     "ocr_confidence": 0.91,
+     "publish_text": "Бронь квартиры за 10%. ЖК «Хрустальный город»"
+    },
+    {
+     "asset": 0,
+     "feature": "fence",
+     "category": "fence",
+     "status": "observed",
+     "confidence": 0.86,
+     "frame_s": 0,
+     "note": "Ограждение сплошное, повреждений не видно",
+     "review": "confirmed"
+    },
+    {
+     "asset": 0,
+     "feature": "gate",
+     "category": "site_gate",
+     "status": "possible_noncompliance",
+     "confidence": 0.72,
+     "frame_s": 6,
+     "note": "На въезде не видно информационного щита с данными о разрешении",
+     "review": "needs_more_evidence",
+     "review_comment": "Нужен снимок въезда с земли"
+    },
+    {
+     "asset": 0,
+     "feature": "debris",
+     "category": "debris",
+     "status": "possible_noncompliance",
+     "confidence": 0.64,
+     "frame_s": 9,
+     "note": "Куча строительного мусора у ограждения",
+     "review": "rejected",
+     "review_comment": "Материалы сложены в штабель на площадке, не мусор"
+    },
+    {
+     "asset": 0,
+     "feature": "container",
+     "category": "waste_container",
+     "status": "insufficient_evidence",
+     "confidence": 0.58,
+     "frame_s": 6,
+     "note": "Контейнер, назначение не ясно"
+    },
+    {
+     "asset": 0,
+     "feature": "building",
+     "category": "other",
+     "status": "possible_noncompliance",
+     "confidence": 0.81,
+     "frame_s": 9,
+     "note": "Каркас выше 3 этажей из 9: готовность около 35% при заявленных в рекламе 70%",
+     "review": "confirmed",
+     "review_comment": "Расхождение с заявленной готовностью передано в карточку объекта"
+    },
+    {
+     "asset": 1,
+     "feature": "billboard",
+     "category": "outdoor_ad",
+     "status": "possible_noncompliance",
+     "confidence": 0.9,
+     "note": "Тот же щит с земли",
+     "review": "confirmed",
+     "ocr_text": "Бронь квартиры за 10%",
+     "ocr_confidence": 0.88,
+     "publish_text": "Бронь квартиры за 10%. Первоначальный взнос 10%. ЖК «Хрустальный город»"
+    },
+    {
+     "asset": 2,
+     "feature": "fence",
+     "category": "fence",
+     "status": "observed",
+     "confidence": 0.5,
+     "origin": "manual",
+     "note": "Добавлено сотрудником: участок ограждения со стороны дороги",
+     "review": "confirmed"
+    }
+   ]
+  },
+  {
+   "object": "ЖК «Ривьера Парк»",
+   "source": "drone",
+   "captured_at": "-2d",
+   "status": "open",
+   "note": "Облёт площадки ЖК «Ривьера Парк» (демо): рекламный щит и въезд",
+   "scene": {
+    "name": "ЖК «Ривьера Парк»",
+    "banner": "Внесите депозит — цена до сдачи",
+    "progress": 0.5
+   },
+   "assets": [
+    {
+     "name": "DJI_0508.MP4",
+     "kind": "video",
+     "file": "demo_flight_riviera.mp4",
+     "duration_s": 10,
+     "frames_s": [
+      0,
+      3,
+      6,
+      9
+     ],
+     "lat": 49.95,
+     "lon": 82.515
+    }
+   ],
+   "findings": [
+    {
+     "asset": 0,
+     "feature": "billboard",
+     "category": "outdoor_ad",
+     "status": "possible_noncompliance",
+     "confidence": 0.91,
+     "frame_s": 3,
+     "note": "Щит предлагает внести депозит",
+     "review": "confirmed",
+     "review_comment": "Опубликовано как наружная реклама",
+     "ocr_text": "Внесите депозит — цена до сдачи ЖК «Ривьера Парк»",
+     "ocr_confidence": 0.86,
+     "publish_text": "Можно внести депозит — цены до сдачи. ЖК «Ривьера Парк»"
+    },
+    {
+     "asset": 0,
+     "feature": "gate",
+     "category": "site_gate",
+     "status": "observed",
+     "confidence": 0.88,
+     "frame_s": 0,
+     "note": "Въезд с воротами, шлагбаум"
+    },
+    {
+     "asset": 0,
+     "feature": "container",
+     "category": "wheel_wash",
+     "status": "insufficient_evidence",
+     "confidence": 0.55,
+     "frame_s": 6,
+     "note": "Пункт мойки колёс не виден"
+    },
+    {
+     "asset": 0,
+     "feature": "debris",
+     "category": "debris",
+     "status": "possible_noncompliance",
+     "confidence": 0.69,
+     "frame_s": 9,
+     "note": "Скопление мусора у ограждения"
+    }
+   ]
+  },
+  {
+   "object": "ЖК «Золотая осень»",
+   "source": "camera",
+   "captured_at": "-3d",
+   "status": "open",
+   "note": "Снимки камеры наблюдения ЖК «Золотая осень» (демо)",
+   "scene": {
+    "name": "ЖК «Золотая осень»",
+    "banner": "Старт продаж! Забронируй квартиру",
+    "progress": 0.3
+   },
+   "assets": [
+    {
+     "name": "cam01_0930.JPG",
+     "kind": "photo",
+     "t": 1.0,
+     "lat": 50.00684,
+     "lon": 82.57301
+    },
+    {
+     "name": "cam02_1015.JPG",
+     "kind": "photo",
+     "t": 4.0,
+     "lat": 50.0071,
+     "lon": 82.5733
+    },
+    {
+     "name": "cam01_1400.JPG",
+     "kind": "photo",
+     "t": 8.0,
+     "lat": 50.00684,
+     "lon": 82.57301
+    }
+   ],
+   "findings": [
+    {
+     "asset": 0,
+     "feature": "billboard",
+     "category": "outdoor_ad",
+     "status": "possible_noncompliance",
+     "confidence": 0.89,
+     "note": "Баннер: старт продаж и бронь",
+     "ocr_text": "Старт продаж! Забронируй квартиру ЖК «Золотая осень»",
+     "ocr_confidence": 0.84
+    },
+    {
+     "asset": 1,
+     "feature": "gate",
+     "category": "site_gate",
+     "status": "observed",
+     "confidence": 0.83,
+     "note": "Ворота закрыты"
+    },
+    {
+     "asset": 2,
+     "feature": "container",
+     "category": "waste_container",
+     "status": "observed",
+     "confidence": 0.77
+    },
+    {
+     "asset": 1,
+     "feature": "debris",
+     "category": "debris",
+     "status": "possible_noncompliance",
+     "confidence": 0.61,
+     "note": "Мусор у въезда"
+    }
+   ]
+  },
+  {
+   "object": "ЖК «Кедровый квартал»",
+   "source": "drone",
+   "captured_at": "-12d",
+   "status": "reviewed",
+   "note": "Контрольный облёт ЖК «Кедровый квартал» (демо): готовность каркаса",
+   "scene": {
+    "name": "ЖК «Кедровый квартал»",
+    "banner": "Готовность 70%",
+    "progress": 0.35
+   },
+   "assets": [
+    {
+     "name": "DJI_0301.JPG",
+     "kind": "photo",
+     "t": 3.0,
+     "lat": 49.97755,
+     "lon": 82.647
+    },
+    {
+     "name": "DJI_0302.JPG",
+     "kind": "photo",
+     "t": 7.0,
+     "lat": 49.9777,
+     "lon": 82.6473
+    }
+   ],
+   "findings": [
+    {
+     "asset": 0,
+     "feature": "building",
+     "category": "other",
+     "status": "possible_noncompliance",
+     "confidence": 0.88,
+     "note": "Заявлено 70% готовности, по снимку каркас около 35%",
+     "review": "confirmed",
+     "review_comment": "Совпадает с инспекцией: 35%"
+    },
+    {
+     "asset": 1,
+     "feature": "fence",
+     "category": "fence",
+     "status": "observed",
+     "confidence": 0.84,
+     "review": "confirmed"
+    },
+    {
+     "asset": 1,
+     "feature": "billboard",
+     "category": "outdoor_ad",
+     "status": "observed",
+     "confidence": 0.8,
+     "note": "Щит с заявленной готовностью 70%",
+     "review": "confirmed",
+     "ocr_text": "Готовность 70%",
+     "ocr_confidence": 0.9
+    }
+   ]
+  },
+  {
+   "object": "ЖК «Янтарный двор»",
+   "source": "phone",
+   "captured_at": "-9d",
+   "status": "reviewed",
+   "note": "Фото с выезда на ЖК «Янтарный двор» (демо)",
+   "scene": {
+    "name": "ЖК «Янтарный двор»",
+    "banner": "Квартиры от застройщика",
+    "progress": 0.6
+   },
+   "assets": [
+    {
+     "name": "IMG_2041.JPG",
+     "kind": "photo",
+     "t": 5.0,
+     "lat": 49.94903,
+     "lon": 82.62642
+    }
+   ],
+   "findings": [
+    {
+     "asset": 0,
+     "feature": "billboard",
+     "category": "outdoor_ad",
+     "status": "observed",
+     "confidence": 0.93,
+     "note": "Обычная реклама, предложений внести деньги нет",
+     "review": "confirmed",
+     "ocr_text": "Квартиры от застройщика",
+     "ocr_confidence": 0.95,
+     "publish_text": "Квартиры от застройщика, ипотека и ДДУ. ЖК «Янтарный двор»"
+    }
+   ]
+  },
+  {
+   "object": "ЖК «Тихая гавань»",
+   "source": "camera",
+   "captured_at": "-5d",
+   "status": "open",
+   "note": "Камера на площадке ЖК «Тихая гавань» (демо)",
+   "scene": {
+    "name": "ЖК «Тихая гавань»",
+    "banner": "Ипотека 7-20-25, ДДУ",
+    "progress": 0.8
+   },
+   "assets": [
+    {
+     "name": "cam_a.JPG",
+     "kind": "photo",
+     "t": 2.0,
+     "lat": 49.98926,
+     "lon": 82.64941
+    },
+    {
+     "name": "cam_b.JPG",
+     "kind": "photo",
+     "t": 6.0,
+     "lat": 49.9893,
+     "lon": 82.6496
+    }
+   ],
+   "findings": [
+    {
+     "asset": 0,
+     "feature": "container",
+     "category": "waste_container",
+     "status": "observed",
+     "confidence": 0.81,
+     "review": "confirmed"
+    },
+    {
+     "asset": 1,
+     "feature": "container",
+     "category": "wheel_wash",
+     "status": "observed",
+     "confidence": 0.7
+    }
+   ]
+  },
+  {
+   "object": "ЖК «Новая эра»",
+   "source": "drone",
+   "captured_at": "-20d",
+   "status": "reviewed",
+   "note": "Облёт ЖК «Новая эра» (демо): работы на площадке",
+   "scene": {
+    "name": "ЖК «Новая эра»",
+    "banner": "Новая эра: скоро сдача",
+    "progress": 0.2
+   },
+   "assets": [
+    {
+     "name": "DJI_0611.JPG",
+     "kind": "photo",
+     "t": 1.0,
+     "lat": 49.93374,
+     "lon": 82.58428
+    },
+    {
+     "name": "DJI_0612.JPG",
+     "kind": "photo",
+     "t": 5.0,
+     "lat": 49.9338,
+     "lon": 82.5845
+    }
+   ],
+   "findings": [
+    {
+     "asset": 0,
+     "feature": "building",
+     "category": "other",
+     "status": "possible_noncompliance",
+     "confidence": 0.79,
+     "note": "На площадке нет техники и людей, каркас не растёт",
+     "review": "confirmed",
+     "review_comment": "Подтверждает срыв сроков"
+    },
+    {
+     "asset": 1,
+     "feature": "debris",
+     "category": "debris",
+     "status": "observed",
+     "confidence": 0.66
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,1722 @@
+{
+ "pools": {
+  "risky_ru": [
+   "Старт продаж в {obj}! Можно забронировать квартиру онлайн. Звоните {phone}",
+   "{obj}: внести депозит 100 000 тг и закрепить цену до завершения строительства. Тел. {phone}",
+   "Рассрочка от застройщика без банков — {obj}. Первоначальный взнос от 10%. {phone}",
+   "Предварительный договор и бронь квартиры в {obj}. Цены до сдачи, успей купить до повышения цен! {phone}",
+   "{obj}: договор инвестирования вместо ДДУ, зарезервировать квартиру можно сегодня. {phone}",
+   "Открытие продаж второй очереди {obj}. Бронь за 50 000 тг, вернём при отказе. {phone}",
+   "Акция в {obj}: внести задаток до конца месяца — скидка 5%. {phone}",
+   "{obj} — в рассрочку на 36 месяцев, стартовый взнос 15%. Запись на просмотр: {phone}",
+   "Договор о намерениях и обеспечительный платёж — оформите квартиру в {obj} уже сейчас. {phone}",
+   "Последние квартиры в {obj}! Забронировать можно по телефону {phone}. Цена до завершения строительства.",
+   "{obj}: договор резерва на 14 дней, первый взнос 100 000 тг. {phone}",
+   "Стартовали продажи в {obj}! Беспроцентная рассрочка, онлайн бронь. {phone}",
+   "Внести первоначальный взнос и получить паркинг в подарок — {obj}. {phone}",
+   "Инвестиционное соглашение для покупателей {obj}: резервирование квартиры от 30 000 тг. {phone}",
+   "{obj}. Гарантийный взнос 200 000 тг, цены вырастут после сдачи. {phone}",
+   "Успей купить до повышения цен! {obj}, рассрочка без процентов. {phone}"
+  ],
+  "ordinary_ru": [
+   "Ход строительства {obj}: залили перекрытие очередного этажа.",
+   "{obj}: ипотека по госпрограммам, оформление ДДУ. Консультация {phone}",
+   "День открытых дверей в {obj} — экскурсия по шоуруму и квартирам-образцам.",
+   "{obj}: завершили остекление фасада, приступаем к благоустройству двора.",
+   "Новые фото с площадки {obj}: монтаж инженерных сетей идёт по графику.",
+   "{obj}: уютные дворы без машин, детские площадки и спортивная зона.",
+   "Команда {obj} поздравляет жителей города с праздником!",
+   "{obj} — планировки 1-3 комнатные, подробности на сайте.",
+   "Видеоотчёт: как идёт строительство {obj}.",
+   "Вакансии в отдел продаж {obj}: резюме присылайте на почту."
+  ],
+  "risky_kk": [
+   {
+    "text": "{obj}: пәтерді брондау ашық. Алғашқы жарна 10%, баға тұрғын үй тапсырылғанға дейін өзгермейді.",
+    "llm": {
+     "findings": [
+      {
+       "category": "booking",
+       "quote": "брондау",
+       "confidence": 0.88
+      },
+      {
+       "category": "down_payment",
+       "quote": "Алғашқы жарна",
+       "confidence": 0.74
+      },
+      {
+       "category": "price_before_completion",
+       "quote": "баға тұрғын үй тапсырылғанға дейін өзгермейді",
+       "confidence": 0.55
+      }
+     ],
+     "payment_schemes": [
+      "booking",
+      "down_payment"
+     ],
+     "price_before_completion": true,
+     "confidence": 0.82
+    }
+   },
+   {
+    "text": "{obj}: бөліп төлеу — құрылысшыдан, бастапқы жарна 15%. Депозит енгізіңіз, бағаны бекітіңіз.",
+    "llm": {
+     "findings": [
+      {
+       "category": "installment",
+       "quote": "бөліп төлеу",
+       "confidence": 0.8
+      },
+      {
+       "category": "deposit",
+       "quote": "Депозит енгізіңіз",
+       "confidence": 0.7
+      }
+     ],
+     "payment_schemes": [
+      "installment",
+      "deposit"
+     ],
+     "confidence": 0.77
+    }
+   },
+   {
+    "text": "Сату басталды! {obj} — пәтерді брондап, келісімшартқа қол қойыңыз.",
+    "llm": {
+     "findings": [
+      {
+       "category": "sales_start",
+       "quote": "Сату басталды",
+       "confidence": 0.9
+      },
+      {
+       "category": "booking",
+       "quote": "брондап",
+       "confidence": 0.6
+      }
+     ],
+     "payment_schemes": [
+      "booking"
+     ],
+     "confidence": 0.8
+    }
+   },
+   {
+    "text": "{obj}: инвестициялық келісімшарт бойынша пәтерді резервке алыңыз.",
+    "llm": {
+     "findings": [
+      {
+       "category": "covert_contract",
+       "quote": "инвестициялық келісімшарт",
+       "confidence": 0.85
+      }
+     ],
+     "payment_schemes": [
+      "nonstandard_contract"
+     ],
+     "confidence": 0.8
+    }
+   },
+   {
+    "text": "{obj} — алдын ала келісімшарт және 100 000 теңге аванс. Бағалар үйді тапсырғанға дейін қолданылады.",
+    "llm": {
+     "findings": [
+      {
+       "category": "preliminary_contract",
+       "quote": "алдын ала келісімшарт",
+       "confidence": 0.84
+      },
+      {
+       "category": "deposit",
+       "quote": "100 000 теңге аванс",
+       "confidence": 0.45
+      },
+      {
+       "category": "price_before_completion",
+       "quote": "Бағалар үйді тапсырғанға дейін",
+       "confidence": 0.66
+      }
+     ],
+     "payment_schemes": [
+      "deposit"
+     ],
+     "price_before_completion": true,
+     "confidence": 0.7
+    }
+   }
+  ],
+  "ocr": [
+   "АКЦИЯ! Бронь квартиры до конца месяца",
+   "Рассрочка 0% — первоначальный взнос 10%",
+   "Старт продаж. Внести задаток по телефону",
+   "Предварительный договор — звоните!",
+   "Цена до завершения строительства. Забронируй сегодня",
+   "Беспроцентная рассрочка от застройщика"
+  ],
+  "triage_notes": [
+   "Ждём ответ застройщика",
+   "Передано в ГАСК, ожидаем подтверждения",
+   "Проверить через неделю: объявление могут изменить",
+   "Нужен скриншот страницы с датой",
+   "Уточнить у автора публикации"
+  ],
+  "complaints": [
+   "Просят внести задаток за квартиру без договора долевого участия",
+   "Застройщик затягивает сроки сдачи, стройка стоит",
+   "Квартиру продали дважды, документы выдают не сразу",
+   "Не отвечает отдел продаж, деньги внесены по брони",
+   "Требуют доплату за площадь после подписания договора",
+   "Нет информации о разрешении на строительство",
+   "Реклама обещает сдачу в этом году, работы не ведутся",
+   "Менеджер просит перевести деньги на личную карту",
+   "Предлагают договор инвестирования вместо ДДУ, прошу проверить",
+   "Шум и грязь от стройплощадки, нет мойки колёс",
+   "Бронь не возвращают после отказа",
+   "Цена в договоре выше, чем в рекламе",
+   "Стоимость парковки не была указана в рекламе",
+   "Ограждение площадки повреждено, опасно для детей"
+  ],
+  "citizen": [
+   "Увидел рекламу {obj}: просят бронь 50 000 тг, это законно?",
+   "Баннер у дороги: {obj}, внести депозит и цена до сдачи. Проверьте, пожалуйста.",
+   "В Instagram предлагают договор инвестирования по {obj}",
+   "{obj}: менеджер просит внести задаток наличными и не даёт договор",
+   "Реклама {obj} в Telegram: рассрочка от застройщика и первоначальный взнос 5%",
+   "Позвонили из отдела продаж {obj}, предлагают зарезервировать квартиру за 30 000 тг",
+   "На сайте {obj} старт продаж, а разрешения на строительство я не нашёл",
+   "{obj}: просят предварительный договор подписать до проверки документов",
+   "Листовка в почтовом ящике: {obj}, бронь квартиры и скидка до конца недели",
+   "Друзья внесли депозит в {obj}, теперь не могут вернуть деньги",
+   "{obj}: в чате жильцов пишут про договор о намерениях вместо ДДУ",
+   "Реклама на остановке: {obj}, цены до сдачи. Это не опасно?",
+   "{obj}: в объявлении рассрочка без процентов, но в офисе говорят другое",
+   "Подскажите, можно ли доверять рекламе {obj}? Просят первый взнос",
+   "{obj}: на стенде у входа написано «успей купить до повышения цен»",
+   "Сын хочет купить квартиру в {obj}, просят забронировать за 100 000 тг",
+   "Видел ролик в TikTok про {obj}: предлагают договор резерва",
+   "{obj}: меня просят оплатить обеспечительный платёж до подписания договора"
+  ],
+  "inspection_notes": [
+   "Фундаментная плита, армирование",
+   "Монолитный каркас, перекрытия",
+   "Кладка стен, инженерные сети",
+   "Работы идут по графику",
+   "Часть секций без работ",
+   "Остекление и фасад"
+  ]
+ },
+ "sources": [
+  {
+   "platform": "telegram",
+   "handle": "zolotaya_osen_demo",
+   "url": "https://t.me.example.invalid/zolotaya_osen_demo",
+   "last_collected": "-3h",
+   "posts": [
+    {
+     "external_id": "demo-zolotaya-z1",
+     "published_at": "-2d",
+     "text": "Старт продаж второй очереди ЖК «Золотая осень»! Можно забронировать квартиру онлайн, внести депозит 300 000 тг — цены до сдачи зафиксированы. +7 700 000 02 01",
+     "url": "https://t.me.example.invalid/zolotaya_osen_demo/401",
+     "phones": [
+      "+7 700 000 02 01"
+     ],
+     "hits": "confirm",
+     "triage": {
+      "state": "reviewed"
+     },
+     "llm": {
+      "findings": [
+       {
+        "category": "sales_start",
+        "quote": "Старт продаж",
+        "confidence": 0.95
+       },
+       {
+        "category": "booking",
+        "quote": "забронировать квартиру",
+        "confidence": 0.9
+       },
+       {
+        "category": "deposit",
+        "quote": "внести депозит 300 000 тг",
+        "confidence": 0.93
+       },
+       {
+        "category": "price_before_completion",
+        "quote": "цены до сдачи",
+        "confidence": 0.8
+       }
+      ],
+      "payment_schemes": [
+       "booking",
+       "deposit"
+      ],
+      "price_before_completion": true,
+      "confidence": 0.92
+     }
+    },
+    {
+     "external_id": "demo-zolotaya-z2",
+     "published_at": "-9d",
+     "text": "Резервирование квартиры за 100 000 тг, подписываем договор о намерениях. ЖК «Золотая осень», +7 700 000 02 01",
+     "url": "https://t.me.example.invalid/zolotaya_osen_demo/398",
+     "phones": [
+      "+7 700 000 02 01"
+     ],
+     "triage": {
+      "state": "deferred",
+      "note": "Ждём ответ ГАСК по запросу документов"
+     }
+    },
+    {
+     "external_id": "demo-zolotaya-z3",
+     "published_at": "-16d",
+     "text": "Показали ход строительства ЖК «Золотая осень»: залили плиту перекрытия 7 этажа.",
+     "url": "https://t.me.example.invalid/zolotaya_osen_demo/392"
+    },
+    {
+     "external_id": "demo-zolotaya-z4",
+     "published_at": "-23d",
+     "text": "«Алтын күз» ТТК-да пәтерлерді брондау басталды. ЖК «Золотая осень»: алғашқы жарнаны 500 000 теңге енгізіңіз, баға тұрғын үй тапсырылғанға дейін өзгермейді.",
+     "url": "https://t.me.example.invalid/zolotaya_osen_demo/385",
+     "hits": "confirm",
+     "triage": {
+      "state": "reviewed"
+     },
+     "llm": {
+      "findings": [
+       {
+        "category": "booking",
+        "quote": "брондау",
+        "confidence": 0.82
+       },
+       {
+        "category": "down_payment",
+        "quote": "алғашқы жарнаны 500 000 теңге",
+        "confidence": 0.7
+       },
+       {
+        "category": "price_before_completion",
+        "quote": "баға тұрғын үй тапсырылғанға дейін өзгермейді",
+        "confidence": 0.55
+       }
+      ],
+      "payment_schemes": [
+       "booking",
+       "down_payment"
+      ],
+      "price_before_completion": true,
+      "confidence": 0.78
+     }
+    }
+   ],
+   "object": "ЖК «Золотая осень»",
+   "feed": {
+    "count": 8,
+    "objects": [
+     "ЖК «Золотая осень»"
+    ],
+    "newest_days": 4,
+    "oldest_days": 27,
+    "post_url": "https://t.me.example.invalid/zolotaya_osen_demo/5{n:02d}",
+    "kazakh_every": 5,
+    "ocr_every": 4
+   }
+  },
+  {
+   "platform": "telegram",
+   "handle": "hrustalny_gorod_demo",
+   "url": "https://t.me.example.invalid/hrustalny_gorod_demo",
+   "last_collected": "-2h",
+   "posts": [
+    {
+     "external_id": "demo-hrustalny-h1",
+     "published_at": "-1d",
+     "text": "Инвестиционный договор вместо ДДУ — выгоднее! Зарезервировать квартиру в ЖК «Хрустальный город» можно уже сегодня. +7 700 000 13 01",
+     "url": "https://t.me.example.invalid/hrustalny_gorod_demo/212",
+     "phones": [
+      "+7 700 000 13 01"
+     ],
+     "triage": {
+      "state": "deferred",
+      "note": "Версия текста изменилась: ждём подтверждение от ГАСК"
+     },
+     "versions": [
+      {
+       "after_hours": 9,
+       "text": "Договор долевого участия в ЖК «Хрустальный город». Консультация: +7 700 000 13 01"
+      }
+     ]
+    },
+    {
+     "external_id": "demo-hrustalny-h2",
+     "published_at": "-6d",
+     "text": "Рассрочка от застройщика без банков, первоначальный взнос 20%. ЖК «Хрустальный город», +7 700 000 13 01",
+     "url": "https://t.me.example.invalid/hrustalny_gorod_demo/207",
+     "phones": [
+      "+7 700 000 13 01"
+     ],
+     "removed_after_hours": 70,
+     "hits": "confirm",
+     "triage": {
+      "state": "reviewed",
+      "note": "Публикация удалена, копия сохранена"
+     },
+     "ocr_text": "Рассрочка 0% — первоначальный взнос 20%"
+    },
+    {
+     "external_id": "demo-hrustalny-h3",
+     "published_at": "-19d",
+     "text": "Приглашаем на день открытых дверей в ЖК «Хрустальный город»: экскурсия по шоуруму.",
+     "url": "https://t.me.example.invalid/hrustalny_gorod_demo/199"
+    }
+   ],
+   "object": "ЖК «Хрустальный город»",
+   "feed": {
+    "count": 8,
+    "objects": [
+     "ЖК «Хрустальный город»"
+    ],
+    "newest_days": 3,
+    "oldest_days": 26,
+    "post_url": "https://t.me.example.invalid/hrustalny_gorod_demo/3{n:02d}",
+    "ocr_every": 5,
+    "version_every": 4
+   }
+  },
+  {
+   "platform": "telegram",
+   "handle": "ust_kamen_nedvizhimost_demo",
+   "url": "https://t.me.example.invalid/ust_kamen_nedvizhimost_demo",
+   "last_collected": "-1h",
+   "posts": [
+    {
+     "external_id": "demo-ukn-u1",
+     "published_at": "-3d",
+     "text": "ЖК «Северный бриз»: бронь квартир с 1 числа, первоначальный взнос от 10%. Звоните +7 700 000 01 01",
+     "url": "https://t.me.example.invalid/ust_kamen_nedvizhimost_demo/9001",
+     "phones": [
+      "+7 700 000 01 01"
+     ]
+    },
+    {
+     "external_id": "demo-ukn-u2",
+     "published_at": "-5d",
+     "text": "ЖК «Кедровый квартал» — в рассрочку без банков, сдача в 4 квартале. +7 700 000 05 01",
+     "url": "https://t.me.example.invalid/ust_kamen_nedvizhimost_demo/9002",
+     "phones": [
+      "+7 700 000 05 01"
+     ]
+    },
+    {
+     "external_id": "demo-ukn-u3",
+     "published_at": "-8d",
+     "text": "ЖК «Новая эра». Предварительный договор и фиксация цены. Цена до завершения строительства не изменится.",
+     "url": "https://t.me.example.invalid/ust_kamen_nedvizhimost_demo/9003"
+    },
+    {
+     "external_id": "demo-ukn-u4",
+     "published_at": "-12d",
+     "text": "ЖК «Лазурный берег», 2-комнатные, ипотека 7-20-25, ДДУ. +7 700 000 11 01",
+     "url": "https://t.me.example.invalid/ust_kamen_nedvizhimost_demo/9004",
+     "phones": [
+      "+7 700 000 11 01"
+     ]
+    },
+    {
+     "external_id": "demo-ukn-u5",
+     "published_at": "-14d",
+     "text": "Сдам 1-комнатную квартиру на Правом берегу, 150 000 тг в месяц, без посредников.",
+     "url": "https://t.me.example.invalid/ust_kamen_nedvizhimost_demo/9005",
+     "triage": {
+      "state": "irrelevant",
+      "note": "Аренда, не относится к строящемуся жилью"
+     }
+    },
+    {
+     "external_id": "demo-ukn-u6",
+     "published_at": "-21d",
+     "text": "ЖК «Ривьера Парк» — можно внести депозит, старт продаж! +7 700 000 20 01",
+     "url": "https://t.me.example.invalid/ust_kamen_nedvizhimost_demo/9006",
+     "phones": [
+      "+7 700 000 20 01"
+     ]
+    }
+   ],
+   "feed": {
+    "count": 30,
+    "objects": [
+     "ЖК «Северный бриз»",
+     "ЖК «Золотая осень»",
+     "ЖК «Тихая гавань»",
+     "ЖК «Тополиная аллея»",
+     "ЖК «Кедровый квартал»",
+     "ЖК «Звёздный путь»",
+     "ЖК «Новая эра»",
+     "ЖК «Облачный»",
+     "ЖК «Берёзовая роща»",
+     "ЖК «Янтарный двор»",
+     "ЖК «Лазурный берег»",
+     "ЖК «Эдельвейс»",
+     "ЖК «Хрустальный город»",
+     "ЖК «Радужный парк»",
+     "ЖК «Серебряный ручей»",
+     "ЖК «Солнечная долина»",
+     "ЖК «Ривьера Парк»",
+     "ЖК «Меридиан Сити»",
+     "ЖК «Сосновый бор»"
+    ],
+    "newest_days": 1,
+    "oldest_days": 110,
+    "post_url": "https://t.me.example.invalid/ust_kamen_nedvizhimost_demo/91{n:02d}",
+    "kazakh_every": 6,
+    "ocr_every": 8,
+    "version_every": 7,
+    "removed_every": 9
+   }
+  },
+  {
+   "platform": "telegram",
+   "handle": "ustkam_zhk_chat_demo",
+   "url": "https://t.me.example.invalid/ustkam_zhk_chat_demo",
+   "last_collected": "-2h",
+   "posts": [
+    {
+     "external_id": "demo-chat-g1",
+     "published_at": "-4d",
+     "text": "Менеджер ЖК «Золотая осень» просит внести задаток 200 000 тг наличными, говорит, что иначе квартиру продадут.",
+     "url": "https://t.me.example.invalid/ustkam_zhk_chat_demo/7711",
+     "triage": {
+      "state": "deferred",
+      "note": "Нужно опросить автора сообщения"
+     }
+    },
+    {
+     "external_id": "demo-chat-g2",
+     "published_at": "-10d",
+     "text": "В ЖК «Меридиан Сити» дали договор о намерениях и просят первый взнос.",
+     "url": "https://t.me.example.invalid/ustkam_zhk_chat_demo/7702"
+    },
+    {
+     "external_id": "demo-chat-g3",
+     "published_at": "-18d",
+     "text": "Кто покупал в ЖК «Эдельвейс»? Есть ли ДДУ и гарантия КЖК?",
+     "url": "https://t.me.example.invalid/ustkam_zhk_chat_demo/7690"
+    }
+   ],
+   "feed": {
+    "count": 20,
+    "objects": [
+     "ЖК «Северный бриз»",
+     "ЖК «Золотая осень»",
+     "ЖК «Тихая гавань»",
+     "ЖК «Тополиная аллея»",
+     "ЖК «Кедровый квартал»",
+     "ЖК «Звёздный путь»",
+     "ЖК «Новая эра»",
+     "ЖК «Облачный»",
+     "ЖК «Берёзовая роща»",
+     "ЖК «Янтарный двор»",
+     "ЖК «Лазурный берег»",
+     "ЖК «Эдельвейс»",
+     "ЖК «Хрустальный город»",
+     "ЖК «Радужный парк»",
+     "ЖК «Серебряный ручей»",
+     "ЖК «Солнечная долина»",
+     "ЖК «Ривьера Парк»",
+     "ЖК «Меридиан Сити»",
+     "ЖК «Сосновый бор»"
+    ],
+    "newest_days": 2,
+    "oldest_days": 90,
+    "post_url": "https://t.me.example.invalid/ustkam_zhk_chat_demo/78{n:02d}",
+    "ordinary_every": 3,
+    "kazakh_every": 7
+   }
+  },
+  {
+   "platform": "telegram",
+   "handle": "stroika_ustkam_demo",
+   "url": "https://t.me.example.invalid/stroika_ustkam_demo",
+   "last_collected": "-4h",
+   "posts": [],
+   "feed": {
+    "count": 16,
+    "objects": [
+     "ЖК «Северный бриз»",
+     "ЖК «Золотая осень»",
+     "ЖК «Тихая гавань»",
+     "ЖК «Тополиная аллея»",
+     "ЖК «Кедровый квартал»",
+     "ЖК «Звёздный путь»",
+     "ЖК «Новая эра»",
+     "ЖК «Облачный»",
+     "ЖК «Берёзовая роща»",
+     "ЖК «Янтарный двор»",
+     "ЖК «Лазурный берег»",
+     "ЖК «Эдельвейс»",
+     "ЖК «Хрустальный город»",
+     "ЖК «Радужный парк»",
+     "ЖК «Серебряный ручей»",
+     "ЖК «Солнечная долина»",
+     "ЖК «Ривьера Парк»",
+     "ЖК «Меридиан Сити»",
+     "ЖК «Сосновый бор»"
+    ],
+    "newest_days": 2,
+    "oldest_days": 100,
+    "post_url": "https://t.me.example.invalid/stroika_ustkam_demo/{n}",
+    "ordinary_every": 3,
+    "ocr_every": 6,
+    "version_every": 5
+   }
+  },
+  {
+   "platform": "instagram",
+   "handle": "severny_briz_demo",
+   "url": "https://instagram.example.invalid/severny_briz_demo",
+   "last_collected": "-5h",
+   "posts": [
+    {
+     "external_id": "demo-sb-i1",
+     "published_at": "-1d",
+     "text": "Платная бронь квартир в ЖК «Северный бриз» — 50 000 тг, вернём при отказе. +7 700 000 01 01",
+     "url": "https://instagram.example.invalid/severny_briz_demo/p/c1",
+     "phones": [
+      "+7 700 000 01 01"
+     ],
+     "ocr_text": "АКЦИЯ! Бронь квартиры до конца месяца"
+    },
+    {
+     "external_id": "demo-sb-i2",
+     "published_at": "-7d",
+     "text": "Дарим подарки при покупке в ЖК «Северный бриз»! Рассрочка от застройщика на 24 месяца.",
+     "url": "https://instagram.example.invalid/severny_briz_demo/p/c2"
+    },
+    {
+     "external_id": "demo-sb-i3",
+     "published_at": "-13d",
+     "text": "Рилс: прогулка по двору ЖК «Северный бриз».",
+     "url": "https://instagram.example.invalid/severny_briz_demo/reel/c3",
+     "triage": {
+      "state": "deferred",
+      "note": "Реклама без предложений внести деньги, вернуться при изменении текста"
+     }
+    },
+    {
+     "external_id": "demo-sb-i4",
+     "published_at": "-22d",
+     "text": "ЖК «Северный бриз»: пәтерді брондау ашық, бастапқы жарна 10%.",
+     "url": "https://instagram.example.invalid/severny_briz_demo/p/c4",
+     "llm": {
+      "findings": [
+       {
+        "category": "booking",
+        "quote": "брондау",
+        "confidence": 0.86
+       },
+       {
+        "category": "down_payment",
+        "quote": "бастапқы жарна",
+        "confidence": 0.72
+       }
+      ],
+      "payment_schemes": [
+       "booking",
+       "down_payment"
+      ],
+      "confidence": 0.8
+     }
+    }
+   ],
+   "developer_bin": "990340000011",
+   "feed": {
+    "count": 14,
+    "objects": [
+     "ЖК «Северный бриз»",
+     "ЖК «Солнечная долина»"
+    ],
+    "newest_days": 3,
+    "oldest_days": 95,
+    "post_url": "https://instagram.example.invalid/severny_briz_demo/p/d{n:03d}",
+    "ocr_every": 5,
+    "version_every": 6,
+    "removed_every": 8
+   }
+  },
+  {
+   "platform": "instagram",
+   "handle": "kedrovy_kvartal_demo",
+   "url": "https://instagram.example.invalid/kedrovy_kvartal_demo",
+   "last_collected": "-6h",
+   "posts": [
+    {
+     "external_id": "demo-kk-k1",
+     "published_at": "-2d",
+     "text": "ЖК «Кедровый квартал» готов на 70%! Рассрочка от застройщика, первый взнос 10%.",
+     "url": "https://instagram.example.invalid/kedrovy_kvartal_demo/p/k1",
+     "ocr_text": "Готовность 70% — рассрочка от застройщика"
+    },
+    {
+     "external_id": "demo-kk-k2",
+     "published_at": "-11d",
+     "text": "Шоурум ЖК «Кедровый квартал» открыт ежедневно, приходите на экскурсию.",
+     "url": "https://instagram.example.invalid/kedrovy_kvartal_demo/p/k2",
+     "triage": {
+      "state": "deferred",
+      "note": "Сверить с актом инспекции"
+     }
+    }
+   ],
+   "developer_bin": "990740000033",
+   "feed": {
+    "count": 12,
+    "objects": [
+     "ЖК «Кедровый квартал»",
+     "ЖК «Берёзовая роща»"
+    ],
+    "newest_days": 4,
+    "oldest_days": 100,
+    "post_url": "https://instagram.example.invalid/kedrovy_kvartal_demo/p/e{n:03d}",
+    "ocr_every": 5,
+    "version_every": 5
+   }
+  },
+  {
+   "platform": "instagram",
+   "handle": "lazurny_bereg_demo",
+   "url": "https://instagram.example.invalid/lazurny_bereg_demo",
+   "last_collected": "-8h",
+   "posts": [
+    {
+     "external_id": "demo-lb-l1",
+     "published_at": "-3d",
+     "text": "Лазурный берег: зарезервировать квартиру, договор резерва на 14 дней. +7 700 000 11 01",
+     "url": "https://instagram.example.invalid/lazurny_bereg_demo/p/l1",
+     "phones": [
+      "+7 700 000 11 01"
+     ]
+    }
+   ],
+   "developer_bin": "991340000066",
+   "feed": {
+    "count": 10,
+    "objects": [
+     "ЖК «Лазурный берег»",
+     "ЖК «Звёздный путь»"
+    ],
+    "newest_days": 5,
+    "oldest_days": 90,
+    "post_url": "https://instagram.example.invalid/lazurny_bereg_demo/p/f{n:03d}",
+    "version_every": 4,
+    "removed_every": 6
+   }
+  },
+  {
+   "platform": "instagram",
+   "handle": "ust_realty_demo",
+   "url": "https://instagram.example.invalid/ust_realty_demo",
+   "last_collected": "-2h",
+   "posts": [
+    {
+     "external_id": "demo-ur-r1",
+     "published_at": "-5d",
+     "text": "Эксклюзив! ЖК «Солнечная долина» в рассрочку 0-0-24, старт продаж.",
+     "url": "https://instagram.example.invalid/ust_realty_demo/p/r1"
+    },
+    {
+     "external_id": "demo-ur-r2",
+     "published_at": "-9d",
+     "text": "Успей купить до повышения цен! ЖК «Радужный парк», цены до сдачи.",
+     "url": "https://instagram.example.invalid/ust_realty_demo/p/r2"
+    },
+    {
+     "external_id": "demo-ur-r3",
+     "published_at": "-26d",
+     "text": "Лайфхаки при выборе квартиры в новостройке: что проверить в документах.",
+     "url": "https://instagram.example.invalid/ust_realty_demo/p/r3",
+     "triage": {
+      "state": "irrelevant",
+      "note": "Общая информация, застройщик не назван"
+     }
+    }
+   ],
+   "feed": {
+    "count": 16,
+    "objects": [
+     "ЖК «Северный бриз»",
+     "ЖК «Золотая осень»",
+     "ЖК «Тихая гавань»",
+     "ЖК «Тополиная аллея»",
+     "ЖК «Кедровый квартал»",
+     "ЖК «Звёздный путь»",
+     "ЖК «Новая эра»",
+     "ЖК «Облачный»",
+     "ЖК «Берёзовая роща»",
+     "ЖК «Янтарный двор»",
+     "ЖК «Лазурный берег»",
+     "ЖК «Эдельвейс»",
+     "ЖК «Хрустальный город»",
+     "ЖК «Радужный парк»",
+     "ЖК «Серебряный ручей»",
+     "ЖК «Солнечная долина»",
+     "ЖК «Ривьера Парк»",
+     "ЖК «Меридиан Сити»",
+     "ЖК «Сосновый бор»"
+    ],
+    "newest_days": 6,
+    "oldest_days": 105,
+    "post_url": "https://instagram.example.invalid/ust_realty_demo/p/g{n:03d}",
+    "kazakh_every": 5,
+    "ocr_every": 7
+   }
+  },
+  {
+   "platform": "instagram",
+   "handle": "hrustalny_gorod_ig_demo",
+   "url": "https://instagram.example.invalid/hrustalny_gorod_ig_demo",
+   "last_collected": "-4h",
+   "posts": [],
+   "object": "ЖК «Хрустальный город»",
+   "feed": {
+    "count": 6,
+    "objects": [
+     "ЖК «Хрустальный город»"
+    ],
+    "newest_days": 2,
+    "oldest_days": 27,
+    "post_url": "https://instagram.example.invalid/hrustalny_gorod_ig_demo/p/h{n:03d}",
+    "ocr_every": 3
+   }
+  },
+  {
+   "platform": "tiktok",
+   "handle": "stroim_ustkam_demo",
+   "url": "https://tiktok.example.invalid/@stroim_ustkam_demo",
+   "last_collected": "-7h",
+   "posts": [],
+   "developer_bin": "991540000077",
+   "feed": {
+    "count": 10,
+    "objects": [
+     "ЖК «Тополиная аллея»",
+     "ЖК «Эдельвейс»"
+    ],
+    "newest_days": 4,
+    "oldest_days": 80,
+    "post_url": "https://tiktok.example.invalid/@stroim_ustkam_demo/video/{n}",
+    "kazakh_every": 4
+   }
+  },
+  {
+   "platform": "tiktok",
+   "handle": "kedr_life_demo",
+   "url": "https://tiktok.example.invalid/@kedr_life_demo",
+   "last_collected": "-9h",
+   "posts": [],
+   "feed": {
+    "count": 8,
+    "objects": [
+     "ЖК «Северный бриз»",
+     "ЖК «Золотая осень»",
+     "ЖК «Тихая гавань»",
+     "ЖК «Тополиная аллея»",
+     "ЖК «Кедровый квартал»",
+     "ЖК «Звёздный путь»",
+     "ЖК «Новая эра»",
+     "ЖК «Облачный»",
+     "ЖК «Берёзовая роща»",
+     "ЖК «Янтарный двор»",
+     "ЖК «Лазурный берег»",
+     "ЖК «Эдельвейс»",
+     "ЖК «Хрустальный город»",
+     "ЖК «Радужный парк»",
+     "ЖК «Серебряный ручей»",
+     "ЖК «Солнечная долина»",
+     "ЖК «Ривьера Парк»",
+     "ЖК «Меридиан Сити»",
+     "ЖК «Сосновый бор»"
+    ],
+    "newest_days": 3,
+    "oldest_days": 70,
+    "post_url": "https://tiktok.example.invalid/@kedr_life_demo/video/{n}",
+    "ordinary_every": 3
+   }
+  },
+  {
+   "platform": "website",
+   "handle": "yantarny-dvor.example.invalid",
+   "url": "https://yantarny-dvor.example.invalid/news",
+   "last_collected": "-6h",
+   "posts": [
+    {
+     "external_id": "demo-yd-w1",
+     "published_at": "-5d",
+     "text": "Завершено остекление третьей секции ЖК «Янтарный двор». Следите за ходом строительства на нашем сайте.",
+     "url": "https://yantarny-dvor.example.invalid/news/1"
+    },
+    {
+     "external_id": "demo-yd-w2",
+     "published_at": "-17d",
+     "text": "Запись на просмотр квартир в ЖК «Янтарный двор»: ипотека и ДДУ.",
+     "url": "https://yantarny-dvor.example.invalid/news/2"
+    }
+   ],
+   "object": "ЖК «Янтарный двор»",
+   "feed": {
+    "count": 6,
+    "objects": [
+     "ЖК «Янтарный двор»"
+    ],
+    "newest_days": 3,
+    "oldest_days": 28,
+    "post_url": "https://yantarny-dvor.example.invalid/news/{n}x",
+    "ordinary_every": 1
+   }
+  },
+  {
+   "platform": "website",
+   "handle": "hrustalny-gorod.example.invalid",
+   "url": "https://hrustalny-gorod.example.invalid",
+   "last_collected": "-5h",
+   "posts": [
+    {
+     "external_id": "demo-hg-w3",
+     "published_at": "-3d",
+     "text": "Договор инвестирования и резервирование квартиры — оформление на сайте ЖК «Хрустальный город». +7 700 000 13 01",
+     "url": "https://hrustalny-gorod.example.invalid/offer",
+     "phones": [
+      "+7 700 000 13 01"
+     ],
+     "hits": "confirm",
+     "triage": {
+      "state": "reviewed"
+     },
+     "versions": [
+      {
+       "after_hours": 30,
+       "text": "ЖК «Хрустальный город»: купить квартиру по договору долевого участия"
+      }
+     ]
+    },
+    {
+     "external_id": "demo-hg-w4",
+     "published_at": "-15d",
+     "text": "ЖК «Хрустальный город»: ход строительства, фотоотчёт июля.",
+     "url": "https://hrustalny-gorod.example.invalid/gallery"
+    }
+   ],
+   "object": "ЖК «Хрустальный город»",
+   "feed": {
+    "count": 6,
+    "objects": [
+     "ЖК «Хрустальный город»"
+    ],
+    "newest_days": 2,
+    "oldest_days": 27,
+    "post_url": "https://hrustalny-gorod.example.invalid/page/{n}",
+    "ocr_every": 4
+   }
+  },
+  {
+   "platform": "website",
+   "handle": "sosnovy-bor-sales.example.invalid",
+   "url": "https://sosnovy-bor-sales.example.invalid",
+   "last_collected": "-10h",
+   "posts": [],
+   "developer_bin": "992540000103",
+   "feed": {
+    "count": 6,
+    "objects": [
+     "ЖК «Сосновый бор»"
+    ],
+    "newest_days": 5,
+    "oldest_days": 85,
+    "post_url": "https://sosnovy-bor-sales.example.invalid/n/{n}",
+    "ordinary_every": 1
+   }
+  },
+  {
+   "platform": "website",
+   "handle": "zhk-news.example.invalid",
+   "url": "https://zhk-news.example.invalid",
+   "last_collected": "-3h",
+   "posts": [],
+   "feed": {
+    "count": 10,
+    "objects": [
+     "ЖК «Северный бриз»",
+     "ЖК «Золотая осень»",
+     "ЖК «Тихая гавань»",
+     "ЖК «Тополиная аллея»",
+     "ЖК «Кедровый квартал»",
+     "ЖК «Звёздный путь»",
+     "ЖК «Новая эра»",
+     "ЖК «Облачный»",
+     "ЖК «Берёзовая роща»",
+     "ЖК «Янтарный двор»",
+     "ЖК «Лазурный берег»",
+     "ЖК «Эдельвейс»",
+     "ЖК «Хрустальный город»",
+     "ЖК «Радужный парк»",
+     "ЖК «Серебряный ручей»",
+     "ЖК «Солнечная долина»",
+     "ЖК «Ривьера Парк»",
+     "ЖК «Меридиан Сити»",
+     "ЖК «Сосновый бор»"
+    ],
+    "newest_days": 2,
+    "oldest_days": 100,
+    "post_url": "https://zhk-news.example.invalid/article/{n}",
+    "ordinary_every": 3,
+    "version_every": 5
+   }
+  },
+  {
+   "platform": "aggregator",
+   "handle": "krisha-ustkam-novostroyki-demo",
+   "url": "https://krisha.example.invalid/prodazha/kvartiry/ust-kamenogorsk/?demo=1",
+   "last_collected": "-2h",
+   "posts": [
+    {
+     "external_id": "demo-kr-a1",
+     "published_at": "-2d",
+     "text": "ЖК «Меридиан Сити», 2-комн. 58 м². Нужно внести задаток для брони, цена до завершения строительства. +7 700 000 20 01",
+     "url": "https://krisha.example.invalid/a/show/910001",
+     "phones": [
+      "+7 700 000 20 01"
+     ]
+    },
+    {
+     "external_id": "demo-kr-a2",
+     "published_at": "-8d",
+     "text": "ЖК «Сосновый бор» 1-комн., рассрочка от застройщика. +7 700 000 20 01",
+     "url": "https://krisha.example.invalid/a/show/910002",
+     "phones": [
+      "+7 700 000 20 01"
+     ]
+    },
+    {
+     "external_id": "demo-kr-a3",
+     "published_at": "-13d",
+     "text": "ЖК «Ривьера Парк» студия, предварительный договор, цена до завершения. +7 700 000 20 01",
+     "url": "https://krisha.example.invalid/a/show/910003",
+     "phones": [
+      "+7 700 000 20 01"
+     ]
+    },
+    {
+     "external_id": "demo-kr-a4",
+     "published_at": "-24d",
+     "text": "Продам 3-комнатную квартиру на вторичном рынке, торг при осмотре.",
+     "url": "https://krisha.example.invalid/a/show/910004",
+     "triage": {
+      "state": "irrelevant",
+      "note": "Вторичное жильё"
+     }
+    }
+   ],
+   "feed": {
+    "count": 24,
+    "objects": [
+     "ЖК «Северный бриз»",
+     "ЖК «Золотая осень»",
+     "ЖК «Тихая гавань»",
+     "ЖК «Тополиная аллея»",
+     "ЖК «Кедровый квартал»",
+     "ЖК «Звёздный путь»",
+     "ЖК «Новая эра»",
+     "ЖК «Облачный»",
+     "ЖК «Берёзовая роща»",
+     "ЖК «Янтарный двор»",
+     "ЖК «Лазурный берег»",
+     "ЖК «Эдельвейс»",
+     "ЖК «Хрустальный город»",
+     "ЖК «Радужный парк»",
+     "ЖК «Серебряный ручей»",
+     "ЖК «Солнечная долина»",
+     "ЖК «Ривьера Парк»",
+     "ЖК «Меридиан Сити»",
+     "ЖК «Сосновый бор»"
+    ],
+    "newest_days": 3,
+    "oldest_days": 100,
+    "post_url": "https://krisha.example.invalid/a/show/92{n:04d}",
+    "ordinary_every": 5,
+    "ocr_every": 9,
+    "version_every": 6,
+    "removed_every": 7
+   }
+  },
+  {
+   "platform": "aggregator",
+   "handle": "olx-ustkam-novostroyki-demo",
+   "url": "https://olx.example.invalid/nedvizhimost/prodazha-kvartir/ust-kamenogorsk/?demo=1",
+   "last_collected": "-3h",
+   "posts": [
+    {
+     "external_id": "demo-olx-o1",
+     "published_at": "-4d",
+     "text": "ЖК «Золотая осень» без комиссии. Бронь 100 000 тг. +7 700 000 02 01",
+     "url": "https://olx.example.invalid/d/obyavlenie/9100",
+     "phones": [
+      "+7 700 000 02 01"
+     ]
+    },
+    {
+     "external_id": "demo-olx-o2",
+     "published_at": "-20d",
+     "text": "Продаю квартиру в новостройке, срочно, документы готовы.",
+     "url": "https://olx.example.invalid/d/obyavlenie/9101",
+     "triage": {
+      "state": "irrelevant",
+      "note": "Частное лицо, не застройщик"
+     }
+    }
+   ],
+   "feed": {
+    "count": 14,
+    "objects": [
+     "ЖК «Северный бриз»",
+     "ЖК «Золотая осень»",
+     "ЖК «Тихая гавань»",
+     "ЖК «Тополиная аллея»",
+     "ЖК «Кедровый квартал»",
+     "ЖК «Звёздный путь»",
+     "ЖК «Новая эра»",
+     "ЖК «Облачный»",
+     "ЖК «Берёзовая роща»",
+     "ЖК «Янтарный двор»",
+     "ЖК «Лазурный берег»",
+     "ЖК «Эдельвейс»",
+     "ЖК «Хрустальный город»",
+     "ЖК «Радужный парк»",
+     "ЖК «Серебряный ручей»",
+     "ЖК «Солнечная долина»",
+     "ЖК «Ривьера Парк»",
+     "ЖК «Меридиан Сити»",
+     "ЖК «Сосновый бор»"
+    ],
+    "newest_days": 2,
+    "oldest_days": 95,
+    "post_url": "https://olx.example.invalid/d/obyavlenie/93{n:03d}",
+    "ordinary_every": 4,
+    "ocr_every": 7,
+    "removed_every": 6
+   }
+  },
+  {
+   "platform": "other",
+   "handle": "forum-ustkam-stroyka-demo",
+   "url": "https://forum.example.invalid/ustkam",
+   "last_collected": "-5h",
+   "posts": [
+    {
+     "external_id": "demo-fs-f1",
+     "published_at": "-6d",
+     "text": "ЖК «Облачный» — застройщик просит обеспечительный платёж. Кто-нибудь платил?",
+     "url": "https://forum.example.invalid/ustkam/t/501"
+    },
+    {
+     "external_id": "demo-fs-f2",
+     "published_at": "-19d",
+     "text": "ЖК «Новая эра»: сроки сорваны, новых этажей не видно.",
+     "url": "https://forum.example.invalid/ustkam/t/497"
+    }
+   ],
+   "feed": {
+    "count": 12,
+    "objects": [
+     "ЖК «Северный бриз»",
+     "ЖК «Золотая осень»",
+     "ЖК «Тихая гавань»",
+     "ЖК «Тополиная аллея»",
+     "ЖК «Кедровый квартал»",
+     "ЖК «Звёздный путь»",
+     "ЖК «Новая эра»",
+     "ЖК «Облачный»",
+     "ЖК «Берёзовая роща»",
+     "ЖК «Янтарный двор»",
+     "ЖК «Лазурный берег»",
+     "ЖК «Эдельвейс»",
+     "ЖК «Хрустальный город»",
+     "ЖК «Радужный парк»",
+     "ЖК «Серебряный ручей»",
+     "ЖК «Солнечная долина»",
+     "ЖК «Ривьера Парк»",
+     "ЖК «Меридиан Сити»",
+     "ЖК «Сосновый бор»"
+    ],
+    "newest_days": 2,
+    "oldest_days": 90,
+    "post_url": "https://forum.example.invalid/ustkam/t/6{n:02d}",
+    "ordinary_every": 3
+   }
+  }
+ ],
+ "citizen_reports": [
+  {
+   "text": "Хочу сообщить: в ЖК «Золотая осень» просят внести депозит до подписания договора, а на сайте нет разрешения.",
+   "received_at": "-1d"
+  },
+  {
+   "text": "Баннер ЖК «Хрустальный город» на въезде: бронь квартиры за 10%. Проверьте, пожалуйста.",
+   "received_at": "-2d"
+  },
+  {
+   "text": "В ЖК «Ривьера Парк» предлагают договор о намерениях и первоначальный взнос, договора долевого участия нет.",
+   "received_at": "-4d"
+  },
+  {
+   "text": "ЖК «Северный бриз»: в Instagram просят 50 000 тг за бронь. Это допустимо?",
+   "received_at": "-6d",
+   "triage": {
+    "state": "deferred",
+    "note": "Проверяем аккаунт по реестру источников"
+   }
+  },
+  {
+   "text": "Видел объявление ЖК «Кедровый квартал»: готовность 70%, а на площадке только каркас.",
+   "received_at": "-10d"
+  },
+  {
+   "text": "Реклама на остановке про ЖК «Лазурный берег»: цены до сдачи и рассрочка от застройщика.",
+   "received_at": "-45d",
+   "confirm_link": true,
+   "triage": {
+    "state": "reviewed"
+   }
+  }
+ ],
+ "bot_complaints": [
+  {
+   "object": "ЖК «Золотая осень»",
+   "text": "Менеджер по телефону +7 700 000 02 01 просит внести задаток за квартиру, договор обещает позже.",
+   "received_at": "-1d",
+   "status": "new",
+   "verified": false
+  },
+  {
+   "object": "ЖК «Хрустальный город»",
+   "text": "Предлагают подписать договор инвестирования вместо ДДУ и перевести деньги на счёт посредника.",
+   "received_at": "-3d",
+   "status": "in_review",
+   "verified": true
+  },
+  {
+   "object": "ЖК «Северный бриз»",
+   "text": "Взяли бронь 50 000 тг и через месяц говорят, что квартира уже продана.",
+   "received_at": "-5d",
+   "status": "in_review",
+   "verified": false
+  },
+  {
+   "object": "ЖК «Кедровый квартал»",
+   "text": "На рекламе готовность 70%, на деле вижу только первые этажи.",
+   "received_at": "-8d",
+   "status": "new",
+   "verified": false
+  },
+  {
+   "object": "ЖК «Звёздный путь»",
+   "text": "Стройка стоит с лета, сроки сдачи сорваны, застройщик не отвечает.",
+   "received_at": "-14d",
+   "status": "in_review",
+   "verified": false
+  },
+  {
+   "object": "ЖК «Тополиная аллея»",
+   "text": "Соседи по очереди заметили, что в договоре цена выше, чем в рекламе.",
+   "received_at": "-20d",
+   "status": "closed",
+   "verified": true
+  },
+  {
+   "object": "ЖК «Эдельвейс»",
+   "text": "Нет информации о разрешении на строительство, просят внести первоначальный взнос.",
+   "received_at": "-26d",
+   "status": "new",
+   "verified": false
+  },
+  {
+   "object": "ЖК «Новая эра»",
+   "text": "Реклама обещает сдачу в этом году, но работы не ведутся.",
+   "received_at": "-33d",
+   "status": "closed",
+   "verified": false
+  },
+  {
+   "object": "ЖК «Облачный»",
+   "text": "Менеджер просит платёж на личную карту, документов на землю не показывает.",
+   "received_at": "-47d",
+   "status": "closed",
+   "verified": true
+  },
+  {
+   "object": "ЖК «Лазурный берег»",
+   "text": "Бронь не возвращают после отказа, требуют подождать три месяца.",
+   "received_at": "-60d",
+   "status": "closed",
+   "verified": false
+  },
+  {
+   "object": "ЖК «Ривьера Парк»",
+   "text": "Просят внести депозит 100 000 тг, цена якобы вырастет после сдачи.",
+   "received_at": "-2d",
+   "status": "new",
+   "verified": false
+  },
+  {
+   "object": "ЖК «Меридиан Сити»",
+   "text": "В офисе дали договор о намерениях и просят первый взнос.",
+   "received_at": "-7d",
+   "status": "in_review",
+   "verified": false
+  }
+ ],
+ "complaints": [
+  {
+   "object": "ЖК «Эдельвейс»",
+   "received_at": "-18d",
+   "source": "eotinish",
+   "external_id": "EO-DEMO-C01",
+   "is_collective": true,
+   "signatories_count": 31,
+   "summary": "Коллективное обращение дольщиков: задержка передачи ключей и просьба внести доплату",
+   "status": "in_review"
+  },
+  {
+   "object": "ЖК «Тихая гавань»",
+   "received_at": "-75d",
+   "source": "eotinish",
+   "external_id": "EO-DEMO-C02",
+   "is_collective": true,
+   "signatories_count": 14,
+   "summary": "Коллективная жалоба на шум и грязь от стройплощадки",
+   "status": "closed",
+   "is_verified": true
+  },
+  {
+   "object": "ЖК «Золотая осень»",
+   "received_at": "-9d",
+   "source": "eotinish",
+   "external_id": "EO-DEMO-C03",
+   "summary": "Требуют внести задаток наличными без договора",
+   "status": "in_review",
+   "is_verified": true,
+   "confirmed_payments": true
+  },
+  {
+   "object": "ЖК «Меридиан Сити»",
+   "received_at": "-4d",
+   "source": "manual",
+   "is_collective": true,
+   "signatories_count": 9,
+   "summary": "Жители подъезда просят проверить договоры о намерениях",
+   "status": "new"
+  },
+  {
+   "object": "ЖК «Ривьера Парк»",
+   "received_at": "-6d",
+   "source": "eotinish",
+   "external_id": "EO-DEMO-C04",
+   "is_collective": true,
+   "signatories_count": 22,
+   "summary": "Коллективное обращение: депозиты внесены, договоры долевого участия не заключены",
+   "status": "in_review"
+  },
+  {
+   "object": "ЖК «Новая эра»",
+   "received_at": "-50d",
+   "source": "manual",
+   "summary": "Срыв сроков сдачи дома, прошу дать разъяснения",
+   "status": "closed",
+   "is_verified": true
+  }
+ ],
+ "complaints_per_object": 3,
+ "isolated": [
+  "ЖК «Малахит»"
+ ],
+ "signals": [
+  {
+   "object": "ЖК «Золотая осень»",
+   "origin": "auto",
+   "actions": [
+    {
+     "do": "edit",
+     "text": "Предложение внести депозит подтверждено в двух публикациях и на щите по облёту SAQ VISION.",
+     "measures": [
+      "request_documents",
+      "site_inspection"
+     ]
+    }
+   ]
+  },
+  {
+   "object": "ЖК «Хрустальный город»",
+   "origin": "auto",
+   "actions": [
+    {
+     "do": "edit",
+     "measures": [
+      "request_documents",
+      "request_payments_info"
+     ]
+    },
+    {
+     "do": "return",
+     "text": "Добавьте скриншот щита и ссылку на сессию облёта SAQ VISION."
+    }
+   ]
+  },
+  {
+   "object": "ЖК «Ривьера Парк»",
+   "origin": "auto",
+   "actions": [
+    {
+     "do": "edit",
+     "text": "Один телефон на три объекта разных застройщиков.",
+     "measures": [
+      "request_payments_info",
+      "interview_complainants"
+     ]
+    },
+    {
+     "do": "send",
+     "recipient": "law_enforcement",
+     "days_ago": 1
+    }
+   ]
+  },
+  {
+   "object": "ЖК «Северный бриз»",
+   "origin": "manual",
+   "created_days_ago": 6,
+   "actions": [
+    {
+     "do": "edit",
+     "text": "Платная бронь в Instagram без правового основания.",
+     "measures": [
+      "request_documents"
+     ]
+    },
+    {
+     "do": "send",
+     "recipient": "gask",
+     "days_ago": 3
+    }
+   ]
+  },
+  {
+   "object": "ЖК «Кедровый квартал»",
+   "origin": "manual",
+   "created_days_ago": 30,
+   "actions": [
+    {
+     "do": "edit",
+     "text": "Заявленная готовность 70% против 35% по инспекции.",
+     "measures": [
+      "site_inspection"
+     ]
+    },
+    {
+     "do": "send",
+     "recipient": "gask",
+     "days_ago": 26
+    }
+   ]
+  },
+  {
+   "object": "ЖК «Тополиная аллея»",
+   "origin": "manual",
+   "created_days_ago": 20,
+   "actions": [
+    {
+     "do": "edit",
+     "measures": [
+      "interview_complainants"
+     ]
+    },
+    {
+     "do": "send",
+     "recipient": "law_enforcement",
+     "days_ago": 15
+    },
+    {
+     "do": "respond",
+     "by": "demo_police",
+     "text": "Опрошены заявители, материал принят к рассмотрению. Признаков мошенничества на данный момент не выявлено.",
+     "days_ago": 9
+    }
+   ]
+  },
+  {
+   "object": "ЖК «Лазурный берег»",
+   "origin": "manual",
+   "created_days_ago": 40,
+   "actions": [
+    {
+     "do": "send",
+     "recipient": "gask",
+     "days_ago": 35
+    },
+    {
+     "do": "respond",
+     "by": "demo_gask",
+     "text": "Проведена проверка: разрешительная документация в порядке, рассрочка оформлена по договору долевого участия.",
+     "days_ago": 28
+    },
+    {
+     "do": "close"
+    }
+   ]
+  },
+  {
+   "object": "ЖК «Эдельвейс»",
+   "origin": "manual",
+   "created_days_ago": 4,
+   "actions": [
+    {
+     "do": "return",
+     "text": "Уточните сведения о коллективном обращении и приложите список заявителей."
+    }
+   ]
+  },
+  {
+   "object": "ЖК «Тихая гавань»",
+   "origin": "manual",
+   "created_days_ago": 70,
+   "actions": [
+    {
+     "do": "send",
+     "recipient": "law_enforcement",
+     "days_ago": 60
+    },
+    {
+     "do": "respond",
+     "by": "demo_police",
+     "text": "Жалобы на шум рассмотрены, нарушений требований к стройплощадке не установлено.",
+     "days_ago": 52
+    },
+    {
+     "do": "close"
+    }
+   ]
+  },
+  {
+   "object": "ЖК «Янтарный двор»",
+   "origin": "manual",
+   "created_days_ago": 15,
+   "actions": [
+    {
+     "do": "send",
+     "recipient": "mio",
+     "days_ago": 10
+    },
+    {
+     "do": "respond",
+     "by": "demo_mio",
+     "text": "Документы запрошены у застройщика, срок ответа до конца месяца.",
+     "days_ago": 5
+    }
+   ]
+  },
+  {
+   "object": "ЖК «Новая эра»",
+   "origin": "manual",
+   "created_days_ago": 9,
+   "actions": [
+    {
+     "do": "edit",
+     "text": "Срыв сроков сдачи, работы на площадке не ведутся.",
+     "measures": [
+      "site_inspection"
+     ]
+    },
+    {
+     "do": "send",
+     "recipient": "gask",
+     "days_ago": 7
+    }
+   ]
+  },
+  {
+   "object": "ЖК «Меридиан Сити»",
+   "origin": "manual",
+   "created_days_ago": 3,
+   "actions": [
+    {
+     "do": "edit",
+     "text": "Рассрочка и договор о намерениях без проверенного правового основания.",
+     "measures": [
+      "request_documents"
+     ],
+     "payments": {
+      "payment_schemes": [
+       "installment"
+      ],
+      "contract_types": [
+       "Договор о намерениях"
+      ],
+      "confirmed_payments_note": "Платежи не подтверждены, есть свидетельства заявителей."
+     }
+    }
+   ]
+  }
+ ],
+ "assignments": [
+  {
+   "object": "ЖК «Хрустальный город»",
+   "author": "demo_admin",
+   "assignee": "demo_mio",
+   "task": "Проверить наружную рекламу и ограждение по материалам облёта SAQ VISION",
+   "created_at": "-5d",
+   "due_at": "-2d",
+   "status": "open",
+   "result": null
+  },
+  {
+   "object": "ЖК «Золотая осень»",
+   "author": "demo_admin",
+   "assignee": "demo_mio",
+   "task": "Запросить у застройщика договоры брони и внесения депозита",
+   "created_at": "-2d",
+   "due_at": "+3d",
+   "status": "open",
+   "result": null
+  },
+  {
+   "object": "ЖК «Ривьера Парк»",
+   "author": "demo_admin",
+   "assignee": "demo_mio",
+   "task": "Выехать на площадку и сверить рекламный щит с материалами облёта",
+   "created_at": "-1d",
+   "due_at": "+6d",
+   "status": "open",
+   "result": null
+  },
+  {
+   "object": "ЖК «Кедровый квартал»",
+   "author": "demo_admin",
+   "assignee": "demo_mio",
+   "task": "Провести повторную инспекцию готовности каркаса",
+   "created_at": "-20d",
+   "due_at": "-8d",
+   "status": "done",
+   "result": "Выезд проведён, готовность 35% подтверждена фотографиями"
+  },
+  {
+   "object": "ЖК «Северный бриз»",
+   "author": "demo_mio",
+   "assignee": "demo_admin",
+   "task": "Согласовать запрос в ГАСК по платной брони",
+   "created_at": "-3d",
+   "due_at": "+10d",
+   "status": "open",
+   "result": null
+  },
+  {
+   "object": "ЖК «Тополиная аллея»",
+   "author": "demo_admin",
+   "assignee": "demo_mio",
+   "task": "Собрать подписи жильцов и передать жалобу в ГАСК",
+   "created_at": "-25d",
+   "due_at": "-12d",
+   "status": "done",
+   "result": "Подписи собраны, жалоба передана в ГАСК"
+  },
+  {
+   "object": "ЖК «Эдельвейс»",
+   "author": "demo_admin",
+   "assignee": "demo_mio",
+   "task": "Уточнить сроки передачи ключей у застройщика",
+   "created_at": "-12d",
+   "due_at": "-5d",
+   "status": "cancelled",
+   "result": null
+  },
+  {
+   "object": "ЖК «Новая эра»",
+   "author": "demo_admin",
+   "assignee": "demo_mio",
+   "task": "Проверить, ведутся ли работы на площадке",
+   "created_at": "-8d",
+   "due_at": "-1d",
+   "status": "open",
+   "result": null
+  },
+  {
+   "object": "ЖК «Звёздный путь»",
+   "author": "demo_mio",
+   "assignee": "demo_admin",
+   "task": "Подготовить обращение к застройщику о сроках",
+   "created_at": "-4d",
+   "due_at": "+14d",
+   "status": "open",
+   "result": null
+  },
+  {
+   "object": "ЖК «Меридиан Сити»",
+   "author": "demo_admin",
+   "assignee": "demo_mio",
+   "task": "Проверить гарантию КЖК и разрешение МИО",
+   "created_at": "-2d",
+   "due_at": "+1d",
+   "status": "open",
+   "result": null
+  },
+  {
+   "object": "ЖК «Облачный»",
+   "author": "demo_admin",
+   "assignee": "demo_mio",
+   "task": "Сверить разрешение МИО по порталу",
+   "created_at": "-30d",
+   "due_at": "-20d",
+   "status": "done",
+   "result": "Разрешение найдено в реестре, статус «действует»"
+  },
+  {
+   "object": "ЖК «Лазурный берег»",
+   "author": "demo_mio",
+   "assignee": "demo_admin",
+   "task": "Согласовать закрытие карточки с ГАСК",
+   "created_at": "-9d",
+   "due_at": "-3d",
+   "status": "open",
+   "result": null
+  },
+  {
+   "object": "ЖК «Янтарный двор»",
+   "author": "demo_admin",
+   "assignee": "demo_mio",
+   "task": "Получить от застройщика документы по земельному участку",
+   "created_at": "-6d",
+   "due_at": "+20d",
+   "status": "open",
+   "result": null
+  },
+  {
+   "object": "ЖК «Солнечная долина»",
+   "author": "demo_admin",
+   "assignee": "demo_mio",
+   "task": "Плановая проверка карточки объекта",
+   "created_at": "-40d",
+   "due_at": "-30d",
+   "status": "cancelled",
+   "result": null
+  }
+ ],
+ "shared_entities": [
+  {
+   "kind": "bank_details",
+   "value": "KZ00 DEMO 0000 0000 0001 (ТОО «Посредник Демо»)",
+   "note": "Один счёт для приёма платежей по двум объектам",
+   "objects": [
+    "ЖК «Хрустальный город»",
+    "ЖК «Золотая осень»"
+   ]
+  }
+ ]
+}

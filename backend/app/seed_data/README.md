@@ -198,6 +198,47 @@ no history of them (OPEN_QUESTIONS 34). The story of the three control scenarios
 `python -m app.seed --replay-history` recomputes the replayed history of every object in the database (also the real
 ones), in the same way; the demo seed does it by itself for new demo objects.
 
+## `demo_activity.json`, `demo_vision.json`, `demo_flight_*.mp4` (only with `--demo`)
+
+The living demo around the objects above: what the integrations would have produced if every one of them were on.
+Nothing is collected from the internet. Read by `app/seed_activity.py` and `app/seed_vision.py`, loaded last, every piece
+idempotent on its own (a repeated run adds nothing). Same fictional-data rules (URLs `example.invalid`, phones
+`+7 700 000 ...`, `is_demo=true`).
+
+`demo_activity.json`:
+
+- `sources`: 19 `SourceAccount` of every platform (Telegram channels and a group, Instagram, TikTok, sites, krisha- and
+  OLX-like search pages, a forum), bound to an object, a developer or neither. Each has hand-written `posts` and a `feed`
+  that expands the text `pools` into dozens of publications over 1 to 110 days (origin `collector`). The pools hold risky
+  wordings that the dictionary matches, ordinary texts, Kazakh texts (the dictionary is Russian: only the model's
+  findings read them), OCR snippets and triage notes. A test checks that every risky template is matched and no ordinary
+  one is. The pipeline is reproduced: screenshots (synthetic, `seed_media.py`), OCR text after `[OCR]`, hypotheses of the
+  LLM (`llm_extraction`, `llm_status=done`, LLM hits that wait for a person), later versions of edited texts, posts found
+  removed, dictionary hits confirmed or rejected, triage states (`reviewed`, `deferred`, `irrelevant`). Publications that
+  staff would have confirmed are older than the analysis window, so no score changes; the recent ones wait in the
+  queue (`status=verification`) except those of a source bound to a red object or to the object with ordinary texts.
+- `citizen_reports`, `pools.citizen`: publications sent through the bot, created with `submit_citizen_report` (the officers
+  of the city are notified). `bot_complaints`: complaints through `submit_complaint`. `complaints` and `complaints_per_object`:
+  E-Otinish, manual and other complaints in every status, some verified, several collective (none is both verified and
+  open: R4 would move a score).
+- Older inspections with photos (two per object, before the one the object has), `registry_response` evidence for the
+  documents confirmed by the housing portal and the record of the last registry sync, websites, sales offices, advertising
+  accounts and one bank detail shared by two developers (graph edges).
+- `signals`: cards in every status, made with the functions of the signals module (so the audit trail and the notifications
+  are real), the three automatic drafts of the red objects included; `assignments`: open, done, cancelled, some overdue.
+  `seed_activity` scores the new objects itself before it builds cards.
+
+**Demo sources are never polled.** Every demo source has `is_watched=false`: the collectors (`collect.run_all`) and the
+Telegram userbot read only watched sources, so a demo source is not joined, not fetched and never gets a `last_error`.
+Watching one by hand in the UI would make the live collectors try its fictional address.
+
+`demo_vision.json`: seven SAQ VISION sessions (drone, camera, phone) with photos and two real MP4 videos
+(`demo_flight_crystal.mp4`, `demo_flight_riviera.mp4`, 10 s, about 100 KB each), frames, completed detector runs, raw
+detections, findings in every review state and the publications made from outdoor advertising (origin `vision`). The media
+is synthetic: `app/seed_media.py` draws a stylized site (crane, fence, billboard with the banner) with Pillow; the videos
+were assembled from such frames with ffmpeg (the command is in that module). Originals and previews are stored through
+`storage.put_vision_object`; no job is queued, the GPU worker is not needed.
+
 ## `pilot/ust-kamenogorsk-public-2026-10-13.json` (only with `--pilot`, optional)
 
 A snapshot of public data collected on 2026-10-13 (third-party data, not verified by SAQ): 26 residential complexes

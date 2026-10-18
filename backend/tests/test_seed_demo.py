@@ -688,6 +688,7 @@ def test_demo_loading_stores_the_replayed_history(db: Session, monkeypatch: pyte
         select(func.count()).select_from(ConstructionObject).where(ConstructionObject.is_demo.is_(True))
     )
     assert demo_objects == len(DEMO["objects"]) + len(NETWORK["objects"]) + 1
-    assert db.scalar(select(func.count()).select_from(RiskScore)) == demo_objects * SLICES
+    replayed = select(func.count()).select_from(RiskScore).where(RiskScore.trigger == ScoreTrigger.replay)
+    assert db.scalar(replayed) == demo_objects * SLICES
     history_ads = db.scalar(select(func.count()).select_from(AdPost).where(AdPost.external_id.like("demo-hist-%")))
     assert history_ads == sum(len(item.get("ads", [])) for item in HISTORY["objects"])
