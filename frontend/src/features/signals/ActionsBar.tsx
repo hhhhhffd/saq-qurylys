@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { IconFileTypePdf } from '@tabler/icons-react';
+import { useState, type ReactNode } from 'react';
+import { IconFileTypePdf, IconPackageExport } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { downloadFile } from '@/api/client';
 import { useCloseSignal } from '@/api/hooks/signals';
@@ -18,7 +18,17 @@ import { useApplySignal } from './useApplySignal';
 type Dialog = 'send' | 'return' | 'respond';
 
 /** Downloads a file with the busy state and the error toast (`downloadFile` is not a mutation, so the global toast does not cover it). */
-function DownloadButton({ path, filename, label }: { path: string; filename: string; label: string }) {
+function DownloadButton({
+  path,
+  filename,
+  label,
+  icon = <IconFileTypePdf />,
+}: {
+  path: string;
+  filename: string;
+  label: string;
+  icon?: ReactNode;
+}) {
   const { t: tc } = useTranslation();
   const [loading, setLoading] = useState(false);
 
@@ -41,7 +51,7 @@ function DownloadButton({ path, filename, label }: { path: string; filename: str
       className="h-auto min-h-11 max-w-full px-3 py-2 whitespace-normal"
       onClick={() => void download()}
     >
-      <IconFileTypePdf />
+      {icon}
       {label}
     </Button>
   );
@@ -131,6 +141,14 @@ export function ActionsBar({ detail, recipient, dirty, canSave }: Props) {
           </Button>
         )}
         <DownloadButton path={`/signals/${detail.id}/pdf`} filename={`${detail.number}.pdf`} label={t('detail.pdf')} />
+        {!isRecipient && (
+          <DownloadButton
+            path={`/signals/${detail.id}/package.zip`}
+            filename={`${detail.number}-materials.zip`}
+            label={t('detail.package')}
+            icon={<IconPackageExport />}
+          />
+        )}
         {detail.sent_pdf_evidence_id !== null && (
           <DownloadButton
             path={`/evidence/${detail.sent_pdf_evidence_id}/content`}
