@@ -45,6 +45,10 @@ Tests create a separate `saq_test` database, run the Alembic migrations in it an
 Every test runs in a rolled-back transaction. The Celery hook `app.events.object_changed` is disabled in tests
 (`EVENTS_ENABLED=false`).
 
+The object and signal registry XLSX exports are generated with the locked `openpyxl` dependency. They use the same
+list filters, role checks and territory scope as their corresponding API lists; each export is capped at 10,000
+rows and returns `413 too_many_export_rows` rather than silently truncating a larger result.
+
 ## Frontend
 
 ```bash

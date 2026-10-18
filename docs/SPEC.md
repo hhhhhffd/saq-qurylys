@@ -213,7 +213,8 @@ Auth
   `ObjectRow = {id, code, name, developer_name, score, zone, key_status, key_status_detail, district_name, lat, lon}`, сортировка по убыванию балла.
 
 Реестр
-- `GET /objects?zone=&district_id=&q=&limit=&offset=` → `{items:[ObjectRow], total}`
+- `GET /objects?zone=&district_id=&territory_id=&q=&limit=&offset=` → `{items:[ObjectRow], total}`
+- `GET /objects/export.xlsx?zone=&district_id=&territory_id=&q=` → XLSX реестра со всеми результатами тех же фильтров и территориальной области, без пагинации; максимум 10 000 строк, при превышении — `413 too_many_export_rows`. Риск-балл задаёт приоритет проверки, а не подтверждает нарушение; пустые сведения не означают подтверждённое отсутствие документа.
 - `POST /objects` · `PATCH /objects/{id}` · `GET /objects/{id}` → `ObjectDetail` (паспорт + `developer` + `documents` + `inspections` + `complaints` + `linked_entities` + `ads_7d_count` + `readiness_gap_pp` + `latest_score{score, zone, zone_reasons, breakdown, calculated_at}`)
 - `GET /objects/{id}/score-history` · `POST /objects/{id}/recalculate`
 - `POST /objects/import` (CSV, multipart) → `{created, updated, errors:[{row, message}]}`
@@ -242,6 +243,7 @@ Auth
 
 Сигнальные карточки
 - `GET /signals?status=&object_id=` → `{items:[SignalRow{id, number, object_id, object_name, zone, status, recipient, due_date, is_overdue, created_at}], total}`
+- `GET /signals/export.xlsx?status=&object_id=` → XLSX всех карточек, видимых тому же пользователю и области, что и список; максимум 10 000 строк, при превышении — `413 too_many_export_rows`. `Направлена` означает сохранённый `sent_at`, а не подтверждённую доставку.
 - `POST /signals` `{object_id}` (ручное формирование)
 - `GET /signals/{id}` → `SignalDetail` (+ `sections`, `audit`)
 - `PATCH /signals/{id}` `{sections?, recipient?, review_days?}` (только в `requires_confirmation|returned`)
