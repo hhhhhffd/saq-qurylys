@@ -34,7 +34,12 @@ test('opening the «Золотая осень» publication from the score shows
   const r2 = page
     .getByRole('listitem')
     .filter({ hasText: new RegExp(`^R2\\s*${t('enums:risk_factor.r2_money_offer')}`) });
-  await r2.getByRole('link', { name: /#\d+/ }).click();
+  await r2
+    .getByRole('listitem')
+    .filter({ hasText: /внесите депозит/i })
+    .getByRole('link', { name: /#\d+/ })
+    .first()
+    .click();
 
   await expect(page).toHaveURL(/\/ads\?ad=\d+&hit=\d+/);
   const pinned = page.getByRole('region', { name: t('ads:feed.pinned') });

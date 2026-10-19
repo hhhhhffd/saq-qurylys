@@ -48,7 +48,12 @@ test('rejecting the dictionary phrase takes R2 off the score (70 → 45) and con
     const r2 = page
       .getByRole('listitem')
       .filter({ hasText: new RegExp(`^R2\\s*${t('enums:risk_factor.r2_money_offer')}`) });
-    await r2.getByRole('link', { name: /#\d+/ }).click();
+    await r2
+      .getByRole('listitem')
+      .filter({ hasText: DICTIONARY_PHRASE })
+      .getByRole('link', { name: /#\d+/ })
+      .first()
+      .click();
     await expect(page).toHaveURL(/\/ads\?ad=\d+&hit=\d+/);
     const adUrl = page.url();
     const hitId = new URL(adUrl).searchParams.get('hit');

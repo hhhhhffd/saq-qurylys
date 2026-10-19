@@ -40,16 +40,16 @@ test.describe('registry officer', () => {
 
   test('has the registry sections but not the administration', async ({ page }) => {
     await page.goto('/');
-    await expect(page).toHaveURL(/\/map$/);
+    await expect(page).toHaveURL(/\/work$/);
 
     const nav = page.getByRole('navigation', { name: t('header.menu') });
-    for (const shown of ['map', 'objects', 'ads', 'graph', 'signals']) {
+    for (const shown of ['work', 'ads', 'objects', 'map', 'cards']) {
       await expect(nav.getByRole('link', { name: t(`nav.${shown}`) })).toBeVisible();
     }
     await expect(nav.getByRole('link', { name: t('nav.admin') })).toHaveCount(0);
 
     await page.goto('/admin');
-    await expect(page).toHaveURL(/\/map$/);
+    await expect(page).toHaveURL(/\/work$/);
   });
 });
 
