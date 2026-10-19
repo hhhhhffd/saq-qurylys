@@ -5,7 +5,6 @@ import { Link } from 'react-router';
 import { useVisionEnabled, useVisionSessions } from '@/api/hooks/vision';
 import type { ObjectDetail } from '@/api/types';
 import { Chip } from '@/components/Chip';
-import { DemoBadge } from '@/components/DemoBadge';
 import { Panel } from '@/components/Panel';
 import { ErrorBlock, LoadingBlock } from '@/components/QueryState';
 import { Button } from '@/components/ui/button';
@@ -40,7 +39,6 @@ function VisionSectionBody({ object }: { object: ObjectDetail }) {
               <Link to={`/vision/${session.id}`} className="font-semibold tabular-nums">
                 {f.dateTime(session.captured_at ?? session.created_at)}
               </Link>
-              {session.is_demo && <DemoBadge />}
               <Chip>{e('vision_source', session.source)}</Chip>
               <SessionStatusChips session={session} />
               <span className="ml-auto text-text-2 tabular-nums">

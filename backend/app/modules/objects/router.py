@@ -77,7 +77,6 @@ _EXPORT_LABELS: dict[str, dict[str, Any]] = {
             "Последний расчёт (UTC)",
             "Следующая проверка (UTC)",
             "Обновлено (UTC)",
-            "Демо-данные",
         ),
         "meta": ("Параметр", "Значение", "Сформировано (UTC)"),
         "whole_scope": "Вся территория",
@@ -139,7 +138,6 @@ _EXPORT_LABELS: dict[str, dict[str, Any]] = {
             "Соңғы есеп (UTC)",
             "Келесі тексеру (UTC)",
             "Жаңартылған (UTC)",
-            "Демо-деректер",
         ),
         "meta": ("Параметр", "Мәні", "Қалыптастырылған (UTC)"),
         "whole_scope": "Барлық аумақ",
@@ -346,7 +344,6 @@ def export_objects(
                 utc_datetime(obj.last_scored_at),
                 utc_datetime(obj.next_check_at),
                 utc_datetime(obj.updated_at),
-                labels["yes"] if obj.is_demo else labels["no"],
             )
         )
 
@@ -386,7 +383,7 @@ def export_objects(
             ExportColumn(title, width, "dd.mm.yyyy hh:mm" if "UTC" in title else None)
             for title, width in zip(
                 labels["columns"],
-                (10, 12, 16, 34, 34, 24, 22, 28, 16, 22, 28, 24, 24, 22, 14, 16, 22, 22, 22, 16),
+                (10, 12, 16, 34, 34, 24, 22, 28, 16, 22, 28, 24, 24, 22, 14, 16, 22, 22, 22),
                 strict=True,
             )
         ],

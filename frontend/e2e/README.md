@@ -97,4 +97,4 @@ The demo database is shared and the tests do not reseed it. Repeated runs are sa
   `demo_gask` a «card sent» notice per signal card (the bell lists them all until someone reads them).
 
 Nothing else is written: the other specs only read. They never accept or dismiss the source candidate
-`prime_estate_demo`, never change settings, and never send the automatic cards.
+`prime_estate_ust`, never change settings, and never send the automatic cards.

@@ -7,7 +7,6 @@ import type { SignalRow, SignalStatus } from '@/api/types';
 import { useAuth } from '@/auth/useAuth';
 import { dataColumns } from '@/components/dataColumns';
 import { DataTable } from '@/components/DataTable';
-import { DemoBadge } from '@/components/DemoBadge';
 import { ExportButton } from '@/components/ExportButton';
 import { ErrorBlock } from '@/components/QueryState';
 import { ObjectSelect } from '@/components/ObjectSelect';
@@ -80,7 +79,6 @@ export function SignalsPage() {
       cell: (info) => (
         <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
           {info.getValue()}
-          {info.row.original.is_demo && <DemoBadge />}
         </span>
       ),
     }),

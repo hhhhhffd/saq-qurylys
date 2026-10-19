@@ -44,7 +44,6 @@ REGISTER_LABELS = {
     "risk": "Зона / балл",
     "assessment": "Последняя оценка / статус",
     "no_score": "Без оценки",
-    "demo": "ДЕМО",
 }
 
 
@@ -195,7 +194,6 @@ def build_context(
                     if obj.key_status
                     else labels["empty"]
                 ),
-                "is_demo": obj.is_demo,
             }
         )
 

@@ -35,7 +35,6 @@
   .register-table th, .register-table td { padding: 1.3mm 1.5mm; }
   .register-name { font-weight: bold; }
   .register-sub { color: #555; font-size: 9.5pt; }
-  .register-demo { color: #8a4b00; font-weight: bold; }
   .note { font-size: 8.5pt; color: #555; margin-top: 8mm; }
 </style>
 </head>
@@ -91,7 +90,6 @@
     <td>
       <div class="register-name">
         {{ row.name }} <span class="register-sub">({{ row.code }})</span>
-        {% if row.is_demo %}<span class="register-demo">{{ register.demo }}</span>{% endif %}
       </div>
       <div class="register-sub">{{ row.address }}</div>
       <div class="register-sub">{{ row.location }}</div>

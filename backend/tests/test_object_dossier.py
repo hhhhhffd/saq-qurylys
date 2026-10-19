@@ -143,10 +143,10 @@ def test_publications_are_capped(db: Session, world: World) -> None:
     assert context["ads_capped"] == f"Показаны {dossier.MAX_ADS} из {dossier.MAX_ADS + 2} публикаций (самые новые)"
 
 
-def test_demo_object_keeps_the_watermark(db: Session, world: World) -> None:
+def test_demo_object_has_no_watermark(db: Session, world: World) -> None:
     obj = make_object(db, world.ust, "ЖК Демо", is_demo=True)
     _, texts = render(db, world, obj)
-    assert all("ДЕМОНСТРАЦИОННЫЕ ДАННЫЕ" in text for text in texts)
+    assert not any("ДЕМО" in text for text in texts)
 
 
 # ---------------------------------------------------------------- HTTP

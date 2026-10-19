@@ -6,7 +6,6 @@ import { useRecalculateObject } from '@/api/hooks/objects';
 import type { ObjectDetail } from '@/api/types';
 import { useAuth } from '@/auth/useAuth';
 import { Chip } from '@/components/Chip';
-import { DemoBadge } from '@/components/DemoBadge';
 import { Button } from '@/components/ui/button';
 import { ZoneBadge } from '@/components/Zone';
 import { ZoneDisclaimer } from '@/components/ZoneDisclaimer';
@@ -64,7 +63,6 @@ export function ObjectHeader({ object }: { object: ObjectDetail }) {
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <ZoneBadge zone={object.zone} score={object.score} size="md" />
         {object.key_status && <Chip>{keyStatusLabel(object.key_status, object.key_status_detail)}</Chip>}
-        {object.is_demo && <DemoBadge />}
         <span className="text-sm text-text-3">
           {object.last_scored_at
             ? t('card.header.lastScored', { value: dateTime(object.last_scored_at) })

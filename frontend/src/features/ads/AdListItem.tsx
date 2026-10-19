@@ -1,7 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import type { AdRow } from '@/api/types';
 import { Chip } from '@/components/Chip';
-import { DemoBadge } from '@/components/DemoBadge';
 import { useEnum } from '@/i18n/useEnum';
 import { useFormat } from '@/i18n/useFormat';
 import { cn } from '@/lib/utils';
@@ -46,7 +45,6 @@ export function AdListItem({ ad, selected, onSelect }: Props) {
           {ad.review_state !== 'unreviewed' && (
             <Chip tone={REVIEW_TONE[ad.review_state]}>{e('ad_review_state', ad.review_state)}</Chip>
           )}
-          {ad.is_demo && <DemoBadge />}
         </span>
       </button>
     </li>

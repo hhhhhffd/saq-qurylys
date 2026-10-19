@@ -612,7 +612,7 @@ def _seed_complaints(ctx: _Context) -> int:
                         object=name,
                         received_at=f"-{days}d",
                         source=source,
-                        external_id=f"EO-DEMO-G{n + 1:03d}" if source is ComplaintSource.eotinish else None,
+                        external_id=f"EO-G{n + 1:03d}" if source is ComplaintSource.eotinish else None,
                         summary=pool[n % len(pool)],
                         status=statuses[n % len(statuses)],
                         is_verified=n % 4 == 0,
@@ -710,7 +710,7 @@ def _seed_registry(ctx: _Context) -> int:
         if session.scalar(select(Evidence.id).where(Evidence.document_id == document.id)):
             continue
         raw = json.dumps(
-            {"demo": True, "number": document.number, "status": "Действует", "source": "registry.example.invalid"},
+            {"number": document.number, "status": "Действует", "source": "registry.example.invalid"},
             ensure_ascii=False,
         ).encode()
         storage.put_evidence(

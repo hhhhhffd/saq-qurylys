@@ -31,7 +31,6 @@ from tests.conftest import World, auth, make_object
 from tests.support_risk import NOW, add_ad, add_document, png_bytes
 
 DISCLAIMER = "Красная зона означает высокий риск и необходимость проверки, а не установленную виновность."
-DEMO = "ДЕМОНСТРАЦИОННЫЕ ДАННЫЕ"
 BOOKING = ((PhraseCategory.booking, DetectedBy.dictionary, None),)
 
 
@@ -236,7 +235,7 @@ def test_pdf_access_follows_the_card_rules(client: TestClient, db: Session, worl
 # ---------------------------------------------------------------- demo marker
 
 
-def test_demo_object_is_marked_on_every_page_and_keeps_the_disclaimer(db: Session, world: World, bucket: str) -> None:
+def test_demo_object_card_carries_no_demo_marker(db: Session, world: World, bucket: str) -> None:
     view, _ = build_card(db, world, ads=6, demo=True)
     html = pdf.render_html(pdf.build_context(db, view))
 
@@ -244,19 +243,10 @@ def test_demo_object_is_marked_on_every_page_and_keeps_the_disclaimer(db: Sessio
 
     assert len(texts) > 1
     for index, text in enumerate(texts, start=1):
-        assert text.count(DEMO) >= 1, f"page {index}: the banner of the running header"
+        assert "ДЕМО" not in text, f"page {index}"
         assert text.count(DISCLAIMER) == 2
-    assert "Вымышленные данные для демонстрации системы" in " ".join(texts)
-    # The diagonal watermark is a fixed box: it repeats on every page of the PDF.
-    assert html.count('class="demo-watermark"') == 1 and "position: fixed" in html
-    assert html.count('class="demo-tag"') == 6  # every publication of a demo object is marked too
-
-
-def test_real_object_has_no_demo_marker(db: Session, world: World, bucket: str) -> None:
-    view, _ = build_card(db, world, ads=1)
-    html = pdf.render_html(pdf.build_context(db, view))
-    assert DEMO not in " ".join(page_texts(pdf.render_document(html)))
-    assert "demo-watermark" not in html.split("</style>")[1]
+    assert "демонстрац" not in " ".join(texts)
+    assert "demo-" not in html
 
 
 def test_card_without_flags_says_that_no_check_is_needed(db: Session, world: World, bucket: str) -> None:

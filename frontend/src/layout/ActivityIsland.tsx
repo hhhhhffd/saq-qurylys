@@ -235,7 +235,6 @@ function useGeometry() {
 }
 
 export function ActivityIsland() {
-  const { t: tc } = useTranslation();
   const navigate = useNavigate();
   const present = usePresentation();
   const reduced = useReducedMotion();
@@ -338,12 +337,6 @@ export function ActivityIsland() {
                     <span className="truncate text-sm leading-tight font-semibold text-text">{content.title}</span>
                     <span className="flex min-w-0 items-center gap-1.5 text-xs leading-snug text-text-2">
                       <span className="truncate">{content.detail}</span>
-                      {/* Stays whole when a long name is cut. */}
-                      {shown.is_demo === true && (
-                        <span className="flex-none rounded-sm border border-border-strong px-1 text-3xs font-semibold tracking-wider uppercase">
-                          {tc('demo.badge')}
-                        </span>
-                      )}
                     </span>
                   </span>
                   {shown.kind === 'score_changed' && <ScoreShift event={shown} instant={reduced} />}

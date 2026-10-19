@@ -358,7 +358,7 @@ def red_demo_object(db: Session, world: World) -> int:
     return obj.id
 
 
-def test_facts_answer_lists_registry_facts_and_marks_demo_data(db: Session, world: World) -> None:
+def test_facts_answer_lists_registry_facts_without_a_demo_marker(db: Session, world: World) -> None:
     facts = service.object_facts(db, world.ust.id, red_demo_object(db, world))
     assert facts is not None
 
@@ -371,7 +371,7 @@ def test_facts_answer_lists_registry_facts_and_marks_demo_data(db: Session, worl
     assert "Разрешение МИО на привлечение средств дольщиков: на проверке" in text
     assert "Не вносите деньги, пока у ЖК нет подтверждённой гарантии АО «КЖК» или разрешения МИО" in text
     assert "homeportal.kz" in text
-    assert text.endswith("(демонстрационные данные)")
+    assert "демонстрационные" not in text
 
 
 @pytest.mark.parametrize(
@@ -388,7 +388,7 @@ def test_facts_answer_never_reveals_the_assessment(db: Session, world: World, la
     text = render_facts(facts, lang).lower()
 
     assert [word for word in forbidden if word in text] == []
-    assert "демонстрациялық" in text if lang == "kk" else "демонстрационные" in text
+    assert "демонстрациялық" not in text and "демонстрационные" not in text
 
 
 def test_facts_of_an_object_without_records_say_so(db: Session, world: World) -> None:

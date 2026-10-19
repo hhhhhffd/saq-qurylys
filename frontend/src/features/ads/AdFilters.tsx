@@ -7,7 +7,7 @@ import { TextInput } from '@/components/form/TextInput';
 import { ObjectSelect } from '@/components/ObjectSelect';
 import { Button } from '@/components/ui/button';
 import { useEnumOptions } from '@/i18n/useEnum';
-import { AD_REVIEW_STATES, AD_STATUSES, PLATFORMS, parseAdStatus, parseReviewState, parseDemo, parsePlatform } from './constants';
+import { AD_REVIEW_STATES, AD_STATUSES, PLATFORMS, parseAdStatus, parseReviewState, parsePlatform } from './constants';
 
 const SEARCH_DEBOUNCE_MS = 300;
 
@@ -16,8 +16,6 @@ export interface AdFilterValues {
   objectId: number | null;
   status: AdStatus | null;
   reviewState: AdReviewState | null;
-  /** true = demo only, false = without demo, null = all */
-  demo: boolean | null;
   q: string;
 }
 
@@ -89,25 +87,6 @@ export function AdFilters({ values, onChange, onReset, canReset }: Props) {
       <Button variant="secondary" className="justify-self-start" disabled={!canReset} onClick={onReset}>
         {t('reset', { ns: 'common' })}
       </Button>
-      <details className="sm:col-span-2 xl:col-span-6">
-        <summary className="inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-text-2 hover:text-text max-sm:min-h-11">
-          {t('filters.advanced')}
-          {values.demo !== null && <span className="text-xs text-text-3">{t('filters.demoApplied')}</span>}
-        </summary>
-        <div className="mt-3 max-w-sm">
-          <SelectInput
-            label={t('filters.demo')}
-            placeholder={t('filters.demoAll')}
-            data={[
-              { value: 'true', label: t('filters.demoOnly') },
-              { value: 'false', label: t('filters.demoNone') },
-            ]}
-            value={values.demo === null ? null : String(values.demo)}
-            onChange={(value) => onChange({ demo: parseDemo(value) })}
-            clearable
-          />
-        </div>
-      </details>
     </div>
   );
 }

@@ -34,10 +34,10 @@ test.describe('link graph', () => {
     await expect(finding).toHaveAttribute('aria-pressed', 'false');
   });
 
-  test('lists the candidate source «prime_estate_demo» without accepting or dismissing it', async ({ page }) => {
+  test('lists the candidate source «prime_estate_ust» without accepting or dismissing it', async ({ page }) => {
     await expect(page.getByRole('heading', { level: 3, name: t('graph:suggestions.title') })).toBeVisible();
     await expect(
-      page.getByRole('link', { name: t('graph:suggestions.openProfile', { handle: 'prime_estate_demo' }) }),
+      page.getByRole('link', { name: t('graph:suggestions.openProfile', { handle: 'prime_estate_ust' }) }),
     ).toBeVisible();
     await expect(page.getByRole('button', { name: t('graph:suggestions.accept') })).toBeVisible();
     await expect(page.getByRole('button', { name: t('graph:suggestions.dismiss') })).toBeVisible();

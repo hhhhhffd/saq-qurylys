@@ -6,7 +6,6 @@ import { useVisionSessions } from '@/api/hooks/vision';
 import type { VisionSessionListItem } from '@/api/types';
 import { dataColumns } from '@/components/dataColumns';
 import { DataTable } from '@/components/DataTable';
-import { DemoBadge } from '@/components/DemoBadge';
 import { SelectInput } from '@/components/form/SelectInput';
 import { ErrorBlock } from '@/components/QueryState';
 import { PageHeader } from '@/components/PageHeader';
@@ -55,7 +54,6 @@ export function VisionPage() {
             <Link to={`/vision/${session.id}`} className="whitespace-nowrap tabular-nums" onClick={(event) => event.stopPropagation()}>
               {f.dateTime(session.captured_at ?? session.created_at)}
             </Link>
-            {session.is_demo && <DemoBadge />}
           </span>
         );
       },

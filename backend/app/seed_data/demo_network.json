@@ -2,7 +2,7 @@
   "developers": [
     {
       "bin": "992140000101",
-      "name": "ТОО «Лиман Девелопмент Демо»",
+      "name": "ТОО «Лиман Девелопмент»",
       "director": "Беков Б. Б.",
       "founders": ["Беков Б. Б."],
       "authorized_company": null,
@@ -10,7 +10,7 @@
     },
     {
       "bin": "992340000102",
-      "name": "ТОО «Вектор Групп Демо»",
+      "name": "ТОО «Вектор Групп»",
       "director": "Сеитова С. С.",
       "founders": ["Сеитова С. С.", "Мамин М. М."],
       "authorized_company": null,
@@ -18,7 +18,7 @@
     },
     {
       "bin": "992540000103",
-      "name": "ТОО «Атлант Инвест Демо»",
+      "name": "ТОО «Атлант Инвест»",
       "director": "Дюсенов Д. Д.",
       "founders": ["Дюсенов Д. Д."],
       "authorized_company": null,
@@ -73,26 +73,26 @@
       ],
       "linked_entities": [
         {"kind": "phone", "value": "+77000002001", "note": "Офис продаж"},
-        {"kind": "ad_account", "value": "https://instagram.com/prime_estate_demo", "note": "Реклама ведётся из этого аккаунта"}
+        {"kind": "ad_account", "value": "https://instagram.com/prime_estate_ust", "note": "Реклама ведётся из этого аккаунта"}
       ],
       "ads": [
         {
           "platform": "instagram",
-          "url": "https://example.invalid/instagram/prime_estate_demo/p21",
-          "external_id": "demo-prime_estate_demo-p21",
-          "author": "prime_estate_demo",
+          "url": "https://example.invalid/instagram/prime_estate_ust/p21",
+          "external_id": "demo-prime_estate_ust-p21",
+          "author": "prime_estate_ust",
           "published_at": "-2d",
-          "text": "ЖК «Ривьера Парк»: цена, как на старте! Внесите депозит 100 000 ₸ — и стоимость квартиры фиксируется. Запись: +7 700 000 20 01. Мы в Instagram: https://instagram.com/prime_estate_demo",
+          "text": "ЖК «Ривьера Парк»: цена, как на старте! Внесите депозит 100 000 ₸ — и стоимость квартиры фиксируется. Запись: +7 700 000 20 01. Мы в Instagram: https://instagram.com/prime_estate_ust",
           "phones": ["+7 700 000 20 01"],
           "is_outdoor": false
         },
         {
           "platform": "telegram",
-          "url": "https://example.invalid/telegram/prime_estate_demo/22",
-          "external_id": "demo-prime_estate_demo-22",
-          "author": "prime_estate_demo",
+          "url": "https://example.invalid/telegram/prime_estate_ust/22",
+          "external_id": "demo-prime_estate_ust-22",
+          "author": "prime_estate_ust",
           "published_at": "-7d",
-          "text": "Ривьера Парк у воды: остались последние квартиры с видом на реку. Звоните: +7 700 000 20 01. Все новости: https://instagram.com/prime_estate_demo",
+          "text": "Ривьера Парк у воды: остались последние квартиры с видом на реку. Звоните: +7 700 000 20 01. Все новости: https://instagram.com/prime_estate_ust",
           "phones": ["+7 700 000 20 01"],
           "is_outdoor": false
         }
@@ -135,16 +135,16 @@
       ],
       "linked_entities": [
         {"kind": "phone", "value": "+77000002001", "note": "Офис продаж"},
-        {"kind": "ad_account", "value": "https://instagram.com/prime_estate_demo", "note": "Реклама ведётся из этого аккаунта"}
+        {"kind": "ad_account", "value": "https://instagram.com/prime_estate_ust", "note": "Реклама ведётся из этого аккаунта"}
       ],
       "ads": [
         {
           "platform": "telegram",
-          "url": "https://example.invalid/telegram/prime_estate_demo/23",
-          "external_id": "demo-prime_estate_demo-23",
-          "author": "prime_estate_demo",
+          "url": "https://example.invalid/telegram/prime_estate_ust/23",
+          "external_id": "demo-prime_estate_ust-23",
+          "author": "prime_estate_ust",
           "published_at": "-4d",
-          "text": "Меридиан Сити — рассрочка от застройщика на 36 месяцев, первый взнос от 20%. Покажем квартиры и условия: +7 700 000 20 01. Мы в Instagram: https://instagram.com/prime_estate_demo",
+          "text": "Меридиан Сити — рассрочка от застройщика на 36 месяцев, первый взнос от 20%. Покажем квартиры и условия: +7 700 000 20 01. Мы в Instagram: https://instagram.com/prime_estate_ust",
           "phones": ["+7 700 000 20 01"],
           "is_outdoor": false
         }
@@ -195,7 +195,7 @@
           "external_id": "demo-malahitovy-sad-page",
           "author": "malahitovy-sad",
           "published_at": "-5d",
-          "text": "ЖК «Сосновый бор»: тихий район, закрытый двор, ипотека Отбасы банка. Консультация: +7 700 000 20 01. Мы в Instagram: https://instagram.com/prime_estate_demo",
+          "text": "ЖК «Сосновый бор»: тихий район, закрытый двор, ипотека Отбасы банка. Консультация: +7 700 000 20 01. Мы в Instagram: https://instagram.com/prime_estate_ust",
           "phones": ["+7 700 000 20 01"],
           "is_outdoor": false
         }

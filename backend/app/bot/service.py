@@ -95,7 +95,6 @@ class ObjectFacts:
     developer_bin: str | None
     stage: ConstructionStatus
     checks: list[LegalCheck]
-    is_demo: bool
 
 
 # ---------------------------------------------------------------- cities and search
@@ -321,5 +320,4 @@ def object_facts(session: Session, territory_id: int, object_id: int) -> ObjectF
         developer_bin=developer.bin if developer else None,
         stage=obj.construction_status,
         checks=checks,
-        is_demo=obj.is_demo,
     )

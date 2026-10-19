@@ -2,7 +2,7 @@
   "developers": [
     {
       "bin": "992740000104",
-      "name": "ТОО «Малахит Девелопмент Демо»",
+      "name": "ТОО «Малахит Девелопмент»",
       "director": "Каменев К. К.",
       "founders": ["Каменев К. К."],
       "authorized_company": null,
@@ -54,9 +54,9 @@
     "ads": [
       {
         "platform": "telegram",
-        "url": "https://example.invalid/telegram/malahit_demo/17",
-        "external_id": "demo-malahit_demo-17",
-        "author": "malahit_demo",
+        "url": "https://example.invalid/telegram/malahit/17",
+        "external_id": "demo-malahit-17",
+        "author": "malahit",
         "published_at": "-4d",
         "text": "Открыли продажи в ЖК «Малахит»!\n\nБронь квартиры за 10% от стоимости, остальное — после подписания договора.\n\nОтдел продаж: +7 700 000 91 01",
         "phones": ["+7 700 000 91 01"],

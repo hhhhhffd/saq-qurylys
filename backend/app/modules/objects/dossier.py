@@ -221,7 +221,6 @@ def build_context(session: Session, obj: ConstructionObject, user: AppUser, loca
     return {
         "t": labels,
         "d": d,
-        "demo": obj.is_demo,
         "obj_code": obj.code,
         "obj_name": obj.name,
         "address": obj.address or empty,

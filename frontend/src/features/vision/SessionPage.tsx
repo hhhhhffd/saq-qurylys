@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router';
 import { useMarkSessionReviewed, useUpdateVisionSession, useVisionConfig, useVisionFrames, useVisionSession } from '@/api/hooks/vision';
 import type { VisionConfig, VisionFinding, VisionSessionDetail } from '@/api/types';
-import { DemoBadge } from '@/components/DemoBadge';
 import { ObjectSelect } from '@/components/ObjectSelect';
 import { PageHeader } from '@/components/PageHeader';
 import { Panel } from '@/components/Panel';
@@ -110,7 +109,6 @@ function SessionView({ session, config }: { session: VisionSessionDetail; config
         title={
           <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
             {t('session.title', { id: session.id })}
-            {session.is_demo && <DemoBadge />}
           </span>
         }
         subtitle={<SessionStatusChips session={session} />}
