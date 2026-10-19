@@ -70,7 +70,7 @@ export function NotificationsBell() {
           {data.length > 0 && (
             <Badge
               variant="default"
-              className="pointer-events-none absolute -top-1 -right-1 h-4 min-w-4 rounded-full bg-primary px-1 text-primary-foreground tabular-nums"
+              className="pointer-events-none absolute -top-1 -right-1 h-4 min-w-4 rounded-full bg-text px-1 text-surface tabular-nums"
             >
               {data.length > 99 ? '99+' : data.length}
             </Badge>

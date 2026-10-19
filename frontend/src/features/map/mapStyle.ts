@@ -12,6 +12,8 @@ export const MAP_CONTROLS_CLASS = [
 /** Used when the style above cannot be loaded (offline, blocked host): plain OpenStreetMap raster tiles. */
 export const FALLBACK_STYLE: StyleSpecification = {
   version: 8,
+  // Glyphs for the score digits on the markers.
+  glyphs: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
   sources: {
     osm: {
       type: 'raster',

@@ -40,6 +40,7 @@ const DISTRICTS_LAYER = 'districts-line';
 const HIGHLIGHT_LAYER = 'objects-highlight';
 const CIRCLE_LAYER = 'objects-circle';
 /** Transparent and larger than the visible dot, so small markers are easy to hit with a finger. */
+const SCORE_LAYER = 'objects-score';
 const HIT_LAYER = 'objects-hit';
 const NO_OBJECT = -1;
 const FIT_ANIMATION_MS = 600;
@@ -114,11 +115,29 @@ function addObjectLayers(map: MapLibreMap) {
     source: OBJECTS_SOURCE,
     layout: { 'circle-sort-key': ['get', 'rank'] },
     paint: {
-      'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 3.5, 8, 5.5, 12, 8, 16, 11],
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 3, 4, 6, 9, 8, 13, 16, 15],
       // The colors are set per marker (paintMarkers), so a change of zone can fade.
       'circle-color': ['get', 'color'],
-      'circle-stroke-color': readToken('--bg'),
+      'circle-stroke-color': '#ffffff',
       'circle-stroke-width': 1.5,
+    },
+  });
+  // The risk score inside the marker. Yellow is too light for white digits, so it gets dark ink.
+  map.addLayer({
+    id: SCORE_LAYER,
+    type: 'symbol',
+    source: OBJECTS_SOURCE,
+    minzoom: 6,
+    layout: {
+      'text-field': ['case', ['==', ['typeof', ['get', 'score']], 'number'], ['to-string', ['round', ['get', 'score']]], '—'],
+      'text-font': ['Noto Sans Bold'],
+      'text-size': ['interpolate', ['linear'], ['zoom'], 6, 9, 8, 12, 16, 13],
+      'text-allow-overlap': true,
+      'text-ignore-placement': true,
+      'symbol-sort-key': ['get', 'rank'],
+    },
+    paint: {
+      'text-color': ['match', ['get', 'zone'], 'yellow', readToken('--text'), '#ffffff'],
     },
   });
   map.addLayer({
@@ -126,7 +145,7 @@ function addObjectLayers(map: MapLibreMap) {
     type: 'circle',
     source: OBJECTS_SOURCE,
     layout: { 'circle-sort-key': ['get', 'rank'] },
-    paint: { 'circle-radius': 14, 'circle-opacity': 0 },
+    paint: { 'circle-radius': 16, 'circle-opacity': 0 },
   });
 }
 
