@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { useElementSize } from '@/lib/hooks';
-import { IconArrowsMaximize } from '@tabler/icons-react';
+import { IconArrowsMaximize, IconMinus, IconPlus } from '@tabler/icons-react';
 import ForceGraph2D, { type ForceGraphMethods, type LinkObject, type NodeObject } from 'react-force-graph-2d';
 import { useTranslation } from 'react-i18next';
 import type { GraphEdge, GraphNode, GraphNodeType, LinkGraph } from '@/api/types';
@@ -15,7 +15,7 @@ type CanvasNode = NodeObject<GraphNode>;
 type CanvasLink = LinkObject<GraphNode, EdgeData>;
 
 /** Half-size of a node in graph units. Developers and objects are the large ones. */
-const NODE_SIZE: Record<GraphNodeType, number> = { developer: 8, object: 8, phone: 6, account: 6, ad: 3.5 };
+const NODE_SIZE: Record<GraphNodeType, number> = { developer: 10, object: 10, phone: 7, account: 7, ad: 4 };
 /** Zoom level from which the label of a node is always drawn. */
 const LABEL_SCALE: Record<GraphNodeType, number> = { developer: 1.4, object: 1.4, phone: 1.8, account: 1.8, ad: 3 };
 const DIMMED_ALPHA = 0.1;
@@ -24,6 +24,10 @@ const LABEL_MAX_CHARS = 42;
 const FIT_PADDING = 48;
 const FOCUS_PADDING = 90;
 const FIT_MS = 450;
+const ZOOM_STEP = 1.5;
+const ZOOM_MS = 200;
+const MIN_ZOOM = 0.2;
+const MAX_ZOOM = 8;
 const COOLDOWN_MS = 6000;
 const COOLDOWN_REDUCED_MS = 1200;
 const WARMUP_REDUCED_TICKS = 120;
@@ -234,10 +238,19 @@ export function LinkGraphCanvas({ graph, highlight, seedId, onNodeClick, onBackg
     [highlight],
   );
 
+  const zoomBy = useCallback(
+    (factor: number) => {
+      const fg = fgRef.current;
+      if (!fg) return;
+      fg.zoom(Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, fg.zoom() * factor)), reducedMotion ? 0 : ZOOM_MS);
+    },
+    [reducedMotion],
+  );
+
   return (
     <div
       ref={ref}
-      className="relative h-[clamp(340px,58dvh,600px)] overflow-hidden bg-surface-sunken lg:h-[min(72dvh,680px)]"
+      className="relative h-full min-h-0 overflow-hidden bg-surface-sunken"
       role="group"
       aria-label={t('canvas.label', { nodes: graph.nodes.length, edges: graph.edges.length })}
     >
@@ -258,8 +271,8 @@ export function LinkGraphCanvas({ graph, highlight, seedId, onNodeClick, onBackg
           linkLineDash={(link: CanvasLink) => (AD_EDGES.has(link.type) ? [3, 3] : null)}
           // Highlighting changes only what the callbacks return, so the canvas has to keep redrawing.
           autoPauseRedraw={false}
-          minZoom={0.2}
-          maxZoom={8}
+          minZoom={MIN_ZOOM}
+          maxZoom={MAX_ZOOM}
           cooldownTime={reducedMotion ? COOLDOWN_REDUCED_MS : COOLDOWN_MS}
           warmupTicks={reducedMotion ? WARMUP_REDUCED_TICKS : 0}
           onEngineStop={handleEngineStop}
@@ -274,16 +287,31 @@ export function LinkGraphCanvas({ graph, highlight, seedId, onNodeClick, onBackg
           onBackgroundClick={onBackgroundClick}
         />
       )}
-      <Button
-        className="absolute top-2.5 right-2.5 bg-surface-glass backdrop-blur-sm"
-        variant="secondary"
-        size="icon"
-        aria-label={t('canvas.fit')}
-        title={t('canvas.fit')}
-        onClick={() => fgRef.current?.zoomToFit(reducedMotion ? 0 : FIT_MS, FIT_PADDING)}
-      >
-        <IconArrowsMaximize />
-      </Button>
+      <div className="absolute top-2.5 right-2.5 flex flex-col overflow-hidden rounded border border-border-strong bg-surface-raised">
+        <Button variant="ghost" size="icon" aria-label={t('canvas.zoomIn')} title={t('canvas.zoomIn')} onClick={() => zoomBy(ZOOM_STEP)}>
+          <IconPlus />
+        </Button>
+        <Button
+          className="border-t border-border"
+          variant="ghost"
+          size="icon"
+          aria-label={t('canvas.zoomOut')}
+          title={t('canvas.zoomOut')}
+          onClick={() => zoomBy(1 / ZOOM_STEP)}
+        >
+          <IconMinus />
+        </Button>
+        <Button
+          className="border-t border-border"
+          variant="ghost"
+          size="icon"
+          aria-label={t('canvas.fit')}
+          title={t('canvas.fit')}
+          onClick={() => fgRef.current?.zoomToFit(reducedMotion ? 0 : FIT_MS, FIT_PADDING)}
+        >
+          <IconArrowsMaximize />
+        </Button>
+      </div>
     </div>
   );
 }
