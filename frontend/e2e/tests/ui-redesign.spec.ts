@@ -381,6 +381,8 @@ async function installMocks(page: Page, role: Role, overrides: Partial<MockState
 
     if (method === 'GET' && path === '/auth/me') return json(route, makeUser(state.role));
     if (method === 'GET' && path === '/notifications') return json(route, { items: [] });
+    if (method === 'GET' && /^\/objects\/\d+\/assignments$/.test(path)) return json(route, []);
+    if (method === 'GET' && path === '/assignments') return json(route, { items: [], total: 0 });
     if (method === 'GET' && path === '/activity') {
       return json(route, { items: state.activityEvents ?? [], cursor: 'mock-cursor', reset: false });
     }
