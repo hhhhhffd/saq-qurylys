@@ -8,14 +8,18 @@ import { choose } from '../support/ui';
 test.use({ storageState: authFile('mio') });
 
 const articles = (page: import('@playwright/test').Page) => page.getByRole('article');
+// The master list: one compact row per publication; the open one is the only article.
+const rows = (page: import('@playwright/test').Page) =>
+  page.getByRole('list', { name: t('ads:list.title') }).getByRole('listitem');
 
 test('the feed renders publications with their phrases and a pager', async ({ page }) => {
   await page.goto('/ads');
   await expect(page.getByRole('heading', { level: 1, name: t('ads:title') })).toBeVisible();
 
-  await expect(articles(page).first()).toBeVisible();
-  expect(await articles(page).count()).toBeGreaterThan(1);
-  // The feed starts with the heaviest phrases: the first card has marked phrases.
+  await expect(rows(page).first()).toBeVisible();
+  expect(await rows(page).count()).toBeGreaterThan(1);
+  // The first publication is open beside the list; the feed starts with the heaviest phrases.
+  await expect(articles(page)).toHaveCount(1);
   await expect(articles(page).first().getByTestId('phrase-mark').first()).toBeVisible();
   await expect(page.getByRole('navigation', { name: t('ads:feed.pagination') })).toBeVisible();
   await expect(page.getByRole('button', { name: t('ads:actions.manual') })).toBeVisible();
@@ -53,6 +57,8 @@ test('a removed publication shows its history with the time it stayed online', a
 
   const card = articles(page).filter({ hasText: OBJECT.malachite });
   await expect(card).toHaveCount(1);
+  // The history sits in a collapsed block of the card.
+  await card.getByText(t('ads:versions.details'), { exact: true }).click();
   const history = card.getByRole('region', { name: t('ads:versions.title') });
   await expect(history).toBeVisible();
 
@@ -70,22 +76,22 @@ test('the platform filter narrows the feed and can be reset', async ({ page }) =
   // Content, not counts: both pages are capped by the page size, and the runs keep adding publications.
   const isTelegram = (text: string) => text.includes(telegram);
   await page.goto('/ads');
-  await expect(articles(page).first()).toBeVisible();
-  const all = await articles(page).count();
-  expect((await articles(page).allInnerTexts()).some((text) => !isTelegram(text))).toBe(true);
+  await expect(rows(page).first()).toBeVisible();
+  const all = await rows(page).count();
+  expect((await rows(page).allInnerTexts()).some((text) => !isTelegram(text))).toBe(true);
 
   await choose(page, page.getByRole('combobox', { name: t('ads:filters.platform'), exact: true }), telegram);
 
   await expect(page).toHaveURL(/platform=telegram/);
   await expect
     .poll(async () => {
-      const texts = await articles(page).allInnerTexts();
+      const texts = await rows(page).allInnerTexts();
       return texts.length > 0 && texts.every(isTelegram);
     })
     .toBe(true);
 
   await page.getByRole('button', { name: t('reset') }).click();
   await expect(page).not.toHaveURL(/platform=/);
-  await expect.poll(() => articles(page).count()).toBe(all);
-  await expect.poll(async () => (await articles(page).allInnerTexts()).some((text) => !isTelegram(text))).toBe(true);
+  await expect.poll(() => rows(page).count()).toBe(all);
+  await expect.poll(async () => (await rows(page).allInnerTexts()).some((text) => !isTelegram(text))).toBe(true);
 });
