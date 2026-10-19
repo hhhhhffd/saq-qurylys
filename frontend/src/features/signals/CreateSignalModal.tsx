@@ -14,7 +14,6 @@ interface Props {
 
 export function CreateSignalModal({ opened, onClose }: Props) {
   const { t } = useTranslation('signals');
-  const { t: tc } = useTranslation();
   const navigate = useNavigate();
   const create = useCreateSignal();
   const apply = useApplySignal();
@@ -45,9 +44,6 @@ export function CreateSignalModal({ opened, onClose }: Props) {
         </DialogHeader>
         <ObjectSelect label={t('create.object')} placeholder={t('create.objectPlaceholder')} value={objectId} onChange={setObjectId} />
         <DialogFooter>
-          <Button variant="secondary" onClick={close}>
-            {tc('cancel')}
-          </Button>
           <Button onClick={submit} disabled={objectId === null} loading={create.isPending}>
             {t('create.submit')}
           </Button>

@@ -87,19 +87,14 @@ export function CoordinateFields<T extends FieldValues & Record<'lat' | 'lon', C
 
 interface FormFooterProps {
   loading: boolean;
-  onCancel: () => void;
   submitLabel: string;
   submitDisabled?: boolean;
 }
 
-/** Cancel and submit, aligned right. The submit button belongs to the surrounding `<form>`. */
-export function FormFooter({ loading, onCancel, submitLabel, submitDisabled }: FormFooterProps) {
-  const { t } = useTranslation();
+/** Submit, aligned right (the dialog's × closes it). The submit button belongs to the surrounding `<form>`. */
+export function FormFooter({ loading, submitLabel, submitDisabled }: FormFooterProps) {
   return (
     <DialogFooter className="mt-3">
-      <Button type="button" variant="secondary" onClick={onCancel} disabled={loading}>
-        {t('cancel')}
-      </Button>
       <Button type="submit" loading={loading} disabled={submitDisabled}>
         {submitLabel}
       </Button>

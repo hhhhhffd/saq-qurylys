@@ -215,7 +215,7 @@ function InspectionForm({ objectId, onClose }: Omit<InspectionFormModalProps, 'o
           )}
         </div>
       </FormGrid>
-      <FormFooter loading={createInspection.isPending} onCancel={onClose} submitLabel={tc('create')} />
+      <FormFooter loading={createInspection.isPending} submitLabel={tc('create')} />
     </form>
   );
 }

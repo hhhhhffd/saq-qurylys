@@ -18,7 +18,6 @@ interface Props {
 /** The only way data leaves the system, so the dialog spells out where it goes and that it cannot be undone. */
 export function ConfirmSendModal({ opened, onClose, detail, recipient }: Props) {
   const { t } = useTranslation('signals');
-  const { t: tc } = useTranslation();
   const e = useEnum();
   const send = useConfirmAndSend();
   const apply = useApplySignal();
@@ -52,9 +51,6 @@ export function ConfirmSendModal({ opened, onClose, detail, recipient }: Props) 
           <li>{t('confirmSend.email')}</li>
         </ul>
         <DialogFooter>
-          <Button className="min-h-11" variant="secondary" onClick={onClose} disabled={send.isPending}>
-            {tc('cancel')}
-          </Button>
           <Button className="min-h-11" onClick={submit} loading={send.isPending}>
             {t('actions.confirmSend')}
           </Button>

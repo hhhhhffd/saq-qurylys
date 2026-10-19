@@ -145,9 +145,6 @@ export function SourceFormModal({ onClose }: { onClose: () => void }) {
             </>
           )}
           <DialogFooter>
-            <Button type="button" variant="secondary" onClick={onClose}>
-              {tc('cancel')}
-            </Button>
             <Button type="submit" className="max-sm:min-h-11" loading={create.isPending}>
               {tc('save')}
             </Button>

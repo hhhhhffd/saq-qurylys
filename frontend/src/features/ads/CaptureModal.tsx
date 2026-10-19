@@ -113,9 +113,6 @@ export function CaptureModal({ open, onClose, onCreated }: Props) {
             )}
           />
           <DialogFooter>
-            <Button type="button" variant="secondary" onClick={close}>
-              {tc('cancel')}
-            </Button>
             <Button type="submit" className="max-sm:min-h-11" loading={captureAd.isPending}>
               {t('capture.submit')}
             </Button>
