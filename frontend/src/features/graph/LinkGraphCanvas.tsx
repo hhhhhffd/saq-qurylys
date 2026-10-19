@@ -28,9 +28,9 @@ const ZOOM_STEP = 1.5;
 const ZOOM_MS = 200;
 const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 8;
-const COOLDOWN_MS = 6000;
-const COOLDOWN_REDUCED_MS = 1200;
-const WARMUP_REDUCED_TICKS = 120;
+// The layout is computed before the first frame and then frozen: a settling force layout looks like the graph
+// spins and drifts, which only distracts from reading it.
+const WARMUP_TICKS = 300;
 const AD_EDGES = new Set<EdgeData['type']>(['ad_object', 'ad_phone', 'ad_account']);
 
 function endId(end: CanvasLink['source']): string {
@@ -167,7 +167,7 @@ export function LinkGraphCanvas({ graph, highlight, seedId, onNodeClick, onBackg
   }, [highlight, reducedMotion]);
 
   const handleEngineStop = useCallback(() => {
-    // Also fires after a node is dragged; the view is only fitted once per set of data.
+    // The view is fitted once per set of data.
     if (fitted.current) return;
     fitted.current = true;
     fgRef.current?.zoomToFit(reducedMotion ? 0 : FIT_MS, FIT_PADDING);
@@ -273,8 +273,10 @@ export function LinkGraphCanvas({ graph, highlight, seedId, onNodeClick, onBackg
           autoPauseRedraw={false}
           minZoom={MIN_ZOOM}
           maxZoom={MAX_ZOOM}
-          cooldownTime={reducedMotion ? COOLDOWN_REDUCED_MS : COOLDOWN_MS}
-          warmupTicks={reducedMotion ? WARMUP_REDUCED_TICKS : 0}
+          warmupTicks={WARMUP_TICKS}
+          cooldownTicks={0}
+          // Dragging moves the whole view, not single nodes, so the picture stays as laid out.
+          enableNodeDrag={false}
           onEngineStop={handleEngineStop}
           onRenderFramePre={() => {
             labels.current = [];
