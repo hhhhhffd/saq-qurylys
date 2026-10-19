@@ -5,6 +5,7 @@ import { DemoBadge } from '@/components/DemoBadge';
 import { useEnum } from '@/i18n/useEnum';
 import { useFormat } from '@/i18n/useFormat';
 import { cn } from '@/lib/utils';
+import { REVIEW_TONE } from './reviewTone';
 
 interface Props {
   ad: AdRow;
@@ -42,6 +43,10 @@ export function AdListItem({ ad, selected, onSelect }: Props) {
           <Chip tone={ad.status === 'captured' ? 'green' : ad.status === 'verification' ? 'yellow' : 'neutral'}>
             {ad.status === 'verification' ? t('card.linkNeedsReview') : e('ad_status', ad.status)}
           </Chip>
+          {/* Unreviewed is the default state of the queue, so only a taken decision earns a chip. */}
+          {ad.review_state !== 'unreviewed' && (
+            <Chip tone={REVIEW_TONE[ad.review_state]}>{e('ad_review_state', ad.review_state)}</Chip>
+          )}
           {ad.is_demo && <DemoBadge />}
         </span>
       </button>
