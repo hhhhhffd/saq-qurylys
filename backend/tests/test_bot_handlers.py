@@ -407,7 +407,7 @@ def test_check_answers_with_facts_only(harness: Harness, world: World, db: Sessi
 
     assert "ЖК «ЖК Самал Парк»" in harness.last
     assert "Не вносите деньги" in harness.last
-    assert "(демонстрационные данные)" in harness.last
+    assert "демонстрационные" not in harness.last
     assert "87" not in harness.last
 
 

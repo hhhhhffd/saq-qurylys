@@ -263,14 +263,13 @@ def test_all_register_includes_green_unscored_identity_status_and_demo(db: Sessi
     assert green["developer"] == "Застройщик Тест"
     assert green["developer_bin"] == "123456789012"
     assert green["key_status"] == "Задержка строительства"
-    assert green["is_demo"] is True
     unscored = next(row for row in all_context["register_rows"] if row["name"] == "ЖК Без оценки")
     assert unscored["score"] is None
     assert unscored["zone"] == "без оценки"
     assert unscored["assessment_date"] == "нет данных"
     assert "ул. Центральная, 10" in text
     assert "123456789012" in text
-    assert "ДЕМО" in text
+    assert "ДЕМО" not in text
     assert "Задержка строительства" in text
     assert "официальная передача материалов оформляется отдельной сигнальной карточкой" in text
     assert "Красная зона означает высокий риск" in text

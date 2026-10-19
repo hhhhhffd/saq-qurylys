@@ -43,7 +43,6 @@ _TEXT = {
         "to_check": "Требует проверки",
         "no_items": "В этом разделе снимка нет перечисленных сведений.",
         "draft": "ЧЕРНОВИК · НЕ НАПРАВЛЕНО",
-        "demo_stamp": "ДЕМО-ДАННЫЕ",
         "neutral_note": (
             "Сведения приведены по сохранённому снимку карточки и предназначены для проверки. "
             "Документ не устанавливает факт нарушения или виновность и сам по себе не подтверждает "
@@ -70,7 +69,6 @@ _TEXT = {
         "fragments": "Фрагменты формулировок",
         "review_status": "Статус проверки формулировок в снимке",
         "appendix_refs": "Ссылки на приложения",
-        "demo": "Демо-данные",
         "account_missing": "Не записан в снимке",
         "human_confirmed": "Подтверждено человеком",
         "human_rejected": "Отклонено человеком",
@@ -136,7 +134,6 @@ _TEXT = {
         "to_check": "Тексеруді қажет етеді",
         "no_items": "Сақталған көріністің бұл бөлімінде мәліметтер көрсетілмеген.",
         "draft": "ЖОБА · ЖІБЕРІЛМЕГЕН",
-        "demo_stamp": "ДЕМО-ДЕРЕКТЕР",
         "neutral_note": (
             "Мәліметтер карточканың сақталған көрінісінен алынған және тексеруге арналған. "
             "Бұл құжат құқық бұзушылықты немесе кінәні анықтамайды әрі карточканың немесе "
@@ -163,7 +160,6 @@ _TEXT = {
         "fragments": "Тіркелген сөз тіркестері",
         "review_status": "Сақталған көріністегі тексеру мәртебесі",
         "appendix_refs": "Қосымшаға сілтемелер",
-        "demo": "Демо-деректер",
         "account_missing": "Сақталған көріністе жазылмаған",
         "human_confirmed": "Адам растаған",
         "human_rejected": "Адам қабылдамаған",
@@ -282,11 +278,6 @@ def render_cover_docx(data: Mapping[str, Any]) -> bytes:
         run = watermark.add_run(labels["draft"])
         run.bold = True
         run.font.size = Pt(12)
-    if bool(data["is_demo"]):
-        demo = document.add_paragraph()
-        demo.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        run = demo.add_run(labels["demo_stamp"])
-        run.bold = True
 
     title = document.add_heading(level=0)
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -407,7 +398,6 @@ def render_publications_xlsx(
                 "\n".join(fragments) or labels["no_data"],
                 "\n".join(review) or labels["no_data"],
                 "; ".join(references) or labels["no_data"],
-                labels["demo"] if publication.get("is_demo") else "",
             )
         )
 
@@ -431,7 +421,6 @@ def render_publications_xlsx(
         ExportColumn(labels["fragments"], 48),
         ExportColumn(labels["review_status"], 52),
         ExportColumn(labels["appendix_refs"], 26),
-        ExportColumn(labels["demo"], 16),
     )
     return build_workbook(
         sheet_name=labels["publication_sheet"],

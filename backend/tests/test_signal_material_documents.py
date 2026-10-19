@@ -91,10 +91,10 @@ def test_cover_docx_lists_only_supplied_appendices() -> None:
     assert all(row.cells[2].text for row in appendix_table.rows[1:])
 
 
-def test_demo_cover_uses_uppercase_demo_stamp() -> None:
+def test_demo_cover_has_no_demo_stamp() -> None:
     document = Document(BytesIO(material_documents.render_cover_docx(_cover(is_demo=True))))
 
-    assert "ДЕМО-ДАННЫЕ" in _document_text(document)
+    assert "ДЕМО" not in _document_text(document)
 
 
 def test_cover_docx_supports_kazakh_and_strips_invalid_xml_controls() -> None:
@@ -148,7 +148,7 @@ def test_publications_xlsx_uses_only_given_snapshot_rows_and_literal_safe_cells(
         if isinstance(cell.value, str) and cell.column is not None:
             headers[cell.value] = cell.column
     assert sheet.max_row == 2
-    assert sheet.auto_filter.ref == "A1:K2"
+    assert sheet.auto_filter.ref == "A1:J2"
     assert sheet.freeze_panes == "A2"
     assert sheet.cell(row=2, column=headers["Жарияланым ID-і"]).value == "17"
     assert sheet.cell(row=2, column=headers["Дереккөз / платформа"]).value == "instagram"

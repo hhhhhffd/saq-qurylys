@@ -6,7 +6,7 @@
 <style>
   @page {
     size: A4;
-    margin: {{ '36mm' if demo else '30mm' }} 15mm 26mm 15mm;
+    margin: 30mm 15mm 26mm 15mm;
     @top-center { content: element(page-header); width: 100%; }
     @bottom-left { content: element(page-footer); width: 150mm; }
     @bottom-right { content: "{{ t.page }} " counter(page) " {{ t.page_of }} " counter(pages); font-size: 8pt; color: #555; }
@@ -35,8 +35,6 @@
   figure img { max-width: 100%; max-height: 190mm; object-fit: contain; border: 0.5pt solid #ccc; }
   figcaption { font-size: 8pt; color: #555; margin-top: 1mm; overflow-wrap: anywhere; }
   .note { white-space: pre-wrap; }
-  .demo-banner { margin: 0 0 1mm; font-weight: bold; font-size: 9pt; letter-spacing: 0.5pt; color: #b3261e; }
-  .demo-watermark { position: fixed; top: 105mm; left: 5mm; width: 190mm; text-align: center; white-space: nowrap; transform: rotate(-30deg); font-size: 30pt; font-weight: bold; color: rgba(179, 38, 30, 0.14); }
   .cover { break-after: page; padding-top: 45mm; }
   .cover h1 { font-size: 24pt; margin-bottom: 8mm; }
   .cover .object-name { font-size: 16pt; font-weight: bold; margin: 0 0 6mm; }
@@ -49,9 +47,7 @@
 </style>
 </head>
 <body>
-{% if demo %}<div class="demo-watermark">{{ t.demo }}</div>{% endif %}
 <div id="page-header">
-  {% if demo %}<p class="demo-banner">{{ t.demo }}. {{ t.demo_note }}</p>{% endif %}
   <span class="brand">{{ t.product }}</span> &middot; {{ d.title }} {{ obj_code }}
   <p class="disclaimer">{{ t.disclaimer }}</p>
 </div>

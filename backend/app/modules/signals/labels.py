@@ -5,15 +5,11 @@ from typing import Any
 
 RED_ZONE_DISCLAIMER = "Красная зона означает высокий риск и необходимость проверки, а не установленную виновность."
 
-DEMO_WATERMARK = "ДЕМОНСТРАЦИОННЫЕ ДАННЫЕ"
-
 RU: dict[str, Any] = {
     "lang": "ru",
     "product": "SAQ QURYLYS",
     "title": "Сигнальная карточка",
     "disclaimer": RED_ZONE_DISCLAIMER,
-    "demo": DEMO_WATERMARK,
-    "demo_note": "Вымышленные данные для демонстрации системы: не относятся к реальным объектам и лицам.",
     "page": "Стр.",
     "page_of": "из",
     "empty": "нет данных",
@@ -90,7 +86,6 @@ RU: dict[str, Any] = {
         "status": "Статус",
         "evidence": "Доказательства",
         "hits": "Формулировки",
-        "demo": "ДЕМО",
         "none": "Публикаций за период нет",
     },
     "hit_kind": {"fact": "Факт", "ai_hypothesis": "Гипотеза ИИ (не подтверждена человеком)"},

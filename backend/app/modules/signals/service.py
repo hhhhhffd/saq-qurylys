@@ -151,8 +151,8 @@ def _hit_entries(session: Session, ad_ids: list[int]) -> dict[int, list[dict[str
 def build_sections(session: Session, obj: ConstructionObject, review_days: int, now: datetime) -> dict[str, Any]:
     """Sections of SPEC 7.1 from the current object data, its latest score, documents and recent publications.
 
-    Besides the contract sections the card carries the legal basis status, the "needs check" flags and the
-    demo marker, and each publication lists its phrase hits as a fact or an AI hypothesis."""
+    Besides the contract sections the card carries the legal basis status and the "needs check" flags, and each
+    publication lists its phrase hits as a fact or an AI hypothesis."""
     window_days = load_settings(session).ad_window_days
     developer = session.get(Developer, obj.developer_id) if obj.developer_id else None
     latest = session.scalar(latest_score_stmt(obj.id))

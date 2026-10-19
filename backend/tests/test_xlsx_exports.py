@@ -103,7 +103,7 @@ def test_objects_export_uses_full_filtered_registry_and_territory_scope(
         (obj.score for obj in matching if obj.score is not None), reverse=True
     )
     assert sheet.freeze_panes == "A2"
-    assert sheet.auto_filter.ref == "A1:T56"
+    assert sheet.auto_filter.ref == "A1:S56"
     object_link = sheet.cell(row=2, column=headers["Карточка"]).hyperlink
     assert object_link is not None
     assert object_link.target == f"http://localhost:8080/objects/{matching[0].id}"
@@ -166,7 +166,7 @@ def test_objects_export_localizes_and_keeps_formula_like_user_values_as_text(
     assert name_cell.value.startswith("=HYPERLINK(") and name_cell.data_type == "s"
     assert isinstance(address_cell.value, str)
     assert address_cell.value == "\t=1+1" and address_cell.data_type == "s"
-    assert rows[0]["Демо-деректер"] == "Иә"
+    assert "Демо-деректер" not in headers
 
 
 def test_objects_export_reports_limit_without_truncating(

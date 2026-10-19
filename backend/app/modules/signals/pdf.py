@@ -227,7 +227,6 @@ def build_context(
             }
             for flag in sections.get("needs_check", [])
         ],
-        "demo": bool(obj.is_demo) if obj is not None else bool(sections.get("is_demo")),
         "permit_checks": [
             {
                 "doc_type": labels["doc_type"].get(item["doc_type"], item["doc_type"]),
@@ -247,7 +246,6 @@ def build_context(
                 "published_at": _local(item["published_at"], tz),
                 "captured_at": _local(item["captured_at"], tz),
                 "status": labels["ad_status"].get(item["status"], item["status"]),
-                "demo": bool(item.get("is_demo")),
                 "hits": [
                     {
                         "kind": hit["kind"],
