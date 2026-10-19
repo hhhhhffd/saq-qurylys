@@ -14,7 +14,6 @@ import { zoneColor } from '@/components/zoneColor';
 import { useEnum, useZoneReasonLabel } from '@/i18n/useEnum';
 import { useFormat } from '@/i18n/useFormat';
 import { cn } from '@/lib/utils';
-import { ReadinessGap } from './ReadinessGap';
 import { anchorTargetClass, subTitleClass } from './styles';
 
 // Defaults of `zone_yellow_min` / `zone_red_min` (SPEC 6.2) while the settings are not loaded.
@@ -100,7 +99,6 @@ export function RiskPanel({ object }: { object: ObjectDetail }) {
   const breakdown = readBreakdown(latest);
   const red = latest?.zone === 'red';
 
-  const mismatch = findFactor(breakdown, 'r5_readiness_mismatch');
   const legalChecks =
     findFactor(breakdown, 'r1_no_legal_basis')?.detail.checks ??
     breakdown?.needs_check.find((item) => item.code === 'legal_basis_unknown')?.detail.checks ??
@@ -164,13 +162,6 @@ export function RiskPanel({ object }: { object: ObjectDetail }) {
       ) : (
         <p className="text-text-3">{t('card.risk.notScored')}</p>
       )}
-
-      <ReadinessGap
-        actual={object.readiness_actual_pct}
-        claimed={object.readiness_claimed_pct}
-        gap={object.readiness_gap_pp}
-        overstated={mismatch?.triggered ?? false}
-      />
 
       <div className="mt-4 border-t border-border pt-3">
         <KeyValue

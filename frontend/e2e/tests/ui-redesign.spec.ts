@@ -450,6 +450,9 @@ async function installMocks(page: Page, role: Role, overrides: Partial<MockState
     if (method === 'GET' && /^\/objects\/\d+$/.test(path)) {
       return json(route, { ...state.object, id: Number(path.split('/').at(-1)) });
     }
+    // The object card loads both up front (tab counts, printed dossier).
+    if (method === 'GET' && /^\/objects\/\d+\/assignments$/.test(path)) return json(route, []);
+    if (method === 'GET' && /^\/objects\/\d+\/score-history$/.test(path)) return json(route, { items: [], total: 0 });
     const evidenceMatch = /^\/evidence\/(\d+)\/content$/.exec(path);
     if (method === 'GET' && evidenceMatch) {
       const id = Number(evidenceMatch[1]);
@@ -948,7 +951,7 @@ test('registry answers show readable latest data, group identical captures and p
     object: makeRegistryObject(),
     evidenceContents: registryContentFixtures(),
   });
-  await page.goto('/objects/7');
+  await page.goto('/objects/7?tab=documents');
 
   const registryAction = page.getByRole('button', { name: 'Открыть сохранённые сведения из реестра' });
   await expect(registryAction).toHaveCount(1);
@@ -1055,7 +1058,7 @@ test('registry response reports unsupported and malformed archives and keeps the
       5302: { contentType: 'application/json', body: '{"success":true,"data":{"unrecognized":{}}}' },
     },
   });
-  await page.goto('/objects/7');
+  await page.goto('/objects/7?tab=documents');
   await page.getByRole('button', { name: 'Открыть сохранённые сведения из реестра' }).click();
   const dialog = page.getByRole('dialog', { name: 'Сведения из реестра' });
   await expect(dialog.getByText('Формат сохранённого ответа не распознан. Оригинал можно скачать.')).toBeVisible();
@@ -1091,7 +1094,7 @@ test('registry response load failure offers a working retry', async ({ page }) =
     },
     evidenceFailures: { 5401: 4 },
   });
-  await page.goto('/objects/7');
+  await page.goto('/objects/7?tab=documents');
   await page.getByRole('button', { name: 'Открыть сохранённые сведения из реестра' }).click();
   const dialog = page.getByRole('dialog', { name: 'Сведения из реестра' });
   await expect(dialog.getByRole('alert')).toContainText('Не удалось загрузить сохранённый ответ. Повторите попытку или скачайте оригинал.');

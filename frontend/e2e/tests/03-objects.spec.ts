@@ -58,6 +58,19 @@ test.describe('object card «Золотая осень»', () => {
     await expect(riskSummary(page)).toBeVisible();
   });
 
+  test('a deep link opens the requested tab and keeps the overview as the default', async ({ page }) => {
+    await expect(page.getByRole('tab', { name: t('objects:card.tabs.overview') })).toHaveAttribute('aria-selected', 'true');
+
+    await page.goto(`/objects/${objectId}?tab=complaints`);
+    await expect(page.getByRole('tab', { name: new RegExp(`^${t('objects:card.tabs.complaints')}`) })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    await expect(page.getByRole('heading', { level: 3, name: t('objects:card.complaints.title') })).toBeVisible();
+    await page.goBack();
+    await expect(page.getByRole('tab', { name: t('objects:card.tabs.overview') })).toHaveAttribute('aria-selected', 'true');
+  });
+
   test('shows the score 70 and the red zone', async ({ page }) => {
     await expect(riskSummary(page)).toContainText('70');
     await expect(riskSummary(page)).toContainText(t('enums:zone.red'));
@@ -107,6 +120,8 @@ test.describe('object card «Золотая осень»', () => {
   });
 
   test('lists the documents with the result of the registry check', async ({ page }) => {
+    await page.getByRole('tab', { name: new RegExp(`^${t('objects:card.tabs.documents')}`) }).click();
+    await expect(page).toHaveURL(/[?&]tab=documents/);
     await expect(page.getByRole('heading', { level: 3, name: t('objects:card.documents.title') })).toBeVisible();
 
     for (const doc of ['guarantee', 'dsu_permit']) {
@@ -134,6 +149,7 @@ test.describe('object card «Золотая осень»', () => {
   });
 
   test('opens the link graph of the object', async ({ page }) => {
+    await page.getByRole('tab', { name: t('objects:card.tabs.history') }).click();
     await page.getByRole('link', { name: t('graph:open') }).click();
 
     await expect(page).toHaveURL(new RegExp(`/graph\\?object_id=${objectId}$`));
