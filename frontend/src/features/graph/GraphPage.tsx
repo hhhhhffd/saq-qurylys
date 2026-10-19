@@ -106,42 +106,65 @@ function GraphWorkspace({ graph, seedId, stale, onRecentre }: WorkspaceProps) {
     [navigate, onRecentre, seedId],
   );
 
+  const stats = useMemo(() => {
+    const count = (type: GraphNode['type']) => graph.nodes.filter((node) => node.type === type).length;
+    return [
+      { key: 'objects', value: count('object') },
+      { key: 'developers', value: count('developer') },
+      { key: 'phones', value: count('phone') },
+      { key: 'accounts', value: count('account') },
+      { key: 'findings', value: graph.findings.length },
+    ] as const;
+  }, [graph]);
+
   return (
-    <div
-      className="mt-3.5 grid grid-cols-[minmax(0,1fr)] gap-4 transition-opacity duration-(--dur) data-stale:opacity-60 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start"
-      data-stale={stale || undefined}
-    >
-      <section className="min-w-0 overflow-hidden rounded border border-border bg-surface" aria-label={t('title')}>
-        {graph.nodes.length === 0 ? (
-          <EmptyState>
-            <strong>{t('empty')}</strong>
-            <br />
-            {t('emptyHint')}
-          </EmptyState>
-        ) : (
-          <>
-            <LinkGraphCanvas
-              graph={graph}
-              highlight={highlight}
-              seedId={seedId}
-              onNodeClick={handleNodeClick}
-              onBackgroundClick={clearSelection}
-            />
-            <div className="flex flex-col gap-2 border-t border-border px-3 py-2.5">
-              <Legend />
-              <p className="m-0 text-xs text-text-3">{t('canvas.hint')}</p>
-              {graph.truncated && (
-                <p className="m-0 text-xs text-text-3" role="status">
-                  {t('truncated', { count: graph.nodes.length })}
-                </p>
-              )}
-            </div>
-          </>
-        )}
-      </section>
-      <div className="flex min-w-0 flex-col gap-4">
-        <FindingsPanel findings={graph.findings} nodes={graph.nodes} active={finding} onSelect={selectFinding} />
-        <SuggestionsPanel />
+    <div className="flex flex-col gap-3.5 transition-opacity duration-(--dur) data-stale:opacity-60" data-stale={stale || undefined}>
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-5 md:gap-3" role="group" aria-label={t('stats.label')}>
+        {stats.map(({ key, value }) => (
+          <div key={key} className="flex flex-col gap-0.5 rounded border border-border bg-surface px-3 py-2">
+            <span className="font-heading text-2xl leading-tight font-bold tabular-nums">{value}</span>
+            <span className="text-xs font-semibold tracking-wide text-text-2">{t(`stats.${key}`)}</span>
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 [--graph-h:auto] lg:h-(--graph-h) lg:grid-cols-[minmax(0,1fr)_380px] lg:[--graph-h:max(520px,calc(100dvh-20rem))]">
+        <section
+          className="flex h-[60dvh] min-h-[360px] min-w-0 flex-col overflow-hidden rounded border border-border bg-surface lg:h-auto"
+          aria-label={t('title')}
+        >
+          {graph.nodes.length === 0 ? (
+            <EmptyState>
+              <strong>{t('empty')}</strong>
+              <br />
+              {t('emptyHint')}
+            </EmptyState>
+          ) : (
+            <>
+              <div className="min-h-0 flex-1">
+                <LinkGraphCanvas
+                  graph={graph}
+                  highlight={highlight}
+                  seedId={seedId}
+                  onNodeClick={handleNodeClick}
+                  onBackgroundClick={clearSelection}
+                />
+              </div>
+              <div className="flex flex-col gap-2 border-t border-border px-3 py-2.5">
+                <Legend />
+                <p className="m-0 text-xs text-text-3">{t('canvas.hint')}</p>
+                {graph.truncated && (
+                  <p className="m-0 text-xs text-text-3" role="status">
+                    {t('truncated', { count: graph.nodes.length })}
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+        </section>
+        <div className="flex min-h-0 min-w-0 flex-col gap-4 lg:overflow-y-auto">
+          <FindingsPanel findings={graph.findings} nodes={graph.nodes} active={finding} onSelect={selectFinding} />
+          <SuggestionsPanel />
+        </div>
       </div>
     </div>
   );
