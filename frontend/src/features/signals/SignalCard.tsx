@@ -217,12 +217,15 @@ export function SignalCard({ detail }: { detail: SignalDetail }) {
         <h2 id="signal-materials-heading" className="text-sm font-semibold text-text">
           {t('detail.groups.materials')}
         </h2>
+        {/* Independent columns: a shared row grid left gaps under the short cards. The publications table needs the full width. */}
         <div className="grid min-w-0 grid-cols-1 items-start gap-4 xl:grid-cols-2">
-          <ObjectDeveloperSection data={sections.object_developer} />
+          <div className="grid min-w-0 gap-4">
+            <ObjectDeveloperSection data={sections.object_developer} />
+            <PermitChecksSection items={sections.permit_checks} />
+          </div>
           <RiskFactorsSection sections={sections} linked={!isRecipient} />
-          <PermitChecksSection items={sections.permit_checks} />
-          <PublicationsSection items={sections.publications} showAdLinks={!isRecipient} />
         </div>
+        <PublicationsSection items={sections.publications} showAdLinks={!isRecipient} />
       </section>
 
       <section aria-labelledby="signal-review-heading" className="grid min-w-0 gap-4">
