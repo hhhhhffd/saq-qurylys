@@ -5,7 +5,6 @@ import { useUpdateSignal } from '@/api/hooks/signals';
 import type { SignalDetail } from '@/api/types';
 import { useAuth } from '@/auth/useAuth';
 import { Chip } from '@/components/Chip';
-import { DemoBadge } from '@/components/DemoBadge';
 import { KeyValue } from '@/components/KeyValue';
 import { PageHeader } from '@/components/PageHeader';
 import { Panel } from '@/components/Panel';
@@ -99,7 +98,6 @@ export function SignalCard({ detail }: { detail: SignalDetail }) {
             <SignalStatusChip status={status} />
             {detail.is_overdue && <Chip tone="red">{t('due.overdue')}</Chip>}
             <span>{e('origin', detail.origin)}</span>
-            {sections.is_demo && <DemoBadge />}
           </span>
         }
         actions={<ActionsBar detail={detail} recipient={draft.value.recipient} dirty={draft.dirty} canSave={draft.valid} />}

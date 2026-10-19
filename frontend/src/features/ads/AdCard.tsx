@@ -7,7 +7,6 @@ import { useAd } from '@/api/hooks/ads';
 import type { AdRow, AdStatus } from '@/api/types';
 import { useAuth } from '@/auth/useAuth';
 import { Chip, type ChipTone } from '@/components/Chip';
-import { DemoBadge } from '@/components/DemoBadge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
@@ -93,7 +92,6 @@ export function AdCard({ ad, highlighted = false, focusHitId = null }: Props) {
           )}
         </div>
         <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5">
-          {view.is_demo && <DemoBadge />}
           <Chip tone={STATUS_TONE[view.status]}>
             {view.status === 'verification' ? t('card.linkNeedsReview') : e('ad_status', view.status)}
           </Chip>

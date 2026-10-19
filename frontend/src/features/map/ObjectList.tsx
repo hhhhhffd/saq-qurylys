@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import type { ObjectRow } from '@/api/types';
 import { Button } from '@/components/ui/button';
 import BorderGlow from '@/components/fx/BorderGlow';
-import { DemoBadge } from '@/components/DemoBadge';
 import { EmptyState } from '@/components/QueryState';
 import { ZoneBadge } from '@/components/Zone';
 import { useKeyStatusLabel } from '@/i18n/useEnum';
@@ -52,7 +51,6 @@ export function ObjectList({ rows, highlightedId, onHighlight }: Props) {
               </span>
               <span className="flex flex-wrap gap-x-2.5 gap-y-0.5 text-xs text-text-2">
                 <span className="tabular-nums">{row.code}</span>
-                {row.is_demo && <DemoBadge />}
                 {row.developer_name && <span>{row.developer_name}</span>}
               </span>
               <span className="flex flex-wrap justify-between gap-x-2.5 gap-y-0.5 text-xs text-text-2">

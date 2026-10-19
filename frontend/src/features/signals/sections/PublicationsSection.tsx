@@ -3,7 +3,6 @@ import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import type { AdStatus, SignalSections } from '@/api/types';
 import { Chip, type ChipTone } from '@/components/Chip';
-import { DemoBadge } from '@/components/DemoBadge';
 import { HitSourceChip } from '@/components/HitSourceChip';
 import { Panel } from '@/components/Panel';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -66,7 +65,6 @@ export function PublicationsSection({ items, showAdLinks }: Props) {
                       <TableCell>
                         <span className="inline-flex items-center gap-1.5">
                           {e('platform', item.platform)}
-                          {item.is_demo && <DemoBadge />}
                         </span>
                       </TableCell>
                       <TableCell>

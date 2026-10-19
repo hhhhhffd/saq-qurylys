@@ -47,10 +47,3 @@ export function parseId(value: string | null | undefined): number | null {
   const id = Number(value);
   return Number.isInteger(id) && id > 0 ? id : null;
 }
-
-/** `?is_demo=`: true = demo only, false = real only, absent = both. */
-export function parseDemo(value: string | null | undefined): boolean | null {
-  if (value === 'true') return true;
-  if (value === 'false') return false;
-  return null;
-}

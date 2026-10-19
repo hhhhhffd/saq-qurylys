@@ -8,7 +8,6 @@ import type { ObjectRow } from '@/api/types';
 import { useAuth } from '@/auth/useAuth';
 import { dataColumns } from '@/components/dataColumns';
 import { DataTable } from '@/components/DataTable';
-import { DemoBadge } from '@/components/DemoBadge';
 import { ExportButton } from '@/components/ExportButton';
 import { ErrorBlock } from '@/components/QueryState';
 import { PageHeader } from '@/components/PageHeader';
@@ -83,7 +82,6 @@ export function ObjectsPage() {
           <Link to={`/objects/${info.row.original.id}`} onClick={(event) => event.stopPropagation()}>
             {info.getValue()}
           </Link>
-          {info.row.original.is_demo && <DemoBadge />}
         </span>
       ),
     }),
