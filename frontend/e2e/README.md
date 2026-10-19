@@ -48,7 +48,8 @@ installed `chromium-1243`; after changing the version run `pnpm exec playwright 
 
 - `auth.setup.ts` signs in through the real login form once per role (`demo_mio`, `demo_gask`, `demo_police`,
   `admin`) and saves the session to `e2e/.auth/` (git-ignored); the specs reuse it.
-- `tests/NN-*.spec.ts` run in file order: read-only specs first (01-08), the ones that write data last (90-92).
+- `tests/NN-*.spec.ts` run in file order: read-only specs first (01-08), the ones that write data last (90-93), and
+  `99-logout` at the very end: logout revokes every token of `demo_mio`, including the saved session.
 - `support/i18n.ts` loads the locale files of the app (`src/i18n/locales`), so the specs assert the wording of the
   `ru` locale (and `kk` in the language test) instead of copies of it. A key that does not exist fails the test.
 - `support/api.ts` talks to the backend as a role: it reads demo ids, and restores or closes what a failed run left.
