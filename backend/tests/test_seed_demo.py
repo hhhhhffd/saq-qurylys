@@ -54,7 +54,7 @@ NETWORK_EXPECTED: dict[str, tuple[int, Zone]] = {
     "ЖК «Сосновый бор»": (10, Zone.green),  # confirmed guarantee + ordinary advertising
 }
 NETWORK_PHONE = "+77000002001"
-NETWORK_ACCOUNT = "instagram/prime_estate_demo"
+NETWORK_ACCOUNT = "instagram/prime_estate_ust"
 
 
 @pytest.fixture
@@ -91,6 +91,16 @@ def test_relative_dates_follow_the_moment_of_loading() -> None:
     moment = seed._resolve_datetime("-36h")
     assert abs((datetime.now(UTC) - timedelta(hours=36) - moment).total_seconds()) < 5
     assert seed._resolve_datetime("-2 days") == "-2 days"  # not a relative form: left for validation to reject
+
+
+def test_seed_files_show_no_demo_wording() -> None:
+    """Names, handles, notes and URLs are shown in the UI and in documents: they must not call the data a demo.
+    Logins (`demo_mio`), `demo-` external ids and media file names are not shown."""
+    allowed = re.compile(r"demo_(mio|admin|gask|police)|demo_\w+\.(png|mp4)|\bdemo-[\w-]+|\"is_demo\"")
+    for path in sorted(seed.SEED_DATA_DIR.glob("demo_*.json")):
+        text = allowed.sub("", path.read_text(encoding="utf-8"))
+        assert not re.search(r"demo|демо", text, re.IGNORECASE), path.name
+    assert not any(re.search(r"демо|demo", full_name, re.IGNORECASE) for _, full_name, _, _ in seed.DEMO_USERS)
 
 
 def test_demo_file_is_fictional_and_complete() -> None:
@@ -206,10 +216,10 @@ def test_every_risky_text_is_matched_by_the_dictionary(db: Session, demo: list[i
 
 
 def test_complaints_carry_the_verification_the_case_needs(db: Session, demo: list[int]) -> None:
-    [verified] = db.scalars(select(Complaint).where(Complaint.external_id == "EO-DEMO-0103"))
+    [verified] = db.scalars(select(Complaint).where(Complaint.external_id == "EO-0103"))
     assert verified.is_collective and verified.is_verified and verified.verified_by is not None
     assert verified.verified_at is not None
-    [unverified] = db.scalars(select(Complaint).where(Complaint.external_id == "DEMO-C-0105"))
+    [unverified] = db.scalars(select(Complaint).where(Complaint.external_id == "C-0105"))
     assert unverified.is_collective and not unverified.is_verified and unverified.verified_by is None
 
 
@@ -390,10 +400,10 @@ def test_network_ads_belong_to_the_network_objects_only(db: Session, demo: list[
     )
     for ad in network_ads:
         analyze_ad(db, ad)
-        assert ad.phones == [NETWORK_PHONE] and ad.links == ["https://instagram.com/prime_estate_demo"]
+        assert ad.phones == [NETWORK_PHONE] and ad.links == ["https://instagram.com/prime_estate_ust"]
     for ad in db.scalars(select(AdPost).where(AdPost.object_id.in_(demo))):
         analyze_ad(db, ad)
-        assert NETWORK_PHONE not in ad.phones and not any("prime_estate_demo" in link for link in ad.links)
+        assert NETWORK_PHONE not in ad.phones and not any("prime_estate_ust" in link for link in ad.links)
 
 
 def test_one_phone_and_one_account_tie_the_three_developers(db: Session, demo: list[int], network: list[int]) -> None:
@@ -426,7 +436,7 @@ def test_the_network_account_is_offered_as_a_source_candidate(db: Session, demo:
 
     [candidate] = list_suggestions(db, TerritoryScope(ids=None))
 
-    assert (candidate.platform, candidate.handle) == ("instagram", "prime_estate_demo")
+    assert (candidate.platform, candidate.handle) == ("instagram", "prime_estate_ust")
     assert candidate.posts_count == sum(len(obj["ads"]) for obj in NETWORK["objects"])
     assert candidate.object_ids == sorted(network)
 
@@ -624,7 +634,7 @@ def test_quiet_harbor_is_mostly_green(db: Session, demo_history: list[int]) -> N
 
 def test_poplar_alley_turns_yellow_only_after_the_complaint_was_verified(db: Session, demo_history: list[int]) -> None:
     rows = _replayed(db, "ЖК «Тополиная аллея»")
-    [complaint] = db.scalars(select(Complaint).where(Complaint.external_id == "EO-DEMO-0103"))
+    [complaint] = db.scalars(select(Complaint).where(Complaint.external_id == "EO-0103"))
     assert complaint.verified_at is not None and complaint.verified_at < datetime.now(UTC) - timedelta(days=20)
 
     assert _zone_path(rows) == [Zone.green, Zone.yellow]

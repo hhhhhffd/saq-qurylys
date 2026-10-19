@@ -69,7 +69,7 @@ class _Strict(BaseModel):
 
 
 VISION_FILE = "demo_vision.json"
-MODEL_VERSION = "demo-synthetic-1"
+MODEL_VERSION = "synthetic-1"
 _REVIEW_ACTIONS = {
     VisionReviewState.confirmed: VisionReviewAction.confirm,
     VisionReviewState.rejected: VisionReviewAction.reject,

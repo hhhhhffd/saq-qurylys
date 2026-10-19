@@ -209,15 +209,15 @@
  "sources": [
   {
    "platform": "telegram",
-   "handle": "zolotaya_osen_demo",
-   "url": "https://t.me.example.invalid/zolotaya_osen_demo",
+   "handle": "zolotaya_osen",
+   "url": "https://t.me.example.invalid/zolotaya_osen",
    "last_collected": "-3h",
    "posts": [
     {
      "external_id": "demo-zolotaya-z1",
      "published_at": "-2d",
      "text": "Старт продаж второй очереди ЖК «Золотая осень»! Можно забронировать квартиру онлайн, внести депозит 300 000 тг — цены до сдачи зафиксированы. +7 700 000 02 01",
-     "url": "https://t.me.example.invalid/zolotaya_osen_demo/401",
+     "url": "https://t.me.example.invalid/zolotaya_osen/401",
      "phones": [
       "+7 700 000 02 01"
      ],
@@ -260,7 +260,7 @@
      "external_id": "demo-zolotaya-z2",
      "published_at": "-9d",
      "text": "Резервирование квартиры за 100 000 тг, подписываем договор о намерениях. ЖК «Золотая осень», +7 700 000 02 01",
-     "url": "https://t.me.example.invalid/zolotaya_osen_demo/398",
+     "url": "https://t.me.example.invalid/zolotaya_osen/398",
      "phones": [
       "+7 700 000 02 01"
      ],
@@ -273,13 +273,13 @@
      "external_id": "demo-zolotaya-z3",
      "published_at": "-16d",
      "text": "Показали ход строительства ЖК «Золотая осень»: залили плиту перекрытия 7 этажа.",
-     "url": "https://t.me.example.invalid/zolotaya_osen_demo/392"
+     "url": "https://t.me.example.invalid/zolotaya_osen/392"
     },
     {
      "external_id": "demo-zolotaya-z4",
      "published_at": "-23d",
      "text": "«Алтын күз» ТТК-да пәтерлерді брондау басталды. ЖК «Золотая осень»: алғашқы жарнаны 500 000 теңге енгізіңіз, баға тұрғын үй тапсырылғанға дейін өзгермейді.",
-     "url": "https://t.me.example.invalid/zolotaya_osen_demo/385",
+     "url": "https://t.me.example.invalid/zolotaya_osen/385",
      "hits": "confirm",
      "triage": {
       "state": "reviewed"
@@ -319,22 +319,22 @@
     ],
     "newest_days": 4,
     "oldest_days": 27,
-    "post_url": "https://t.me.example.invalid/zolotaya_osen_demo/5{n:02d}",
+    "post_url": "https://t.me.example.invalid/zolotaya_osen/5{n:02d}",
     "kazakh_every": 5,
     "ocr_every": 4
    }
   },
   {
    "platform": "telegram",
-   "handle": "hrustalny_gorod_demo",
-   "url": "https://t.me.example.invalid/hrustalny_gorod_demo",
+   "handle": "hrustalny_gorod",
+   "url": "https://t.me.example.invalid/hrustalny_gorod",
    "last_collected": "-2h",
    "posts": [
     {
      "external_id": "demo-hrustalny-h1",
      "published_at": "-1d",
      "text": "Инвестиционный договор вместо ДДУ — выгоднее! Зарезервировать квартиру в ЖК «Хрустальный город» можно уже сегодня. +7 700 000 13 01",
-     "url": "https://t.me.example.invalid/hrustalny_gorod_demo/212",
+     "url": "https://t.me.example.invalid/hrustalny_gorod/212",
      "phones": [
       "+7 700 000 13 01"
      ],
@@ -353,7 +353,7 @@
      "external_id": "demo-hrustalny-h2",
      "published_at": "-6d",
      "text": "Рассрочка от застройщика без банков, первоначальный взнос 20%. ЖК «Хрустальный город», +7 700 000 13 01",
-     "url": "https://t.me.example.invalid/hrustalny_gorod_demo/207",
+     "url": "https://t.me.example.invalid/hrustalny_gorod/207",
      "phones": [
       "+7 700 000 13 01"
      ],
@@ -369,7 +369,7 @@
      "external_id": "demo-hrustalny-h3",
      "published_at": "-19d",
      "text": "Приглашаем на день открытых дверей в ЖК «Хрустальный город»: экскурсия по шоуруму.",
-     "url": "https://t.me.example.invalid/hrustalny_gorod_demo/199"
+     "url": "https://t.me.example.invalid/hrustalny_gorod/199"
     }
    ],
    "object": "ЖК «Хрустальный город»",
@@ -380,22 +380,22 @@
     ],
     "newest_days": 3,
     "oldest_days": 26,
-    "post_url": "https://t.me.example.invalid/hrustalny_gorod_demo/3{n:02d}",
+    "post_url": "https://t.me.example.invalid/hrustalny_gorod/3{n:02d}",
     "ocr_every": 5,
     "version_every": 4
    }
   },
   {
    "platform": "telegram",
-   "handle": "ust_kamen_nedvizhimost_demo",
-   "url": "https://t.me.example.invalid/ust_kamen_nedvizhimost_demo",
+   "handle": "ust_kamen_nedvizhimost",
+   "url": "https://t.me.example.invalid/ust_kamen_nedvizhimost",
    "last_collected": "-1h",
    "posts": [
     {
      "external_id": "demo-ukn-u1",
      "published_at": "-3d",
      "text": "ЖК «Северный бриз»: бронь квартир с 1 числа, первоначальный взнос от 10%. Звоните +7 700 000 01 01",
-     "url": "https://t.me.example.invalid/ust_kamen_nedvizhimost_demo/9001",
+     "url": "https://t.me.example.invalid/ust_kamen_nedvizhimost/9001",
      "phones": [
       "+7 700 000 01 01"
      ]
@@ -404,7 +404,7 @@
      "external_id": "demo-ukn-u2",
      "published_at": "-5d",
      "text": "ЖК «Кедровый квартал» — в рассрочку без банков, сдача в 4 квартале. +7 700 000 05 01",
-     "url": "https://t.me.example.invalid/ust_kamen_nedvizhimost_demo/9002",
+     "url": "https://t.me.example.invalid/ust_kamen_nedvizhimost/9002",
      "phones": [
       "+7 700 000 05 01"
      ]
@@ -413,13 +413,13 @@
      "external_id": "demo-ukn-u3",
      "published_at": "-8d",
      "text": "ЖК «Новая эра». Предварительный договор и фиксация цены. Цена до завершения строительства не изменится.",
-     "url": "https://t.me.example.invalid/ust_kamen_nedvizhimost_demo/9003"
+     "url": "https://t.me.example.invalid/ust_kamen_nedvizhimost/9003"
     },
     {
      "external_id": "demo-ukn-u4",
      "published_at": "-12d",
      "text": "ЖК «Лазурный берег», 2-комнатные, ипотека 7-20-25, ДДУ. +7 700 000 11 01",
-     "url": "https://t.me.example.invalid/ust_kamen_nedvizhimost_demo/9004",
+     "url": "https://t.me.example.invalid/ust_kamen_nedvizhimost/9004",
      "phones": [
       "+7 700 000 11 01"
      ]
@@ -428,7 +428,7 @@
      "external_id": "demo-ukn-u5",
      "published_at": "-14d",
      "text": "Сдам 1-комнатную квартиру на Правом берегу, 150 000 тг в месяц, без посредников.",
-     "url": "https://t.me.example.invalid/ust_kamen_nedvizhimost_demo/9005",
+     "url": "https://t.me.example.invalid/ust_kamen_nedvizhimost/9005",
      "triage": {
       "state": "irrelevant",
       "note": "Аренда, не относится к строящемуся жилью"
@@ -438,7 +438,7 @@
      "external_id": "demo-ukn-u6",
      "published_at": "-21d",
      "text": "ЖК «Ривьера Парк» — можно внести депозит, старт продаж! +7 700 000 20 01",
-     "url": "https://t.me.example.invalid/ust_kamen_nedvizhimost_demo/9006",
+     "url": "https://t.me.example.invalid/ust_kamen_nedvizhimost/9006",
      "phones": [
       "+7 700 000 20 01"
      ]
@@ -469,7 +469,7 @@
     ],
     "newest_days": 1,
     "oldest_days": 110,
-    "post_url": "https://t.me.example.invalid/ust_kamen_nedvizhimost_demo/91{n:02d}",
+    "post_url": "https://t.me.example.invalid/ust_kamen_nedvizhimost/91{n:02d}",
     "kazakh_every": 6,
     "ocr_every": 8,
     "version_every": 7,
@@ -478,15 +478,15 @@
   },
   {
    "platform": "telegram",
-   "handle": "ustkam_zhk_chat_demo",
-   "url": "https://t.me.example.invalid/ustkam_zhk_chat_demo",
+   "handle": "ustkam_zhk_chat",
+   "url": "https://t.me.example.invalid/ustkam_zhk_chat",
    "last_collected": "-2h",
    "posts": [
     {
      "external_id": "demo-chat-g1",
      "published_at": "-4d",
      "text": "Менеджер ЖК «Золотая осень» просит внести задаток 200 000 тг наличными, говорит, что иначе квартиру продадут.",
-     "url": "https://t.me.example.invalid/ustkam_zhk_chat_demo/7711",
+     "url": "https://t.me.example.invalid/ustkam_zhk_chat/7711",
      "triage": {
       "state": "deferred",
       "note": "Нужно опросить автора сообщения"
@@ -496,13 +496,13 @@
      "external_id": "demo-chat-g2",
      "published_at": "-10d",
      "text": "В ЖК «Меридиан Сити» дали договор о намерениях и просят первый взнос.",
-     "url": "https://t.me.example.invalid/ustkam_zhk_chat_demo/7702"
+     "url": "https://t.me.example.invalid/ustkam_zhk_chat/7702"
     },
     {
      "external_id": "demo-chat-g3",
      "published_at": "-18d",
      "text": "Кто покупал в ЖК «Эдельвейс»? Есть ли ДДУ и гарантия КЖК?",
-     "url": "https://t.me.example.invalid/ustkam_zhk_chat_demo/7690"
+     "url": "https://t.me.example.invalid/ustkam_zhk_chat/7690"
     }
    ],
    "feed": {
@@ -530,15 +530,15 @@
     ],
     "newest_days": 2,
     "oldest_days": 90,
-    "post_url": "https://t.me.example.invalid/ustkam_zhk_chat_demo/78{n:02d}",
+    "post_url": "https://t.me.example.invalid/ustkam_zhk_chat/78{n:02d}",
     "ordinary_every": 3,
     "kazakh_every": 7
    }
   },
   {
    "platform": "telegram",
-   "handle": "stroika_ustkam_demo",
-   "url": "https://t.me.example.invalid/stroika_ustkam_demo",
+   "handle": "stroika_ustkam",
+   "url": "https://t.me.example.invalid/stroika_ustkam",
    "last_collected": "-4h",
    "posts": [],
    "feed": {
@@ -566,7 +566,7 @@
     ],
     "newest_days": 2,
     "oldest_days": 100,
-    "post_url": "https://t.me.example.invalid/stroika_ustkam_demo/{n}",
+    "post_url": "https://t.me.example.invalid/stroika_ustkam/{n}",
     "ordinary_every": 3,
     "ocr_every": 6,
     "version_every": 5
@@ -574,15 +574,15 @@
   },
   {
    "platform": "instagram",
-   "handle": "severny_briz_demo",
-   "url": "https://instagram.example.invalid/severny_briz_demo",
+   "handle": "severny_briz",
+   "url": "https://instagram.example.invalid/severny_briz",
    "last_collected": "-5h",
    "posts": [
     {
      "external_id": "demo-sb-i1",
      "published_at": "-1d",
      "text": "Платная бронь квартир в ЖК «Северный бриз» — 50 000 тг, вернём при отказе. +7 700 000 01 01",
-     "url": "https://instagram.example.invalid/severny_briz_demo/p/c1",
+     "url": "https://instagram.example.invalid/severny_briz/p/c1",
      "phones": [
       "+7 700 000 01 01"
      ],
@@ -592,13 +592,13 @@
      "external_id": "demo-sb-i2",
      "published_at": "-7d",
      "text": "Дарим подарки при покупке в ЖК «Северный бриз»! Рассрочка от застройщика на 24 месяца.",
-     "url": "https://instagram.example.invalid/severny_briz_demo/p/c2"
+     "url": "https://instagram.example.invalid/severny_briz/p/c2"
     },
     {
      "external_id": "demo-sb-i3",
      "published_at": "-13d",
      "text": "Рилс: прогулка по двору ЖК «Северный бриз».",
-     "url": "https://instagram.example.invalid/severny_briz_demo/reel/c3",
+     "url": "https://instagram.example.invalid/severny_briz/reel/c3",
      "triage": {
       "state": "deferred",
       "note": "Реклама без предложений внести деньги, вернуться при изменении текста"
@@ -608,7 +608,7 @@
      "external_id": "demo-sb-i4",
      "published_at": "-22d",
      "text": "ЖК «Северный бриз»: пәтерді брондау ашық, бастапқы жарна 10%.",
-     "url": "https://instagram.example.invalid/severny_briz_demo/p/c4",
+     "url": "https://instagram.example.invalid/severny_briz/p/c4",
      "llm": {
       "findings": [
        {
@@ -639,7 +639,7 @@
     ],
     "newest_days": 3,
     "oldest_days": 95,
-    "post_url": "https://instagram.example.invalid/severny_briz_demo/p/d{n:03d}",
+    "post_url": "https://instagram.example.invalid/severny_briz/p/d{n:03d}",
     "ocr_every": 5,
     "version_every": 6,
     "removed_every": 8
@@ -647,22 +647,22 @@
   },
   {
    "platform": "instagram",
-   "handle": "kedrovy_kvartal_demo",
-   "url": "https://instagram.example.invalid/kedrovy_kvartal_demo",
+   "handle": "kedrovy_kvartal",
+   "url": "https://instagram.example.invalid/kedrovy_kvartal",
    "last_collected": "-6h",
    "posts": [
     {
      "external_id": "demo-kk-k1",
      "published_at": "-2d",
      "text": "ЖК «Кедровый квартал» готов на 70%! Рассрочка от застройщика, первый взнос 10%.",
-     "url": "https://instagram.example.invalid/kedrovy_kvartal_demo/p/k1",
+     "url": "https://instagram.example.invalid/kedrovy_kvartal/p/k1",
      "ocr_text": "Готовность 70% — рассрочка от застройщика"
     },
     {
      "external_id": "demo-kk-k2",
      "published_at": "-11d",
      "text": "Шоурум ЖК «Кедровый квартал» открыт ежедневно, приходите на экскурсию.",
-     "url": "https://instagram.example.invalid/kedrovy_kvartal_demo/p/k2",
+     "url": "https://instagram.example.invalid/kedrovy_kvartal/p/k2",
      "triage": {
       "state": "deferred",
       "note": "Сверить с актом инспекции"
@@ -678,22 +678,22 @@
     ],
     "newest_days": 4,
     "oldest_days": 100,
-    "post_url": "https://instagram.example.invalid/kedrovy_kvartal_demo/p/e{n:03d}",
+    "post_url": "https://instagram.example.invalid/kedrovy_kvartal/p/e{n:03d}",
     "ocr_every": 5,
     "version_every": 5
    }
   },
   {
    "platform": "instagram",
-   "handle": "lazurny_bereg_demo",
-   "url": "https://instagram.example.invalid/lazurny_bereg_demo",
+   "handle": "lazurny_bereg",
+   "url": "https://instagram.example.invalid/lazurny_bereg",
    "last_collected": "-8h",
    "posts": [
     {
      "external_id": "demo-lb-l1",
      "published_at": "-3d",
      "text": "Лазурный берег: зарезервировать квартиру, договор резерва на 14 дней. +7 700 000 11 01",
-     "url": "https://instagram.example.invalid/lazurny_bereg_demo/p/l1",
+     "url": "https://instagram.example.invalid/lazurny_bereg/p/l1",
      "phones": [
       "+7 700 000 11 01"
      ]
@@ -708,34 +708,34 @@
     ],
     "newest_days": 5,
     "oldest_days": 90,
-    "post_url": "https://instagram.example.invalid/lazurny_bereg_demo/p/f{n:03d}",
+    "post_url": "https://instagram.example.invalid/lazurny_bereg/p/f{n:03d}",
     "version_every": 4,
     "removed_every": 6
    }
   },
   {
    "platform": "instagram",
-   "handle": "ust_realty_demo",
-   "url": "https://instagram.example.invalid/ust_realty_demo",
+   "handle": "ust_realty",
+   "url": "https://instagram.example.invalid/ust_realty",
    "last_collected": "-2h",
    "posts": [
     {
      "external_id": "demo-ur-r1",
      "published_at": "-5d",
      "text": "Эксклюзив! ЖК «Солнечная долина» в рассрочку 0-0-24, старт продаж.",
-     "url": "https://instagram.example.invalid/ust_realty_demo/p/r1"
+     "url": "https://instagram.example.invalid/ust_realty/p/r1"
     },
     {
      "external_id": "demo-ur-r2",
      "published_at": "-9d",
      "text": "Успей купить до повышения цен! ЖК «Радужный парк», цены до сдачи.",
-     "url": "https://instagram.example.invalid/ust_realty_demo/p/r2"
+     "url": "https://instagram.example.invalid/ust_realty/p/r2"
     },
     {
      "external_id": "demo-ur-r3",
      "published_at": "-26d",
      "text": "Лайфхаки при выборе квартиры в новостройке: что проверить в документах.",
-     "url": "https://instagram.example.invalid/ust_realty_demo/p/r3",
+     "url": "https://instagram.example.invalid/ust_realty/p/r3",
      "triage": {
       "state": "irrelevant",
       "note": "Общая информация, застройщик не назван"
@@ -767,15 +767,15 @@
     ],
     "newest_days": 6,
     "oldest_days": 105,
-    "post_url": "https://instagram.example.invalid/ust_realty_demo/p/g{n:03d}",
+    "post_url": "https://instagram.example.invalid/ust_realty/p/g{n:03d}",
     "kazakh_every": 5,
     "ocr_every": 7
    }
   },
   {
    "platform": "instagram",
-   "handle": "hrustalny_gorod_ig_demo",
-   "url": "https://instagram.example.invalid/hrustalny_gorod_ig_demo",
+   "handle": "hrustalny_gorod_ig",
+   "url": "https://instagram.example.invalid/hrustalny_gorod_ig",
    "last_collected": "-4h",
    "posts": [],
    "object": "ЖК «Хрустальный город»",
@@ -786,14 +786,14 @@
     ],
     "newest_days": 2,
     "oldest_days": 27,
-    "post_url": "https://instagram.example.invalid/hrustalny_gorod_ig_demo/p/h{n:03d}",
+    "post_url": "https://instagram.example.invalid/hrustalny_gorod_ig/p/h{n:03d}",
     "ocr_every": 3
    }
   },
   {
    "platform": "tiktok",
-   "handle": "stroim_ustkam_demo",
-   "url": "https://tiktok.example.invalid/@stroim_ustkam_demo",
+   "handle": "stroim_ustkam",
+   "url": "https://tiktok.example.invalid/@stroim_ustkam",
    "last_collected": "-7h",
    "posts": [],
    "developer_bin": "991540000077",
@@ -805,14 +805,14 @@
     ],
     "newest_days": 4,
     "oldest_days": 80,
-    "post_url": "https://tiktok.example.invalid/@stroim_ustkam_demo/video/{n}",
+    "post_url": "https://tiktok.example.invalid/@stroim_ustkam/video/{n}",
     "kazakh_every": 4
    }
   },
   {
    "platform": "tiktok",
-   "handle": "kedr_life_demo",
-   "url": "https://tiktok.example.invalid/@kedr_life_demo",
+   "handle": "kedr_life",
+   "url": "https://tiktok.example.invalid/@kedr_life",
    "last_collected": "-9h",
    "posts": [],
    "feed": {
@@ -840,7 +840,7 @@
     ],
     "newest_days": 3,
     "oldest_days": 70,
-    "post_url": "https://tiktok.example.invalid/@kedr_life_demo/video/{n}",
+    "post_url": "https://tiktok.example.invalid/@kedr_life/video/{n}",
     "ordinary_every": 3
    }
   },
@@ -975,8 +975,8 @@
   },
   {
    "platform": "aggregator",
-   "handle": "krisha-ustkam-novostroyki-demo",
-   "url": "https://krisha.example.invalid/prodazha/kvartiry/ust-kamenogorsk/?demo=1",
+   "handle": "krisha-ustkam-novostroyki",
+   "url": "https://krisha.example.invalid/prodazha/kvartiry/ust-kamenogorsk/",
    "last_collected": "-2h",
    "posts": [
     {
@@ -1051,8 +1051,8 @@
   },
   {
    "platform": "aggregator",
-   "handle": "olx-ustkam-novostroyki-demo",
-   "url": "https://olx.example.invalid/nedvizhimost/prodazha-kvartir/ust-kamenogorsk/?demo=1",
+   "handle": "olx-ustkam-novostroyki",
+   "url": "https://olx.example.invalid/nedvizhimost/prodazha-kvartir/ust-kamenogorsk/",
    "last_collected": "-3h",
    "posts": [
     {
@@ -1108,7 +1108,7 @@
   },
   {
    "platform": "other",
-   "handle": "forum-ustkam-stroyka-demo",
+   "handle": "forum-ustkam-stroyka",
    "url": "https://forum.example.invalid/ustkam",
    "last_collected": "-5h",
    "posts": [
@@ -1280,7 +1280,7 @@
    "object": "ЖК «Эдельвейс»",
    "received_at": "-18d",
    "source": "eotinish",
-   "external_id": "EO-DEMO-C01",
+   "external_id": "EO-C01",
    "is_collective": true,
    "signatories_count": 31,
    "summary": "Коллективное обращение дольщиков: задержка передачи ключей и просьба внести доплату",
@@ -1290,7 +1290,7 @@
    "object": "ЖК «Тихая гавань»",
    "received_at": "-75d",
    "source": "eotinish",
-   "external_id": "EO-DEMO-C02",
+   "external_id": "EO-C02",
    "is_collective": true,
    "signatories_count": 14,
    "summary": "Коллективная жалоба на шум и грязь от стройплощадки",
@@ -1301,7 +1301,7 @@
    "object": "ЖК «Золотая осень»",
    "received_at": "-9d",
    "source": "eotinish",
-   "external_id": "EO-DEMO-C03",
+   "external_id": "EO-C03",
    "summary": "Требуют внести задаток наличными без договора",
    "status": "in_review",
    "is_verified": true,
@@ -1320,7 +1320,7 @@
    "object": "ЖК «Ривьера Парк»",
    "received_at": "-6d",
    "source": "eotinish",
-   "external_id": "EO-DEMO-C04",
+   "external_id": "EO-C04",
    "is_collective": true,
    "signatories_count": 22,
    "summary": "Коллективное обращение: депозиты внесены, договоры долевого участия не заключены",
@@ -1711,7 +1711,7 @@
  "shared_entities": [
   {
    "kind": "bank_details",
-   "value": "KZ00 DEMO 0000 0000 0001 (ТОО «Посредник Демо»)",
+   "value": "KZ00 0000 0000 0001 (ТОО «Посредник»)",
    "note": "Один счёт для приёма платежей по двум объектам",
    "objects": [
     "ЖК «Хрустальный город»",

@@ -177,10 +177,10 @@ PHRASES: list[tuple[PhraseCategory, str, list[str], int]] = [
 ]
 
 DEMO_USERS = [
-    ("demo_admin", "Демо: администратор", Role.admin, None),
-    ("demo_mio", "Демо: сотрудник МИО", Role.mio_officer, CITY_CODE),
-    ("demo_gask", "Демо: сотрудник ГАСК", Role.gask, CITY_CODE),
-    ("demo_police", "Демо: правоохранительные органы", Role.law_enforcement, REGION_CODE),
+    ("demo_admin", "Администратор", Role.admin, None),
+    ("demo_mio", "Сотрудник МИО", Role.mio_officer, CITY_CODE),
+    ("demo_gask", "Сотрудник ГАСК", Role.gask, CITY_CODE),
+    ("demo_police", "Правоохранительные органы", Role.law_enforcement, REGION_CODE),
 ]
 
 

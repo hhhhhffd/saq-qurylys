@@ -2,7 +2,7 @@
   "developers": [
     {
       "bin": "990340000011",
-      "name": "ТОО «Север-Строй Демо»",
+      "name": "ТОО «Север-Строй»",
       "director": "Иванов И. И.",
       "founders": [
         "Иванов И. И.",
@@ -15,7 +15,7 @@
     },
     {
       "bin": "990540000022",
-      "name": "ТОО «Гавань Девелопмент Демо»",
+      "name": "ТОО «Гавань Девелопмент»",
       "director": "Петров П. П.",
       "founders": [
         "Петров П. П."
@@ -27,7 +27,7 @@
     },
     {
       "bin": "990740000033",
-      "name": "ТОО «Рощин и Партнёры Демо»",
+      "name": "ТОО «Рощин и Партнёры»",
       "director": "Сидорова А. А.",
       "founders": [
         "Сидорова А. А.",
@@ -40,7 +40,7 @@
     },
     {
       "bin": "990940000044",
-      "name": "ТОО «Янтарь Групп Демо»",
+      "name": "ТОО «Янтарь Групп»",
       "director": "Нурланов Н. Н.",
       "founders": [
         "Нурланов Н. Н."
@@ -52,7 +52,7 @@
     },
     {
       "bin": "991140000055",
-      "name": "ТОО «Ручей Инвест Демо»",
+      "name": "ТОО «Ручей Инвест»",
       "director": "Ержанова Е. Е.",
       "founders": [
         "Ержанова Е. Е.",
@@ -65,7 +65,7 @@
     },
     {
       "bin": "991340000066",
-      "name": "ТОО «Берег-Строй Демо»",
+      "name": "ТОО «Берег-Строй»",
       "director": "Смирнов С. С.",
       "founders": [
         "Смирнов С. С."
@@ -77,7 +77,7 @@
     },
     {
       "bin": "991540000077",
-      "name": "ТОО «Аллея Девелопмент Демо»",
+      "name": "ТОО «Аллея Девелопмент»",
       "director": "Козлова К. К.",
       "founders": [
         "Козлова К. К.",
@@ -90,7 +90,7 @@
     },
     {
       "bin": "991740000088",
-      "name": "ТОО «Осень Холдинг Демо»",
+      "name": "ТОО «Осень Холдинг»",
       "director": "Волков В. В.",
       "founders": [
         "Волков В. В."
@@ -102,7 +102,7 @@
     },
     {
       "bin": "991940000099",
-      "name": "ТОО «Хрусталь Проект Демо»",
+      "name": "ТОО «Хрусталь Проект»",
       "director": "Орлов О. О.",
       "founders": [
         "Орлов О. О."
@@ -161,9 +161,9 @@
       "ads": [
         {
           "platform": "instagram",
-          "url": "https://example.invalid/instagram/severny_briz_demo/p1",
-          "external_id": "demo-severny_briz_demo-p1",
-          "author": "severny_briz_demo",
+          "url": "https://example.invalid/instagram/severny_briz/p1",
+          "external_id": "demo-severny_briz-p1",
+          "author": "severny_briz",
           "published_at": "-3d",
           "text": "Платная бронь квартир в ЖК «Северный бриз»: закрепите квартиру за собой всего за 50 000 ₸. Забронируйте онлайн, остальное — после подписания договора. Телефон отдела продаж: +7 700 000 01 01",
           "phones": [
@@ -234,9 +234,9 @@
       "ads": [
         {
           "platform": "instagram",
-          "url": "https://example.invalid/instagram/zolotaya_osen_demo/p1",
-          "external_id": "demo-zolotaya_osen_demo-p1",
-          "author": "zolotaya_osen_demo",
+          "url": "https://example.invalid/instagram/zolotaya_osen/p1",
+          "external_id": "demo-zolotaya_osen-p1",
+          "author": "zolotaya_osen",
           "published_at": "-2d",
           "text": "ЖК «Золотая осень»: цена, как на старте! Внесите депозит 100 000 ₸ — и стоимость квартиры фиксируется. Предложение ограничено. +7 700 000 02 01",
           "phones": [
@@ -246,9 +246,9 @@
         },
         {
           "platform": "telegram",
-          "url": "https://example.invalid/telegram/zolotaya_osen_demo/102",
-          "external_id": "demo-zolotaya_osen_demo-102",
-          "author": "zolotaya_osen_demo",
+          "url": "https://example.invalid/telegram/zolotaya_osen/102",
+          "external_id": "demo-zolotaya_osen-102",
+          "author": "zolotaya_osen",
           "published_at": "-6d",
           "text": "Золотая осень: открыли продажи 3 очереди! Квартиры с видом на парк. +7 700 000 02 01",
           "phones": [
@@ -290,7 +290,7 @@
           "doc_type": "psd",
           "number": "ПСД-26/044",
           "issued_at": "-300d",
-          "issuer": "ТОО «Проектный институт Демо»",
+          "issuer": "ТОО «Проектный институт»",
           "check_status": "confirmed",
           "check_source": "manual",
           "note": null
@@ -368,7 +368,7 @@
         {
           "received_at": "-40d",
           "source": "eotinish",
-          "external_id": "EO-DEMO-0103",
+          "external_id": "EO-0103",
           "is_collective": true,
           "signatories_count": 28,
           "is_verified": true,
@@ -387,9 +387,9 @@
       "ads": [
         {
           "platform": "telegram",
-          "url": "https://example.invalid/telegram/topolinaya_alleya_demo/201",
-          "external_id": "demo-topolinaya_alleya_demo-201",
-          "author": "topolinaya_alleya_demo",
+          "url": "https://example.invalid/telegram/topolinaya_alleya/201",
+          "external_id": "demo-topolinaya_alleya-201",
+          "author": "topolinaya_alleya",
           "published_at": "-7d",
           "text": "ЖК «Тополиная аллея»: идёт отделка фасада, выложили свежие фото со стройки. Запись на экскурсию: +7 700 000 04 01",
           "phones": [
@@ -446,9 +446,9 @@
       "ads": [
         {
           "platform": "instagram",
-          "url": "https://example.invalid/instagram/kedrovy_kvartal_demo/p4",
-          "external_id": "demo-kedrovy_kvartal_demo-p4",
-          "author": "kedrovy_kvartal_demo",
+          "url": "https://example.invalid/instagram/kedrovy_kvartal/p4",
+          "external_id": "demo-kedrovy_kvartal-p4",
+          "author": "kedrovy_kvartal",
           "published_at": "-4d",
           "text": "ЖК «Кедровый квартал»: готовность дома — 70%! Фасад закрыт, внутри идут отделочные работы. Рассрочка от застройщика без переплат. Звоните: +7 700 000 05 01",
           "phones": [
@@ -501,7 +501,7 @@
         {
           "received_at": "-15d",
           "source": "manual",
-          "external_id": "DEMO-C-0105",
+          "external_id": "C-0105",
           "is_collective": true,
           "signatories_count": 12,
           "is_verified": false,
@@ -566,9 +566,9 @@
       "ads": [
         {
           "platform": "telegram",
-          "url": "https://example.invalid/telegram/novaya_era_demo/301",
-          "external_id": "demo-novaya_era_demo-301",
-          "author": "novaya_era_demo",
+          "url": "https://example.invalid/telegram/novaya_era/301",
+          "external_id": "demo-novaya_era-301",
+          "author": "novaya_era",
           "published_at": "-10d",
           "text": "Новая эра: срок сдачи перенесён, но работы идут. Ждём вас на день открытых дверей в субботу. +7 700 000 07 01",
           "phones": [
@@ -624,9 +624,9 @@
       "ads": [
         {
           "platform": "telegram",
-          "url": "https://example.invalid/telegram/oblachny_demo/401",
-          "external_id": "demo-oblachny_demo-401",
-          "author": "oblachny_demo",
+          "url": "https://example.invalid/telegram/oblachny/401",
+          "external_id": "demo-oblachny-401",
+          "author": "oblachny",
           "published_at": "-8d",
           "text": "Начало продаж в ЖК «Облачный»! Приглашаем в офис продаж на ул. Облачной, 11. Консультации по ипотеке: +7 700 000 08 01",
           "phones": [
@@ -811,9 +811,9 @@
       "ads": [
         {
           "platform": "instagram",
-          "url": "https://example.invalid/instagram/lazurny_bereg_demo/p7",
-          "external_id": "demo-lazurny_bereg_demo-p7",
-          "author": "lazurny_bereg_demo",
+          "url": "https://example.invalid/instagram/lazurny_bereg/p7",
+          "external_id": "demo-lazurny_bereg-p7",
+          "author": "lazurny_bereg",
           "published_at": "-2d",
           "text": "Лазурный берег уже виден из окон! Рассрочка от застройщика на 24 месяца, первый взнос от 15%. Покажем квартиры: +7 700 000 11 01",
           "phones": [
@@ -931,7 +931,7 @@
         {
           "received_at": "-9d",
           "source": "eotinish",
-          "external_id": "EO-DEMO-0104",
+          "external_id": "EO-0104",
           "is_collective": false,
           "signatories_count": 3,
           "is_verified": false,
@@ -979,9 +979,9 @@
         },
         {
           "platform": "telegram",
-          "url": "https://example.invalid/telegram/hrustalny_gorod_demo/501",
-          "external_id": "demo-hrustalny_gorod_demo-501",
-          "author": "hrustalny_gorod_demo",
+          "url": "https://example.invalid/telegram/hrustalny_gorod/501",
+          "external_id": "demo-hrustalny_gorod-501",
+          "author": "hrustalny_gorod",
           "published_at": "-1d",
           "text": "Горячее предложение: зарезервировать квартиру в ЖК «Хрустальный город» можно по договору резерва — всего 50 000 ₸. Подробности: +7 700 000 13 01",
           "phones": [
@@ -1078,7 +1078,7 @@
         {
           "received_at": "-60d",
           "source": "manual",
-          "external_id": "DEMO-C-0102",
+          "external_id": "C-0102",
           "is_collective": false,
           "signatories_count": 1,
           "is_verified": true,
