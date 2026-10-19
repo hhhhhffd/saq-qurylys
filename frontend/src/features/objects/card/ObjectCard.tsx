@@ -111,8 +111,10 @@ export function ObjectCard({ object }: { object: ObjectDetail }) {
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)]">
         <aside
           aria-label={t('card.facts.title')}
-          className="min-w-0 lg:sticky lg:top-[calc(var(--header-h)+16px)] lg:order-2 print:static"
+          className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-[calc(var(--header-h)+16px)] lg:order-2 print:static"
         >
+          {/* The next step stays in view on every tab: it is the one action the card leads to. */}
+          <ObjectReviewActions object={object} />
           <ObjectFacts object={object} onShowAll={() => selectTab('passport')} />
         </aside>
         <Tabs value={tab} onValueChange={(value) => selectTab(value as Tab)} className="min-w-0 lg:order-1">
@@ -146,9 +148,8 @@ export function ObjectCard({ object }: { object: ObjectDetail }) {
           {content(
             'overview',
             <>
-              <RiskPanel object={object} />
               <KnownFacts object={object} />
-              <ObjectReviewActions object={object} />
+              <RiskPanel object={object} />
               <BreakdownList score={object.latest_score} />
             </>,
           )}
