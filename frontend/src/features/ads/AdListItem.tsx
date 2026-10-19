@@ -24,7 +24,6 @@ export function AdListItem({ ad, selected, onSelect }: Props) {
       <button
         type="button"
         aria-current={selected ? 'true' : undefined}
-        aria-label={t('list.open', { id: ad.id })}
         onClick={() => onSelect(ad.id)}
         className={cn(
           'flex w-full min-w-0 cursor-pointer flex-col gap-1.5 border-0 border-l-[3px] border-l-transparent bg-transparent px-3 py-2.5 text-left transition-colors duration-(--dur) hover:bg-surface-raised max-sm:min-h-11',

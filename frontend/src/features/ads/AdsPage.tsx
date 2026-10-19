@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { IconArrowLeft, IconCamera, IconPlus, IconRss } from '@tabler/icons-react';
-import { Link, useSearchParams } from 'react-router';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useAd, useAds } from '@/api/hooks/ads';
 import { useAuth } from '@/auth/useAuth';
@@ -56,6 +56,8 @@ export function AdsPage() {
   const [captureOpen, setCaptureOpen] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
   const feedRef = useRef<HTMLDivElement>(null);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const filters: AdFilterValues = {
     platform: parsePlatform(params.get('platform')),
@@ -90,18 +92,22 @@ export function AdsPage() {
   const selectedAd = detail.data ?? items.find((ad) => ad.id === selectedId);
   const canReset = params.size > 0;
 
-  const updateParams = (patch: Record<string, string | null>) =>
-    setParams((previous) => {
-      const next = new URLSearchParams(previous);
-      for (const [key, value] of Object.entries(patch)) {
-        if (value) next.set(key, value);
-        else next.delete(key);
-      }
-      return next;
-    });
+  const updateParams = (patch: Record<string, string | null>, state?: unknown) =>
+    setParams(
+      (previous) => {
+        const next = new URLSearchParams(previous);
+        for (const [key, value] of Object.entries(patch)) {
+          if (value) next.set(key, value);
+          else next.delete(key);
+        }
+        return next;
+      },
+      { state },
+    );
 
   const changeFilters = (patch: Partial<AdFilterValues>) => {
-    const next: Record<string, string | null> = { page: null };
+    // The open publication may not match the new filters; the first one of the new list opens instead.
+    const next: Record<string, string | null> = { page: null, ad: null, hit: null };
     if (patch.platform !== undefined) next.platform = patch.platform;
     if (patch.status !== undefined) next.status = patch.status;
     if (patch.reviewState !== undefined) next.review_state = patch.reviewState;
@@ -112,11 +118,22 @@ export function AdsPage() {
   };
 
   const changePage = (nextPage: number) => {
-    updateParams({ page: nextPage > 1 ? String(nextPage) : null });
+    updateParams({ page: nextPage > 1 ? String(nextPage) : null, ad: null, hit: null });
+    // The list scrolls inside its own box on wide screens: start the new page at its top.
+    if (feedRef.current) feedRef.current.scrollTop = 0;
     feedRef.current?.scrollIntoView({ block: 'start' });
   };
 
-  const showAd = (id: number) => updateParams({ ad: String(id), hit: null });
+  const showAd = (id: number) => {
+    updateParams({ ad: String(id), hit: null }, { fromList: true });
+    // On narrow screens the card replaces the list: open it from its top, not at the list's scroll position.
+    if (!window.matchMedia('(min-width: 64rem)').matches) window.scrollTo({ top: 0 });
+  };
+  // Back to the list is the browser's Back when the card was opened from the list, so history does not loop.
+  const backToList = () => {
+    if ((location.state as { fromList?: boolean } | null)?.fromList) navigate(-1);
+    else updateParams({ ad: null, hit: null });
+  };
 
   return (
     <>
@@ -225,7 +242,7 @@ export function AdsPage() {
               className="max-sm:min-h-11 lg:hidden"
               variant="secondary"
               size="xs"
-              onClick={() => updateParams({ ad: null, hit: null })}
+              onClick={backToList}
             >
               <IconArrowLeft />
               {t('feed.back')}

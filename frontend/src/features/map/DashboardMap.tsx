@@ -128,8 +128,10 @@ function addObjectLayers(map: MapLibreMap) {
     type: 'symbol',
     source: OBJECTS_SOURCE,
     minzoom: 6,
+    // Only scored, current markers: a dash on the faint ghost or grey dot would be unreadable.
+    filter: ['all', ['==', ['typeof', ['get', 'score']], 'number'], ['match', ['get', 'zone'], ['green', 'yellow', 'red'], true, false]],
     layout: {
-      'text-field': ['case', ['==', ['typeof', ['get', 'score']], 'number'], ['to-string', ['round', ['get', 'score']]], '—'],
+      'text-field': ['to-string', ['round', ['get', 'score']]],
       'text-font': ['Noto Sans Bold'],
       'text-size': ['interpolate', ['linear'], ['zoom'], 6, 9, 8, 12, 16, 13],
       'text-allow-overlap': true,

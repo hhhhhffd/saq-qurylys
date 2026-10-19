@@ -39,7 +39,6 @@ const ads: typeof ru = {
   },
   list: {
     title: 'Жарияланымдар',
-    open: '№{{id}} жарияланымды ашу',
     noAuthor: 'авторсыз',
     nothingSelected: 'Тізімнен жарияланымды таңдаңыз',
   },

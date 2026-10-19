@@ -1,7 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { flushSync } from 'react-dom';
 import { IconTopologyStar3 } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
-import { Link, useLocation, useSearchParams } from 'react-router';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router';
 import { useObjectAssignments } from '@/api/hooks/assignments';
 import { useScoreHistory } from '@/api/hooks/objects';
 import { findFactor, readBreakdown, type ObjectDetail } from '@/api/types';
@@ -33,7 +34,8 @@ const isTab = (value: string | null): value is Tab => TABS.includes(value as Tab
 /** The tab that holds the element a `#hash` points at (evidence links, "next step" anchors). */
 function tabOfHash(hash: string): Tab | null {
   const id = hash.slice(1);
-  if (id === 'risk' || id === 'next-step' || id === 'breakdown') return 'overview';
+  // `next-step` lives in the side column, visible on every tab.
+  if (id === 'risk' || id === 'breakdown') return 'overview';
   if (id === 'passport' || id === 'facts') return 'passport';
   if (id === 'documents' || id.startsWith('doc-')) return 'documents';
   if (id === 'inspections' || id === 'vision' || id.startsWith('inspection-')) return 'progress';
@@ -58,6 +60,7 @@ export function ObjectCard({ object }: { object: ObjectDetail }) {
   const { t: tGraph } = useTranslation('graph');
   const [params, setParams] = useSearchParams();
   const { hash } = useLocation();
+  const navigate = useNavigate();
   const assignments = useObjectAssignments(object.id);
   // Loaded up front so the history is ready for the printed dossier.
   useScoreHistory(object.id);
@@ -77,7 +80,8 @@ export function ObjectCard({ object }: { object: ObjectDetail }) {
     if (target && target !== tab) {
       const nextParams = new URLSearchParams(params);
       nextParams.set('tab', target);
-      setParams(nextParams, { replace: true });
+      // setParams would drop the hash; keep it so the next run scrolls to the element.
+      navigate({ search: `?${nextParams}`, hash }, { replace: true });
       return;
     }
     if (hash) document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView();
@@ -87,7 +91,8 @@ export function ObjectCard({ object }: { object: ObjectDetail }) {
 
   // The dossier prints every tab, so the lazily shown history is mounted for printing too.
   useEffect(() => {
-    const before = () => setPrinting(true);
+    // The browser lays the page out right after `beforeprint`, so the history must be committed synchronously.
+    const before = () => flushSync(() => setPrinting(true));
     const after = () => setPrinting(false);
     window.addEventListener('beforeprint', before);
     window.addEventListener('afterprint', after);
@@ -118,7 +123,7 @@ export function ObjectCard({ object }: { object: ObjectDetail }) {
           <ObjectFacts object={object} onShowAll={() => selectTab('passport')} />
         </aside>
         <Tabs value={tab} onValueChange={(value) => selectTab(value as Tab)} className="min-w-0 lg:order-1">
-          <TabsList aria-label={t('card.tabs.label')} className="max-w-full overflow-x-auto" data-print="hide">
+          <TabsList aria-label={t('card.tabs.label')} className="max-w-full overflow-x-auto overflow-y-hidden" data-print="hide">
             <TabsTrigger value="overview" className="h-10">
               <TabLabel>{t('card.tabs.overview')}</TabLabel>
             </TabsTrigger>

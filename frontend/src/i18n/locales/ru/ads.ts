@@ -36,7 +36,6 @@ const ads = {
   },
   list: {
     title: 'Публикации',
-    open: 'Открыть публикацию №{{id}}',
     noAuthor: 'без автора',
     nothingSelected: 'Выберите публикацию в списке',
   },
