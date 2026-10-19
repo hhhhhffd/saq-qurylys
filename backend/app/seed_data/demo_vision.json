@@ -29,6 +29,7 @@
     {
      "name": "DJI_0413.JPG",
      "kind": "photo",
+     "file": "images/vision_dji_0413.jpg",
      "t": 2.0,
      "lat": 50.01611,
      "lon": 82.69877000000001
@@ -36,6 +37,7 @@
     {
      "name": "DJI_0414.JPG",
      "kind": "photo",
+     "file": "images/vision_dji_0414.jpg",
      "t": 6.0,
      "lat": 50.015409999999996,
      "lon": 82.69947
@@ -111,6 +113,7 @@
     {
      "asset": 1,
      "feature": "billboard",
+     "bbox": [75, 338, 313, 162],
      "category": "outdoor_ad",
      "status": "possible_noncompliance",
      "confidence": 0.9,
@@ -123,6 +126,7 @@
     {
      "asset": 2,
      "feature": "fence",
+     "bbox": [180, 445, 285, 85],
      "category": "fence",
      "status": "observed",
      "confidence": 0.5,
@@ -218,6 +222,7 @@
     {
      "name": "cam01_0930.JPG",
      "kind": "photo",
+     "file": "images/vision_cam01_0930.jpg",
      "t": 1.0,
      "lat": 50.00684,
      "lon": 82.57301
@@ -225,6 +230,7 @@
     {
      "name": "cam02_1015.JPG",
      "kind": "photo",
+     "file": "images/vision_cam02_1015.jpg",
      "t": 4.0,
      "lat": 50.0071,
      "lon": 82.5733
@@ -232,6 +238,7 @@
     {
      "name": "cam01_1400.JPG",
      "kind": "photo",
+     "file": "images/vision_cam01_1400.jpg",
      "t": 8.0,
      "lat": 50.00684,
      "lon": 82.57301
@@ -241,6 +248,7 @@
     {
      "asset": 0,
      "feature": "billboard",
+     "bbox": [215, 355, 235, 110],
      "category": "outdoor_ad",
      "status": "possible_noncompliance",
      "confidence": 0.89,
@@ -251,6 +259,7 @@
     {
      "asset": 1,
      "feature": "gate",
+     "bbox": [757, 375, 40, 125],
      "category": "site_gate",
      "status": "observed",
      "confidence": 0.83,
@@ -259,6 +268,7 @@
     {
      "asset": 2,
      "feature": "container",
+     "bbox": [908, 392, 38, 35],
      "category": "waste_container",
      "status": "observed",
      "confidence": 0.77
@@ -266,6 +276,7 @@
     {
      "asset": 1,
      "feature": "debris",
+     "bbox": [540, 375, 60, 35],
      "category": "debris",
      "status": "possible_noncompliance",
      "confidence": 0.61,
@@ -288,6 +299,7 @@
     {
      "name": "DJI_0301.JPG",
      "kind": "photo",
+     "file": "images/vision_dji_0301.jpg",
      "t": 3.0,
      "lat": 49.97755,
      "lon": 82.647
@@ -295,6 +307,7 @@
     {
      "name": "DJI_0302.JPG",
      "kind": "photo",
+     "file": "images/vision_dji_0302.jpg",
      "t": 7.0,
      "lat": 49.9777,
      "lon": 82.6473
@@ -304,6 +317,7 @@
     {
      "asset": 0,
      "feature": "building",
+     "bbox": [290, 235, 405, 165],
      "category": "other",
      "status": "possible_noncompliance",
      "confidence": 0.88,
@@ -314,6 +328,7 @@
     {
      "asset": 1,
      "feature": "fence",
+     "bbox": [185, 395, 230, 125],
      "category": "fence",
      "status": "observed",
      "confidence": 0.84,
@@ -322,6 +337,7 @@
     {
      "asset": 1,
      "feature": "billboard",
+     "bbox": [748, 277, 192, 105],
      "category": "outdoor_ad",
      "status": "observed",
      "confidence": 0.8,
@@ -347,6 +363,7 @@
     {
      "name": "IMG_2041.JPG",
      "kind": "photo",
+     "file": "images/vision_img_2041.jpg",
      "t": 5.0,
      "lat": 49.94903,
      "lon": 82.62642
@@ -356,6 +373,7 @@
     {
      "asset": 0,
      "feature": "billboard",
+     "bbox": [395, 370, 450, 110],
      "category": "outdoor_ad",
      "status": "observed",
      "confidence": 0.93,
@@ -382,6 +400,7 @@
     {
      "name": "cam_a.JPG",
      "kind": "photo",
+     "file": "images/vision_cam_a.jpg",
      "t": 2.0,
      "lat": 49.98926,
      "lon": 82.64941
@@ -389,6 +408,7 @@
     {
      "name": "cam_b.JPG",
      "kind": "photo",
+     "file": "images/vision_cam_b.jpg",
      "t": 6.0,
      "lat": 49.9893,
      "lon": 82.6496
@@ -398,6 +418,7 @@
     {
      "asset": 0,
      "feature": "container",
+     "bbox": [788, 392, 42, 32],
      "category": "waste_container",
      "status": "observed",
      "confidence": 0.81,
@@ -406,6 +427,7 @@
     {
      "asset": 1,
      "feature": "container",
+     "bbox": [243, 412, 52, 65],
      "category": "wheel_wash",
      "status": "observed",
      "confidence": 0.7
@@ -427,6 +449,7 @@
     {
      "name": "DJI_0611.JPG",
      "kind": "photo",
+     "file": "images/vision_dji_0611.jpg",
      "t": 1.0,
      "lat": 49.93374,
      "lon": 82.58428
@@ -434,6 +457,7 @@
     {
      "name": "DJI_0612.JPG",
      "kind": "photo",
+     "file": "images/vision_dji_0612.jpg",
      "t": 5.0,
      "lat": 49.9338,
      "lon": 82.5845
@@ -443,16 +467,18 @@
     {
      "asset": 0,
      "feature": "building",
+     "bbox": [430, 240, 410, 165],
      "category": "other",
      "status": "possible_noncompliance",
      "confidence": 0.79,
-     "note": "На площадке нет техники и людей, каркас не растёт",
+     "note": "Стоит только свайное поле, каркас не растёт",
      "review": "confirmed",
      "review_comment": "Подтверждает срыв сроков"
     },
     {
      "asset": 1,
      "feature": "debris",
+     "bbox": [295, 440, 70, 40],
      "category": "debris",
      "status": "observed",
      "confidence": 0.66

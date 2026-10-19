@@ -58,7 +58,7 @@ from app.models.enums import (
 )
 from app.modules.vision import media
 from app.seed import CITY_CODE, SEED_DATA_DIR, RelativeDateTime
-from app.seed_media import feature_bbox, site_frame, to_jpeg
+from app.seed_media import box_fractions, feature_bbox, site_frame, to_jpeg
 from app.storage import EvidenceLink
 
 logger = logging.getLogger("app.seed")
@@ -86,7 +86,7 @@ class VisionScene(_Strict):
 class VisionAssetSpec(_Strict):
     name: str
     kind: VisionAssetKind
-    file: str | None = None  # a video of seed_data
+    file: str | None = None  # a video of seed_data, or a 960x540 JPEG photo (a drawing is used without it)
     duration_s: float | None = None
     frames_s: list[float] = []  # the sampled seconds of a video
     t: float = 0.0  # the moment of the flight a photo shows
@@ -98,6 +98,8 @@ class VisionFindingSpec(_Strict):
     asset: int
     frame_s: float | None = None
     feature: str
+    # The box in pixels (x, y, w, h) on a photo from a file; drawn frames place `feature` themselves.
+    bbox: tuple[int, int, int, int] | None = None
     category: VisionCategory
     status: VisionFindingStatus
     confidence: float
@@ -187,6 +189,10 @@ def _add_session(session: Session, spec: VisionSessionSpec, obj: ConstructionObj
                 "video/mp4",
                 f"session/{vision_session.id}/{token}.mp4",
             )
+        elif asset_spec.file is not None:
+            data = (SEED_DATA_DIR / asset_spec.file).read_bytes()
+            image = Image.open(io.BytesIO(data)).convert("RGB")
+            content_type, key = "image/jpeg", f"session/{vision_session.id}/{token}.jpg"
         else:
             image = site_frame(asset_spec.t, scene.name, scene.banner, scene.progress)
             data, content_type, key = to_jpeg(image), "image/jpeg", f"session/{vision_session.id}/{token}.jpg"
@@ -267,7 +273,11 @@ def _add_session(session: Session, spec: VisionSessionSpec, obj: ConstructionObj
 
     for group_key, item in enumerate(spec.findings, start=1):
         frame, image = frames[(item.asset, item.frame_s)]
-        bbox = feature_bbox(item.feature, item.frame_s if item.frame_s is not None else spec.assets[item.asset].t)
+        bbox = (
+            box_fractions(item.bbox)
+            if item.bbox is not None
+            else feature_bbox(item.feature, item.frame_s if item.frame_s is not None else spec.assets[item.asset].t)
+        )
         detection_id = None
         if item in model_findings:
             detection = VisionDetection(

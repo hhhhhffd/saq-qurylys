@@ -204,7 +204,30 @@
    "Работы идут по графику",
    "Часть секций без работ",
    "Остекление и фасад"
-  ]
+  ],
+  "ocr_photos": {
+   "Рассрочка 0% — первоначальный взнос 20%": "images/ad_1.jpg",
+   "АКЦИЯ! Бронь квартиры до конца месяца": "images/ad_2.jpg",
+   "Готовность 70% — рассрочка от застройщика": "images/ad_3.jpg"
+  },
+  "inspection_photos": {
+   "ЖК «Берёзовая роща»": "images/insp_berezovaya-roshcha.jpg",
+   "ЖК «Звёздный путь»": "images/insp_zvezdnyi-put.jpg",
+   "ЖК «Золотая осень»": "images/insp_zolotaya-osen.jpg",
+   "ЖК «Кедровый квартал»": "images/insp_kedrovyi-kvartal.jpg",
+   "ЖК «Лазурный берег»": "images/insp_lazurnyi-bereg.jpg",
+   "ЖК «Новая эра»": "images/insp_novaya-era.jpg",
+   "ЖК «Облачный»": "images/insp_oblachnyi.jpg",
+   "ЖК «Радужный парк»": "images/insp_raduzhnyi-park.jpg",
+   "ЖК «Северный бриз»": "images/insp_severnyi-briz.jpg",
+   "ЖК «Серебряный ручей»": "images/insp_serebryanyi-ruchei.jpg",
+   "ЖК «Солнечная долина»": "images/insp_solnechnaya-dolina.jpg",
+   "ЖК «Тихая гавань»": "images/insp_tikhaya-gavan.jpg",
+   "ЖК «Тополиная аллея»": "images/insp_topolinaya-alleya.jpg",
+   "ЖК «Хрустальный город»": "images/insp_khrustalnyi-gorod.jpg",
+   "ЖК «Эдельвейс»": "images/insp_edelveis.jpg",
+   "ЖК «Янтарный двор»": "images/insp_yantarnyi-dvor.jpg"
+  }
  },
  "sources": [
   {

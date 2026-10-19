@@ -239,6 +239,11 @@ is synthetic: `app/seed_media.py` draws a stylized site (crane, fence, billboard
 were assembled from such frames with ffmpeg (the command is in that module). Originals and previews are stored through
 `storage.put_vision_object`; no job is queued, the GPU worker is not needed.
 
+`images/`: photos generated with ChatGPT (fictional sites, no real brands or people), JPEG. Vision photos are 960x540 and
+named in `demo_vision.json` (`file` of a photo asset, the finding boxes in pixels in `bbox`); inspection photos and
+photos of banners are 1280x720 and mapped in `demo_activity.json` (`pools.inspection_photos` by object name,
+`pools.ocr_photos` by the recognized text). Anything without a photo there is still drawn by `seed_media.py`.
+
 ## `pilot/ust-kamenogorsk-public-2026-10-13.json` (only with `--pilot`, optional)
 
 A snapshot of public data collected on 2026-10-13 (third-party data, not verified by SAQ): 26 residential complexes

@@ -182,6 +182,9 @@ class ActPools(_Strict):
     complaints: list[str]
     citizen: list[str]
     inspection_notes: list[str]
+    # Generated photos of seed_data: a banner by its recognized text, an inspection by the object name.
+    ocr_photos: dict[str, str] = {}
+    inspection_photos: dict[str, str] = {}
 
 
 class ActBotComplaint(_Strict):
@@ -390,7 +393,8 @@ def _process_post(ctx: _Context, account: SourceAccount, post: ActPost, index: i
     if post.ocr_text:
         storage.put_evidence(
             session,
-            to_jpeg(site_frame(0.0, post.author or account.handle, post.ocr_text, 0.4), 70),
+            _photo(ctx.data.pools.ocr_photos.get(post.ocr_text))
+            or to_jpeg(site_frame(0.0, post.author or account.handle, post.ocr_text, 0.4), 70),
             EvidenceKind.photo,
             "image/jpeg",
             link=EvidenceLink(ad_post_id=ad.id),
@@ -651,6 +655,10 @@ def _seed_complaints(ctx: _Context) -> int:
     return created
 
 
+def _photo(file_name: str | None) -> bytes | None:
+    return (SEED_DATA_DIR / file_name).read_bytes() if file_name else None
+
+
 def _seed_inspections(ctx: _Context) -> int:
     """Two earlier inspections per object (readiness grows with time) with a photo each. They are older than the
     inspection the object already has, so its current readiness, and with it every score, stays as it was."""
@@ -682,7 +690,8 @@ def _seed_inspections(ctx: _Context) -> int:
             session.flush()
             storage.put_evidence(
                 session,
-                to_jpeg(site_frame(position + step * 3.0, obj.name, "Фото с выезда", readiness / 100), 70),
+                _photo(ctx.data.pools.inspection_photos.get(obj.name))
+                or to_jpeg(site_frame(position + step * 3.0, obj.name, "Фото с выезда", readiness / 100), 70),
                 EvidenceKind.photo,
                 "image/jpeg",
                 link=EvidenceLink(inspection_id=inspection.id),

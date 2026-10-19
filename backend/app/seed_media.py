@@ -5,6 +5,8 @@ deterministic: the same arguments give the same picture. `python -m app.seed_med
 writes the frames of a flight for ffmpeg; `seed_data/demo_flight_*.mp4` were assembled that way:
 
     ffmpeg -framerate 12 -i DIR/frame_%05d.jpg -c:v libx264 -crf 30 -pix_fmt yuv420p -movflags +faststart out.mp4
+
+Where `seed_data/images` has a generated photo for a scene, the seed stores that photo instead of a drawing.
 """
 
 import io
@@ -45,9 +47,14 @@ def _font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
 def feature_bbox(feature: str, t: float = 0.0, size: tuple[int, int] = SIZE) -> dict[str, float]:
     """The box of a feature as fractions of the frame at the moment `t` (the camera drifts with time)."""
     x, y, w, h = _FEATURES[feature]
-    left = x - t * _DRIFT_PX_PER_S
+    return box_fractions((x - t * _DRIFT_PX_PER_S, y, w, h), size)
+
+
+def box_fractions(box: tuple[float, float, float, float], size: tuple[int, int] = SIZE) -> dict[str, float]:
+    """A box given in pixels (x, y, w, h) as fractions of the frame."""
+    x, y, w, h = box
     return {
-        "x": round(left / size[0], 4),
+        "x": round(x / size[0], 4),
         "y": round(y / size[1], 4),
         "w": round(w / size[0], 4),
         "h": round(h / size[1], 4),
