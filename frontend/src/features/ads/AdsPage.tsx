@@ -126,7 +126,7 @@ export function AdsPage() {
         actions={
           canEditRegistry && (
             <>
-              <Button className="max-sm:min-h-11" onClick={() => setCaptureOpen(true)}>
+              <Button className="max-sm:min-h-11" variant="secondary" onClick={() => setCaptureOpen(true)}>
                 <IconCamera />
                 {t('actions.capture')}
               </Button>
