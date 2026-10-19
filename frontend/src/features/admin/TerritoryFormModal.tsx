@@ -273,9 +273,6 @@ export function TerritoryFormModal({ territory, onClose }: Props) {
           </Field>
           <p className="text-xs text-text-3">{t('territories.form.districtsHint')}</p>
           <DialogFooter>
-            <Button type="button" variant="secondary" onClick={onClose}>
-              {tc('cancel')}
-            </Button>
             <Button type="submit" loading={create.isPending || update.isPending}>
               {tc('save')}
             </Button>

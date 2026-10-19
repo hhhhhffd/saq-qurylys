@@ -36,7 +36,7 @@ function CompleteDialog({ assignment, onClose }: { assignment: Assignment; onClo
           onChange={(event) => setResult(event.target.value)}
           error={touched && empty ? t('required', { ns: 'common' }) : undefined}
         />
-        <FormFooter loading={update.isPending} onCancel={onClose} submitLabel={t('complete.submit')} />
+        <FormFooter loading={update.isPending} submitLabel={t('complete.submit')} />
       </form>
     </FormDialog>
   );

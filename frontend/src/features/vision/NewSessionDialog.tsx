@@ -148,9 +148,6 @@ export function NewSessionDialog({ opened, onClose, defaultObjectId = null }: Pr
         </div>
         <TextArea label={t('new.note')} minRows={2} maxRows={6} {...register('note')} />
         <DialogFooter>
-          <Button type="button" variant="secondary" onClick={onClose}>
-            {tc('cancel')}
-          </Button>
           <Button type="submit" loading={create.isPending}>
             {t('new.submit')}
           </Button>

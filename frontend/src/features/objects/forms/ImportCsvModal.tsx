@@ -85,7 +85,7 @@ function ImportForm({ kind, onClose }: Omit<ImportCsvModalProps, 'opened'>) {
       />
       <FormFooter
         loading={mutation.isPending}
-        onCancel={onClose}
+       
         submitLabel={t('import.submit')}
         submitDisabled={!file || fileError !== null}
       />

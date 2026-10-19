@@ -330,7 +330,7 @@ function ObjectForm({ cities, object, onClose }: ObjectFormProps) {
             {...register('prior_violations')}
           />
         </FormGrid>
-        <FormFooter loading={pending} onCancel={onClose} submitLabel={object ? tc('save') : tc('create')} />
+        <FormFooter loading={pending} submitLabel={object ? tc('save') : tc('create')} />
       </form>
       {/* Outside the <form>: React submit events bubble through portals into parent forms. */}
       <DeveloperFormModal opened={developerModalOpened} onClose={developerModal.close} onSaved={pickDeveloper} />

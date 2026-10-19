@@ -220,9 +220,6 @@ export function UserFormModal({ user, onClose }: Props) {
             )}
           />
           <DialogFooter>
-            <Button type="button" variant="secondary" onClick={onClose}>
-              {tc('cancel')}
-            </Button>
             <Button type="submit" loading={create.isPending || update.isPending}>
               {tc('save')}
             </Button>

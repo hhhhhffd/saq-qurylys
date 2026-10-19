@@ -79,7 +79,7 @@ function AssignForm({ objectId, onClose }: Omit<Props, 'opened'>) {
         onChange={(event) => setTask(event.target.value)}
         error={touched && taskEmpty ? tc('required') : undefined}
       />
-      <FormFooter loading={create.isPending} onCancel={onClose} submitLabel={t('form.submit')} />
+      <FormFooter loading={create.isPending} submitLabel={t('form.submit')} />
     </form>
   );
 }

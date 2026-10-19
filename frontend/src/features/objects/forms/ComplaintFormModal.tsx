@@ -251,7 +251,7 @@ function ComplaintForm({ objectId, complaint, onClose }: ComplaintFormProps) {
       </FormGrid>
       <FormFooter
         loading={createComplaint.isPending || updateComplaint.isPending}
-        onCancel={onClose}
+       
         submitLabel={complaint ? tc('save') : tc('create')}
       />
     </form>

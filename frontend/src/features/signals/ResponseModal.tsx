@@ -19,7 +19,6 @@ interface Props {
 
 export function ResponseModal({ opened, onClose, detail }: Props) {
   const { t } = useTranslation('signals');
-  const { t: tc } = useTranslation();
   const respond = useRespondSignal();
   const apply = useApplySignal();
   const schema = useMemo(
@@ -68,9 +67,6 @@ export function ResponseModal({ opened, onClose, detail }: Props) {
             {...register('response')}
           />
           <DialogFooter>
-            <Button className="min-h-11" type="button" variant="secondary" onClick={close} disabled={respond.isPending}>
-              {tc('cancel')}
-            </Button>
             <Button className="min-h-11" type="submit" loading={respond.isPending}>
               {t('actions.respond')}
             </Button>

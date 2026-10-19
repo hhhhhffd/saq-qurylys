@@ -221,7 +221,7 @@ function DocumentForm({ objectId, document, onClose }: DocumentFormProps) {
       </FormGrid>
       <FormFooter
         loading={pending}
-        onCancel={onClose}
+       
         submitLabel={document ? tc('save') : tc('create')}
         submitDisabled={fileError !== null}
       />

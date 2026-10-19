@@ -336,6 +336,7 @@ const objects: typeof ru = {
       chart: 'Баллдың өзгеру динамикасы {{from}} – {{to}}, есептеулер: {{count}}',
       point: '{{date}}: {{score}}, {{zone}}',
       noReasons: 'Ерекше себептер жоқ',
+      since: '{{from}} бастап',
       fired: 'Іске қосылғандар: {{list}}',
       showAll: 'Барлығын көрсету ({{count}})',
       showLess: 'Жинау',

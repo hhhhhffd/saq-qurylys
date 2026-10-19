@@ -169,7 +169,7 @@ function DeveloperForm({ developer, onClose, onSaved }: DeveloperFormProps) {
           )}
         />
       </FormGrid>
-      <FormFooter loading={pending} onCancel={onClose} submitLabel={developer ? tc('save') : tc('create')} />
+      <FormFooter loading={pending} submitLabel={developer ? tc('save') : tc('create')} />
     </form>
   );
 }

@@ -93,7 +93,7 @@ function LinkedEntityForm({ objectId, onClose }: Omit<LinkedEntityFormModalProps
         {...register('value')}
       />
       <TextArea label={t('linkedEntity.note')} minRows={2} maxRows={5} {...register('note')} />
-      <FormFooter loading={createLinkedEntity.isPending} onCancel={onClose} submitLabel={tc('create')} />
+      <FormFooter loading={createLinkedEntity.isPending} submitLabel={tc('create')} />
     </form>
   );
 }

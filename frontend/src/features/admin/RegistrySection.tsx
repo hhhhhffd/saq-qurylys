@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { IconAlertTriangle, IconRefresh } from '@tabler/icons-react';
+import { IconRefresh } from '@tabler/icons-react';
 import { useTranslation } from 'react-i18next';
 import { useRegistrySyncStatus, useStartRegistrySync } from '@/api/hooks/reference';
 import type { RegistrySyncResult, RegistrySyncStatus } from '@/api/types';
@@ -76,13 +76,6 @@ function SyncPanel({
 
   return (
     <div className="flex flex-col gap-7">
-      <div role="note" className="flex items-start gap-2.5 rounded border border-zone-yellow/40 bg-zone-yellow-bg p-3 text-sm text-zone-yellow-ink">
-        <IconAlertTriangle size={18} aria-hidden className="mt-0.5 flex-none" />
-        <div>
-          <p className="font-heading text-xs font-bold tracking-wider uppercase">{t('registry.warningTitle')}</p>
-          <p className="mt-0.5">{t('registry.warning')}</p>
-        </div>
-      </div>
       <Panel
         title={t('registry.last.title')}
         actions={
