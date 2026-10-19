@@ -48,6 +48,7 @@ const common: typeof ru = {
     workShort: 'Жұмыс',
     adsShort: 'Жарнама',
     objectsShort: 'Нысан',
+    mapShort: 'Карта',
     cardsShort: 'Карточка',
     toolsCurrent: 'Құралдар. Ағымдағы бөлім: {{current}}',
     admin: 'Әкімшілік',

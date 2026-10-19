@@ -45,6 +45,7 @@ const common = {
     workShort: 'Задачи',
     adsShort: 'Реклама',
     objectsShort: 'Объекты',
+    mapShort: 'Карта',
     cardsShort: 'Карточки',
     toolsCurrent: 'Инструменты. Текущий раздел: {{current}}',
     admin: 'Администрирование',

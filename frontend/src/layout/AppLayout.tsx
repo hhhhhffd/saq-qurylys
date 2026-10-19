@@ -78,7 +78,6 @@ export function AppLayout() {
 
   const toolItems = [
     { to: '/control', label: t('nav.control'), icon: <IconUserCheck />, visible: canEditRegistry },
-    { to: '/map', label: t('nav.map'), icon: <IconMap2 />, visible: canSeeRegistry },
     { to: '/graph', label: t('nav.graph'), icon: <IconTopologyStar3 />, visible: canSeeRegistry },
     { to: '/sources', label: t('nav.sources'), icon: <IconRss />, visible: canEditRegistry },
     { to: '/vision', label: t('nav.vision'), icon: <IconEye />, visible: canSeeRegistry && visionEnabled },
@@ -104,7 +103,7 @@ export function AppLayout() {
           </Link>
 
           <nav
-            className={`-mx-3 flex min-w-0 flex-1 items-center [html[data-font=large]_&]:order-3 [html[data-font=large]_&]:mx-0 [html[data-font=large]_&]:basis-full flex-wrap max-[62em]:order-3 max-[62em]:mx-0 max-[62em]:grid max-[62em]:gap-0 ${canSeeRegistry ? 'max-[62em]:basis-full max-[62em]:grid-cols-5' : 'max-[62em]:w-fit max-[62em]:flex-none max-[62em]:basis-auto max-[62em]:grid-cols-1'}`}
+            className={`-mx-3 flex min-w-0 flex-1 items-center [html[data-font=large]_&]:order-3 [html[data-font=large]_&]:mx-0 [html[data-font=large]_&]:basis-full flex-wrap max-[62em]:order-3 max-[62em]:mx-0 max-[62em]:grid max-[62em]:gap-0 ${canSeeRegistry ? 'max-[62em]:basis-full max-[62em]:grid-cols-6' : 'max-[62em]:w-fit max-[62em]:flex-none max-[62em]:basis-auto max-[62em]:grid-cols-1'}`}
             aria-label={t('header.menu')}
           >
             {canSeeRegistry && (
@@ -126,6 +125,13 @@ export function AppLayout() {
                 <IconBuildingSkyscraper aria-hidden />
                 <span className="max-[62em]:hidden">{t('nav.objects')}</span>
                 <span className="hidden max-[62em]:inline">{t('nav.objectsShort')}</span>
+              </NavLink>
+            )}
+            {canSeeRegistry && (
+              <NavLink to="/map" className={navLinkClass} aria-label={t('nav.map')}>
+                <IconMap2 aria-hidden />
+                <span className="max-[62em]:hidden">{t('nav.map')}</span>
+                <span className="hidden max-[62em]:inline">{t('nav.mapShort')}</span>
               </NavLink>
             )}
             <NavLink to="/signals" className={navLinkClass} aria-label={t('nav.cards')}>

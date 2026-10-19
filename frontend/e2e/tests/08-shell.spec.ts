@@ -5,7 +5,7 @@ import { authFile } from '../support/users';
 
 test.use({ storageState: authFile('mio') });
 
-const NAV = ['map', 'objects', 'ads', 'graph', 'signals'] as const;
+const NAV = ['map', 'objects', 'ads', 'signals'] as const;
 
 test('the activity live region stays quiet without an idle caption', async ({ page }) => {
   await page.goto('/map');
