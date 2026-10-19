@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { IconCamera, IconPlus, IconRss } from '@tabler/icons-react';
+import { IconArrowLeft, IconCamera, IconPlus, IconRss } from '@tabler/icons-react';
 import { Link, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useAd, useAds } from '@/api/hooks/ads';
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { AdCard } from './AdCard';
+import { AdListItem } from './AdListItem';
 import { AdFilters, type AdFilterValues } from './AdFilters';
 import { AdsPager } from './AdsPager';
 import { CaptureModal } from './CaptureModal';
@@ -27,6 +28,21 @@ function FeedSkeleton({ count = 3 }: { count?: number }) {
           <Skeleton className="h-3.5 w-full" />
           <Skeleton className="h-3.5 w-5/6" />
           <Skeleton className="h-3.5 w-3/5" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ListSkeleton() {
+  const { t } = useTranslation();
+  return (
+    <div className="flex flex-col" role="status" aria-label={t('loading')}>
+      {Array.from({ length: 6 }, (_, index) => (
+        <div key={index} className="flex flex-col gap-2 border-b border-border px-3 py-3 last:border-b-0">
+          <Skeleton className="h-4 w-1/2" />
+          <Skeleton className="h-3.5 w-full" />
+          <Skeleton className="h-3.5 w-4/5" />
         </div>
       ))}
     </div>
@@ -63,14 +79,15 @@ export function AdsPage() {
     limit: PAGE_SIZE,
     offset: (page - 1) * PAGE_SIZE,
   });
-  // Shares its cache entry with the card of the same publication.
-  const pinnedAd = useAd(adId);
 
   const items = ads.data?.items ?? [];
   const total = ads.data?.total ?? 0;
-  // The opened publication is pinned above the feed (and left out of it): cards above it in the feed grow as
-  // their details load, which would push it out of view after the scroll.
-  const showPinned = adId !== null;
+  // On wide screens the first publication of the page is open until another one is chosen; on narrow ones the
+  // list stays alone until `?ad=` is set.
+  const selectedId = adId ?? items[0]?.id ?? null;
+  // Shares its cache entry with the card; also serves a publication that is not on this page.
+  const detail = useAd(selectedId);
+  const selectedAd = detail.data ?? items.find((ad) => ad.id === selectedId);
   const canReset = params.size > 0;
 
   const updateParams = (patch: Record<string, string | null>) =>
@@ -135,67 +152,93 @@ export function AdsPage() {
         canReset={canReset}
       />
 
-      {showPinned && (
-        <section className="mb-5" aria-label={t('feed.pinned')}>
-          <div className="mb-2 flex items-center justify-between gap-3 text-sm">
+      <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(340px,400px)_minmax(0,1fr)] lg:items-start">
+        <div
+          className={cn(
+            'min-w-0 flex-col gap-3 lg:sticky lg:top-[calc(var(--header-h)+16px)] lg:flex lg:max-h-[calc(100dvh-var(--header-h)-32px)]',
+            adId !== null ? 'hidden' : 'flex',
+          )}
+        >
+          <div
+            ref={feedRef}
+            className={cn(
+              'min-h-0 flex-1 overflow-y-auto rounded border border-border bg-surface transition-opacity duration-(--dur)',
+              ads.isPlaceholderData && 'opacity-60',
+            )}
+            aria-busy={ads.isFetching}
+          >
+            {ads.isPending && <ListSkeleton />}
+            {ads.isError && <ErrorBlock error={ads.error} onRetry={() => void ads.refetch()} />}
+            {ads.data && items.length === 0 && (
+              <EmptyState
+                action={
+                  total > 0 ? (
+                    <Button variant="secondary" size="xs" onClick={() => changePage(1)}>
+                      {t('feed.firstPage')}
+                    </Button>
+                  ) : canReset ? (
+                    <Button variant="secondary" size="xs" onClick={() => setParams(new URLSearchParams())}>
+                      {t('reset', { ns: 'common' })}
+                    </Button>
+                  ) : canEditRegistry ? (
+                    <div className="flex flex-wrap gap-2">
+                      <Button size="sm" className="max-sm:min-h-11" onClick={() => setCaptureOpen(true)}>
+                        {t('actions.capture')}
+                      </Button>
+                      <Button className="max-sm:min-h-11" variant="secondary" size="sm" onClick={() => setManualOpen(true)}>
+                        {t('actions.manual')}
+                      </Button>
+                    </div>
+                  ) : undefined
+                }
+              >
+                <strong>{total > 0 ? t('feed.pageEmpty') : t('feed.empty')}</strong>
+                {total === 0 && (
+                  <>
+                    <br />
+                    {t('feed.emptyHint')}
+                  </>
+                )}
+              </EmptyState>
+            )}
+            {items.length > 0 && (
+              <ul
+                className="m-0 flex list-none flex-col p-0 [&>li:not(:first-child)]:border-t [&>li:not(:first-child)]:border-border"
+                aria-label={t('list.title')}
+              >
+                {items.map((ad) => (
+                  <AdListItem key={ad.id} ad={ad} selected={ad.id === selectedId} onSelect={showAd} />
+                ))}
+              </ul>
+            )}
+          </div>
+          {items.length > 0 && <AdsPager page={page} total={total} onPageChange={changePage} />}
+        </div>
+
+        <section
+          className={cn('min-w-0 flex-col gap-3 lg:flex', adId === null ? 'hidden' : 'flex')}
+          aria-label={t('feed.pinned')}
+        >
+          <div className="sticky top-(--header-h) z-10 -mx-1 flex items-center justify-between gap-3 bg-bg px-1 py-2">
             <span className="text-2xs font-bold tracking-wider text-text-3 uppercase">{t('feed.pinned')}</span>
-            <Button variant="ghost" size="xs" onClick={() => updateParams({ ad: null, hit: null })}>
-              {t('feed.unpin')}
+            <Button
+              className="max-sm:min-h-11 lg:hidden"
+              variant="secondary"
+              size="xs"
+              onClick={() => updateParams({ ad: null, hit: null })}
+            >
+              <IconArrowLeft />
+              {t('feed.back')}
             </Button>
           </div>
-          {pinnedAd.isPending && <FeedSkeleton count={1} />}
-          {pinnedAd.isError && <ErrorBlock error={pinnedAd.error} onRetry={() => void pinnedAd.refetch()} />}
-          {pinnedAd.data && <AdCard ad={pinnedAd.data} highlighted focusHitId={focusHitId} />}
+          {selectedId !== null && selectedAd === undefined && detail.isPending && <FeedSkeleton count={1} />}
+          {selectedId !== null && selectedAd === undefined && detail.isError && (
+            <ErrorBlock error={detail.error} onRetry={() => void detail.refetch()} />
+          )}
+          {selectedAd && <AdCard key={selectedAd.id} ad={selectedAd} focusHitId={focusHitId} />}
+          {selectedId === null && !ads.isPending && <p className="m-0 text-sm text-text-3">{t('list.nothingSelected')}</p>}
         </section>
-      )}
-
-      <div
-        ref={feedRef}
-        className={cn('flex flex-col gap-3.5 transition-opacity duration-(--dur)', ads.isPlaceholderData && 'opacity-60')}
-        aria-busy={ads.isFetching}
-      >
-        {ads.isPending && <FeedSkeleton />}
-        {ads.isError && <ErrorBlock error={ads.error} onRetry={() => void ads.refetch()} />}
-        {ads.data && items.length === 0 && (
-          <EmptyState
-            action={
-              total > 0 ? (
-                <Button variant="secondary" size="xs" onClick={() => changePage(1)}>
-                  {t('feed.firstPage')}
-                </Button>
-              ) : canReset ? (
-                <Button variant="secondary" size="xs" onClick={() => setParams(new URLSearchParams())}>
-                  {t('reset', { ns: 'common' })}
-                </Button>
-              ) : canEditRegistry ? (
-                <div className="flex flex-wrap gap-2">
-                  <Button size="sm" className="max-sm:min-h-11" onClick={() => setCaptureOpen(true)}>
-                    {t('actions.capture')}
-                  </Button>
-                  <Button className="max-sm:min-h-11" variant="secondary" size="sm" onClick={() => setManualOpen(true)}>
-                    {t('actions.manual')}
-                  </Button>
-                </div>
-              ) : undefined
-            }
-          >
-            <strong>{total > 0 ? t('feed.pageEmpty') : t('feed.empty')}</strong>
-            {total === 0 && (
-              <>
-                <br />
-                {t('feed.emptyHint')}
-              </>
-            )}
-          </EmptyState>
-        )}
-        {items
-          .filter((ad) => ad.id !== adId)
-          .map((ad) => (
-            <AdCard key={ad.id} ad={ad} />
-          ))}
       </div>
-
-      {items.length > 0 && <AdsPager page={page} total={total} onPageChange={changePage} />}
 
       {canEditRegistry && (
         <>
