@@ -223,7 +223,8 @@ export function AppLayout() {
       </header>
       {/* The docked panel starts below the header, so only the content makes room for it and the header keeps its full width. */}
       <div className={cn(assistantOpen && 'min-[62em]:pr-(--assistant-w)')}>
-        <main className="mx-auto max-w-(--page-max) px-(--gutter) pt-6 pb-14">
+        {/* overflow-x-clip: decorative glows (BorderGlow) must not widen the page on phones; clip keeps sticky working. */}
+        <main className="mx-auto max-w-(--page-max) overflow-x-clip px-(--gutter) pt-6 pb-14">
           {/* The header stays usable when a page fails; moving to another page clears the error. */}
           <ErrorBoundary resetKey={location.pathname}>
             <Suspense fallback={<LoadingBlock />}>

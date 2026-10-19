@@ -450,8 +450,7 @@ async function installMocks(page: Page, role: Role, overrides: Partial<MockState
     if (method === 'GET' && /^\/objects\/\d+$/.test(path)) {
       return json(route, { ...state.object, id: Number(path.split('/').at(-1)) });
     }
-    // The object card loads both up front (tab counts, printed dossier).
-    if (method === 'GET' && /^\/objects\/\d+\/assignments$/.test(path)) return json(route, []);
+    // The object card loads score history up front (tab counts, printed dossier).
     if (method === 'GET' && /^\/objects\/\d+\/score-history$/.test(path)) return json(route, { items: [], total: 0 });
     const evidenceMatch = /^\/evidence\/(\d+)\/content$/.exec(path);
     if (method === 'GET' && evidenceMatch) {
