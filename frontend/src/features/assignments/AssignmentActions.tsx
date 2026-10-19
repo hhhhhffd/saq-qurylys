@@ -42,8 +42,11 @@ function CompleteDialog({ assignment, onClose }: { assignment: Assignment; onClo
   );
 }
 
-/** Buttons for an open assignment: complete (assignee, author, admin) and cancel (author, admin). */
-export function AssignmentActions({ assignment }: { assignment: Assignment }) {
+/**
+ * Buttons for an open assignment: complete (assignee, author, admin) and cancel (author, admin).
+ * `compact` (task lists) shows only a quiet "Done" button; cancelling stays on the object page and /control.
+ */
+export function AssignmentActions({ assignment, compact = false }: { assignment: Assignment; compact?: boolean }) {
   const { t } = useTranslation('assignments');
   const { user, isAdmin } = useAuth();
   const update = useUpdateAssignment();
@@ -54,6 +57,24 @@ export function AssignmentActions({ assignment }: { assignment: Assignment }) {
   const isAuthor = user.id === assignment.author_id;
   const canComplete = isAuthor || isAdmin || user.id === assignment.assignee_id;
   const canCancel = isAuthor || isAdmin;
+
+  if (compact) {
+    if (!canComplete) return null;
+    return (
+      <>
+        <Button
+          variant="outline"
+          className="min-h-11"
+          aria-label={`${t('complete.action')}: ${assignment.task}`}
+          onClick={() => setCompleting(true)}
+        >
+          <IconCheck />
+          {t('complete.short')}
+        </Button>
+        {completing && <CompleteDialog assignment={assignment} onClose={() => setCompleting(false)} />}
+      </>
+    );
+  }
 
   return (
     <div className="mt-2 flex flex-wrap items-center gap-2">

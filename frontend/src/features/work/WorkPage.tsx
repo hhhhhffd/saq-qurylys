@@ -6,8 +6,38 @@ import { useSignals } from '@/api/hooks/signals';
 import type { SignalRow, SignalStatus } from '@/api/types';
 import { useAuth } from '@/auth/useAuth';
 import { EmptyState, ErrorBlock, LoadingBlock } from '@/components/QueryState';
+import { ZoneBadge } from '@/components/Zone';
+import { useKeyStatusLabel } from '@/i18n/useEnum';
+import { cn } from '@/lib/utils';
 import { ReportCard } from './ReportCard';
 import { MyAssignments } from './MyAssignments';
+import { RecentChanges } from './RecentChanges';
+
+const START_COUNT = 5;
+
+function KpiTile({
+  to,
+  value,
+  label,
+  tone,
+}: {
+  to: string;
+  value: number | undefined;
+  label: string;
+  tone?: 'red' | 'yellow';
+}) {
+  // A zero is not highlighted: colour only marks a number that asks for attention.
+  const colour = value ? (tone === 'red' ? 'text-zone-red' : tone === 'yellow' ? 'text-zone-yellow' : 'text-text') : 'text-text';
+  return (
+    <Link
+      to={to}
+      className="flex min-h-11 flex-col justify-between gap-1 rounded border border-border bg-surface px-4 py-3 text-text no-underline transition-colors hover:bg-hover focus-visible:ring-2 focus-visible:ring-focus"
+    >
+      <span className={cn('font-heading text-3xl leading-none font-bold tabular-nums', colour)}>{value ?? '—'}</span>
+      <span className="text-sm text-text-2">{label}</span>
+    </Link>
+  );
+}
 
 type QueueStatus = Exclude<SignalStatus, 'closed'>;
 type SignalQuery = ReturnType<typeof useSignals>;
@@ -60,6 +90,7 @@ export function WorkPage() {
   const responded = useSignals({ status: 'responded', limit: 3 });
   const sent = useSignals({ status: 'sent', limit: 3 });
   const dashboard = useDashboard({});
+  const keyStatus = useKeyStatusLabel();
 
   const queues: Queue[] = [
     { status: 'returned', title: t('work.queueReturned'), actionLabel: 'work.primaryReturned', query: returned },
@@ -111,7 +142,17 @@ export function WorkPage() {
       : allQueuesEmpty
         ? t('work.checkAds')
         : undefined;
-  const redObjects = dashboard.data?.objects.filter((object) => object.zone === 'red').slice(0, 3) ?? [];
+  const queuesReady = !loadingQueues && failedQueues.length === 0;
+  const waitingCards = queuesReady
+    ? queues
+        .filter(({ status }) => status !== 'sent')
+        .reduce((sum, { query }) => sum + (query.data?.total ?? 0), 0)
+    : undefined;
+  const counts = dashboard.data?.counts;
+  const startObjects = (dashboard.data?.objects ?? [])
+    .filter((object) => object.score !== null)
+    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+    .slice(0, START_COUNT);
 
   return (
     <div className="space-y-6">
@@ -131,10 +172,67 @@ export function WorkPage() {
         )}
       </header>
 
-      {canEditRegistry && <MyAssignments />}
+      <section aria-label={t('work.kpiTitle')} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <KpiTile to="/objects" value={counts?.total} label={t('work.kpiTotal')} />
+        <KpiTile to="/objects?zone=red" value={counts?.red} label={t('work.kpiRed')} tone="red" />
+        <KpiTile to="/objects?zone=yellow" value={counts?.yellow} label={t('work.kpiYellow')} tone="yellow" />
+        <KpiTile to="/signals" value={waitingCards} label={t('work.kpiWaiting')} />
+      </section>
 
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,0.38fr)]">
-        <section aria-labelledby="work-queues-title" className="min-w-0 space-y-3">
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,0.5fr)]">
+        <div className="min-w-0 space-y-6">
+          <section aria-labelledby="work-start-title" className="space-y-2">
+            <h2 id="work-start-title" className="text-lg font-semibold">
+              {t('work.startTitle')}
+            </h2>
+            <div className="rounded border border-border bg-surface px-3">
+              {dashboard.isError ? (
+                <ErrorBlock error={dashboard.error} onRetry={() => void dashboard.refetch()} />
+              ) : dashboard.isPending ? (
+                <LoadingBlock label={t('work.loadingDashboard')} />
+              ) : startObjects.length === 0 ? (
+                <EmptyState>{t('work.startEmpty')}</EmptyState>
+              ) : (
+                <ol className="m-0 list-none divide-y divide-border p-0">
+                  {startObjects.map((object, index) => (
+                    <li key={object.id} className="flex items-start gap-3 py-3">
+                      <span className="w-6 flex-none pt-0.5 font-heading text-sm font-bold tabular-nums text-text-3">
+                        {String(index + 1).padStart(2, '0')}
+                      </span>
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                          <Link to={`/objects/${object.id}`} className="font-semibold">
+                            {object.name}
+                          </Link>
+                          <ZoneBadge zone={object.zone} score={object.score} />
+                        </div>
+                        <p className="m-0 text-xs text-text-3">
+                          {[object.district_name, object.developer_name].filter(Boolean).join(' · ')}
+                        </p>
+                        {object.key_status && (
+                          <p className="m-0 text-sm text-text-2">
+                            {keyStatus(object.key_status, object.key_status_detail)}
+                          </p>
+                        )}
+                      </div>
+                      <Link
+                        to={`/objects/${object.id}`}
+                        aria-label={`${t('work.openDossier')}: ${object.name}`}
+                        className="hidden min-h-11 flex-none items-center text-sm whitespace-nowrap sm:inline-flex"
+                      >
+                        {t('work.openDossier')} →
+                      </Link>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
+            <p className="m-0 text-xs text-text-3">{t('work.startNote')}</p>
+          </section>
+
+          {canEditRegistry && <MyAssignments />}
+
+        <section aria-labelledby="work-queues-title" className="space-y-2">
           <h2 id="work-queues-title" className="text-lg font-semibold">
             {t('work.queuesTitle')}
           </h2>
@@ -180,45 +278,13 @@ export function WorkPage() {
             ))}
           </div>
         </section>
+        </div>
 
-        <aside className="min-w-0 space-y-3" aria-labelledby="work-red-objects-title">
-          <div>
-            <h2 id="work-red-objects-title" className="text-lg font-semibold">
-              {t('work.redObjectsTitle')}
-            </h2>
-            <p className="mt-1 text-xs leading-relaxed text-text-3">{t('work.redObjectsNote')}</p>
-          </div>
-
-          <div className="rounded border border-border bg-surface px-3">
-            {dashboard.isError ? (
-              <ErrorBlock error={dashboard.error} onRetry={() => void dashboard.refetch()} />
-            ) : dashboard.isPending ? (
-              <LoadingBlock label={t('work.loadingDashboard')} />
-            ) : redObjects.length > 0 ? (
-              <ul className="m-0 list-none divide-y divide-border p-0">
-                {redObjects.map((object) => (
-                  <li key={object.id}>
-                    <Link
-                      to={`/objects/${object.id}`}
-                      className="flex min-h-11 items-center justify-between gap-3 py-2 text-sm text-text no-underline hover:text-accent-text focus-visible:ring-2 focus-visible:ring-focus"
-                    >
-                      <span className="min-w-0 truncate">{object.name}</span>
-                      <IconChevronRight className="size-4 flex-none text-text-3" aria-hidden />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="my-3 text-sm text-text-2">{t('work.noRedObjects')}</p>
-            )}
-          </div>
-
-          <Link to="/objects" className="inline-flex min-h-11 items-center text-sm text-link hover:underline">
-            {t('work.openObjects')}
-          </Link>
+        <aside className="min-w-0 space-y-6">
+          <RecentChanges />
+          <ReportCard />
         </aside>
       </div>
-      <ReportCard />
     </div>
   );
 }
