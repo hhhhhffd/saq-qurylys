@@ -274,9 +274,8 @@ cd ../frontend && pnpm install && pnpm typecheck && pnpm lint && pnpm build
 
 ## Материалы
 
+- **Демо:** https://youtu.be/3RoOg2nhx4Y
 - **Питч:** https://youtu.be/WTm2HXy0VOM
-- **Презентация:** не предоставляется
-- **Live Demo:** не предоставляется (запуск локально — см. «Установка и запуск»)
 
 ## Данные и сторонние компоненты
 
