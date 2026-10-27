@@ -248,10 +248,10 @@ DEMO_USER_PASSWORD=demo-saq-2026
 
 Сервис базы данных в compose называется `db`: контейнеры подключаются к
 `postgresql+psycopg://saq_app:saq_app_dev_password@db:5432/saq` (compose подставляет хосты `db`, `redis`, `minio`
-сам). Для запуска backend на хосте БД опубликована на `localhost:5433`. 
+сам). Для запуска backend на хосте БД опубликована на `localhost:5433`.
+
 > [!WARNING]
-> Для продакшена задайте свои `JWT_SECRET`
-(`openssl rand -hex 32`), пароли и уберите строки `EVIDENCE_LOCK_MODE=GOVERNANCE` / `EVIDENCE_RETENTION_DAYS=1`: они нужны только, чтобы в dev можно было удалять данные.
+> Для продакшена задайте свои `JWT_SECRET` (`openssl rand -hex 32`), пароли и уберите строки `EVIDENCE_LOCK_MODE=GOVERNANCE` / `EVIDENCE_RETENTION_DAYS=1`: они нужны только, чтобы в dev можно было удалять данные.
 
 **2. Запуск.**
 
