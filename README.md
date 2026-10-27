@@ -1,64 +1,89 @@
-# SAQ QURYLYS
+<div align="center">
 
-Платформа мониторинга рисков в долевом жилищном строительстве: собирает рекламу ЖК из соцсетей, сайтов и от
-граждан, фиксирует её как неизменяемое доказательство, находит в тексте предложения внести деньги и считает
-объяснимый балл риска по каждому объекту.
+<img src="frontend/public/favicon.svg" width="120" alt="SAQ QURYLYS logo">
 
-**Проблема.** Специалист МИО вручную сводит рекламу квартир, реестр АО «КЖК», разрешения МИО, кадастр и обращения
-граждан. Понять, какой ЖК проверять первым, долго, а объявление «внесите бронь» исчезает раньше, чем его зафиксируют.
+<h1>SAQ QURYLYS — Construction-Risk Monitoring</h1>
+<hr>
 
-**Решение.** Событийный конвейер: публикация → фиксация (PNG + MHTML, sha256, Object Lock) → OCR и лемматизация →
-привязка к ЖК → детерминированный пересчёт балла R1–R6 → черновик сигнальной карточки для красной зоны. ИИ только
-предлагает гипотезы; на балл влияет то, что подтвердил человек, и каждое решение по сигналу принимает человек.
+**Risk monitoring for municipal inspectors in one place: tamper-evident evidence, deterministic R1–R6 scoring, human-confirmed AI findings**
 
-> Красная зона означает высокий риск и необходимость проверки, а не установленную виновность.
+![PYTHON | 3.12](https://img.shields.io/badge/PYTHON-3.12-3776AB?style=flat-square&logo=python&logoColor=white)
+![FASTAPI](https://img.shields.io/badge/FASTAPI-0.143+-009688?style=flat-square&logo=fastapi&logoColor=white)
+![POSTGIS | 16-3.5](https://img.shields.io/badge/POSTGIS-16--3.5-336791?style=flat-square&logo=postgresql&logoColor=white)
+![REACT | 19](https://img.shields.io/badge/REACT-19-61DAFB?style=flat-square&logo=react&logoColor=black)
+![DOCKER | COMPOSE](https://img.shields.io/badge/DOCKER-COMPOSE-2496ED?style=flat-square&logo=docker&logoColor=white)
+![LICENSE | PROPRIETARY](https://img.shields.io/badge/LICENSE-PROPRIETARY-lightgrey?style=flat-square)
 
-## Технологический стек
+[Architecture](#architecture) · [Setup](#setup--deployment) · [Demo video](https://youtu.be/3RoOg2nhx4Y) · [Pitch](https://youtu.be/WTm2HXy0VOM)
 
-| Категория | Технологии |
+English · [Русский](README.ru.md)
+
+</div>
+
+## What it is
+
+A monitoring platform for shared-equity housing construction in Kazakhstan, built as a Codemasters 8.0 case. A municipal inspector (MIO) used to reconcile apartment advertising, the KZhK registry, MIO permits, the cadastre and citizen complaints by hand, and a "pay a deposit" ad could vanish before anyone captured it.
+
+The system captures advertising from social networks, websites and citizens as immutable evidence, finds payment offers in the text, and computes an explainable risk score per construction project. AI only proposes hypotheses; the final decision on every signal is made by a person.
+
+> [!NOTE]
+> The red zone means high risk and a need for inspection, not established guilt.
+
+## Highlights
+
+- **110 REST endpoints** on a FastAPI modular monolith, 11 Alembic migrations, per-queue Celery routing.
+- **Deterministic 6-factor risk engine (R1–R6):** the same confirmed input always gives the same score. LLM findings count only after analyst confirmation.
+- **Tamper-evident evidence:** sha256-hashed PNG + MHTML captures in MinIO Object Lock, plus append-only PostgreSQL triggers.
+- **1,068 pytest tests** (812 of them on real PostGIS and MinIO) and **65 Playwright E2E** tests.
+
+**Role:** solo developer of the whole system (backend, React frontend, Docker setup, tests, docs), built with AI-assisted tooling for the Codemasters 8.0 case.
+
+## Technical Stack
+
+| Category | Technologies |
 |---|---|
 | **Core** | Python 3.12, FastAPI, SQLAlchemy 2, Alembic, Pydantic 2; Celery 5 + celery beat; React 19, TypeScript, Vite, Tailwind CSS 4, shadcn/ui, TanStack Query/Table, MapLibre GL, react-i18next (RU/KZ) |
-| **Data** | PostgreSQL 16 + PostGIS, pg_trgm; Redis 7 (брокер Celery, счётчики входа); MinIO (S3 API, Object Lock) |
-| **AI/ML** | pymorphy3 (лемматизация), rapidfuzz, phonenumbers; Tesseract OCR (rus+kaz+eng); Ollama + Qwen 3.5 9B (локально) или любой OpenAI-совместимый API; Grounding DINO tiny (SAQ VISION, экспериментально) |
-| **Сбор и документы** | Playwright (Chromium), httpx, selectolax, python-telegram-bot, Telethon-юзербот; Jinja2 + WeasyPrint (PDF); RFC 3161 (опционально) |
-| **Infra** | Docker Compose (профили для необязательных сервисов), nginx, Cloudflare Tunnel (опционально), NVIDIA runtime для GPU-профилей |
+| **Data** | PostgreSQL 16 + PostGIS, pg_trgm; Redis 7 (Celery broker, login counters); MinIO (S3 API, Object Lock) |
+| **AI/ML** | pymorphy3 (lemmatization), rapidfuzz, phonenumbers; Tesseract OCR (rus+kaz+eng); Ollama + Qwen 3.5 9B (local) or any OpenAI-compatible API; Grounding DINO tiny (SAQ VISION, experimental) |
+| **Capture & documents** | Playwright (Chromium), httpx, selectolax, python-telegram-bot, Telethon userbot; Jinja2 + WeasyPrint (PDF); RFC 3161 (optional) |
+| **Infra** | Docker Compose (profiles for optional services), nginx, Cloudflare Tunnel (optional), NVIDIA runtime for GPU profiles |
+| **Tests** | pytest, ruff, mypy, ESLint, Playwright E2E |
 
-## Архитектура
+## Architecture
 
-### Системная схема
+### System diagram
 
-Модульный монолит на FastAPI плюс Celery-воркеры с отдельными очередями. Тяжёлые операции (браузер, OCR, LLM,
-видео) вынесены из API в очереди, чтобы ответ пользователю не зависел от внешних площадок и модели.
+A FastAPI modular monolith plus Celery workers on separate queues. Heavy work (browser, OCR, LLM, video) runs in queues, so an API response does not depend on external sites or the model.
 
 ```mermaid
 flowchart LR
     subgraph Clients
         SPA["React SPA<br/>(nginx :8080)"]
-        BOT["Telegram-бот<br/>для граждан"]
+        BOT["Telegram bot<br/>for citizens"]
     end
 
-    subgraph Sources["Внешние источники"]
-        WEB["Ссылки на публикации"]
+    subgraph Sources["External sources"]
+        WEB["Publication links"]
         COL["Telegram, OLX, Krisha,<br/>Instagram Graph API"]
-        KZH["Реестр АО «КЖК»"]
+        KZH["KZhK registry"]
     end
 
-    API["FastAPI api<br/>JWT, роли, территории, аудит"]
-    BEAT["celery beat<br/>расписания"]
+    API["FastAPI api<br/>JWT, roles, territories, audit"]
+    BEAT["celery beat<br/>schedules"]
     W["worker<br/>collect · archive · nlp · score · notify"]
-    VW["vision-worker<br/>ffmpeg, OCR, детектор"]
-    LLM["Ollama / OpenAI-<br/>совместимый API"]
+    VW["vision-worker<br/>ffmpeg, OCR, detector"]
+    LLM["Ollama / OpenAI-<br/>compatible API"]
 
     PG[("PostgreSQL 16<br/>+ PostGIS")]
-    RD[("Redis<br/>брокер")]
+    RD[("Redis<br/>broker")]
     S3[("MinIO<br/>Object Lock")]
 
     SPA -->|REST, SSE| API
     BOT --> PG
     BOT --> RD
     API --> PG
-    API -->|задачи| RD
-    API -->|файлы| S3
+    API -->|tasks| RD
+    API -->|files| S3
     BEAT --> RD
     RD --> W
     RD --> VW
@@ -68,23 +93,20 @@ flowchart LR
     W --> COL
     W --> KZH
     W --> LLM
-    API -->|помощник| LLM
+    API -->|assistant| LLM
     VW --> PG
     VW --> S3
 ```
 
-- **Модули** — `backend/app/modules/<имя>/` (`router` / `service` / `schemas` / `tasks`): `objects`, `ads`, `nlp`,
-  `risk`, `signals`, `evidence`, `graph`, `vision`, `assistant`, `search` и др. Celery сам находит `tasks.py`
-  каждого модуля; сборщики — `backend/app/collectors/`, бот — `backend/app/bot/`.
-- **Территория — атрибут данных** (область → город). Права проверяются в сервисном слое, чужая территория → 404;
-  новые регионы подключаются данными, без кода.
+- **Modules** live in `backend/app/modules/<name>/` (`router` / `service` / `schemas` / `tasks`): `objects`, `ads`, `nlp`, `risk`, `signals`, `evidence`, `graph`, `vision`, `assistant`, `search` and others. Celery discovers each module's `tasks.py`; collectors are in `backend/app/collectors/`, the bot in `backend/app/bot/`.
+- **Territory is a data attribute** (oblast → city). Access is checked in the service layer and a foreign territory returns 404, so new regions are added as data, without code.
 
-### Конвейер публикации
+### Publication pipeline
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor U as Специалист МИО
+    actor U as MIO inspector
     participant API as FastAPI
     participant Q as Redis / Celery
     participant A as archive.capture
@@ -93,7 +115,7 @@ sequenceDiagram
     participant DB as PostgreSQL
     participant S3 as MinIO
 
-    U->>API: POST «Зафиксировать по ссылке»
+    U->>API: POST "Capture by link"
     API->>DB: ad_post (status=capturing)
     API->>Q: archive.capture
     API-->>U: 202 Accepted
@@ -101,91 +123,96 @@ sequenceDiagram
     A->>S3: PNG + MHTML (Object Lock)
     A->>DB: evidence (sha256, captured_at)
     A->>Q: nlp.ocr → nlp.analyze
-    Q->>N: леммы, телефоны, фразы с позициями
-    N->>DB: ad_finding, привязка к ЖК (аккаунт → телефон → название)
-    N->>Q: nlp.llm_extract (если LLM_ENABLED)
+    Q->>N: lemmas, phones, phrases with positions
+    N->>DB: ad_finding, link to project (account → phone → name)
+    N->>Q: nlp.llm_extract (if LLM_ENABLED)
     N->>Q: risk.recalc_object
-    Q->>R: R1–R6 по подтверждённым фактам
+    Q->>R: R1–R6 from confirmed facts
     R->>DB: risk_score, risk_factor_change
-    alt красная зона
-        R->>DB: черновик сигнальной карточки + уведомление
+    alt red zone
+        R->>DB: draft signal card + notification
     end
 ```
 
-### Интеграция ИИ
+### AI integration
 
-ИИ встроен как набор подсказок поверх детерминированного ядра: при выключенной модели система работает полностью.
+AI is a layer of suggestions over a deterministic core: with the model switched off, the system works in full.
 
 ```mermaid
 flowchart TD
-    T["Текст публикации<br/>+ OCR фото"] --> D["Словарь формулировок<br/>pymorphy3, последовательности лемм"]
+    T["Publication text<br/>+ photo OCR"] --> D["Phrase dictionary<br/>pymorphy3, lemma sequences"]
     T --> L{"LLM_ENABLED?"}
-    L -- нет --> SKIP["шаг помечен как выключенный"]
-    L -- да --> P["Промпт: извлечь условия оплаты<br/>→ JSON {категория, цитата, уверенность}"]
-    P --> V{"JSON-схема валидна<br/>и цитата дословно в тексте?"}
-    V -- нет --> DROP["ответ отброшен"]
-    V -- да --> H["«Гипотеза ИИ»<br/>не влияет на балл"]
-    H --> HUM{"Аналитик"}
-    HUM -- подтвердил --> F["Фактор R2"]
-    HUM -- отклонил --> X["исключено"]
+    L -- no --> SKIP["step marked as disabled"]
+    L -- yes --> P["Prompt: extract payment terms<br/>→ JSON {category, quote, confidence}"]
+    P --> V{"JSON schema valid and<br/>quote found verbatim in text?"}
+    V -- no --> DROP["response discarded"]
+    V -- yes --> H["AI hypothesis<br/>does not affect the score"]
+    H --> HUM{"Analyst"}
+    HUM -- confirmed --> F["Factor R2"]
+    HUM -- rejected --> X["excluded"]
     D --> F
-    F --> E["risk.engine<br/>детерминированный балл и зона"]
+    F --> E["risk.engine<br/>deterministic score and zone"]
 ```
 
-- **Извлечение условий оплаты** — локальная Qwen 3.5 9B через Ollama: данные не покидают сервер. Ответ проверяется
-  JSON-схемой, цитата обязана дословно найтись в тексте (защита от галлюцинаций).
-- **Помощник «Спросить ИИ»** — агент с RAG по руководству сотрудника (`backend/app/modules/assistant/guide/`,
-  поиск по леммам) и инструментами только на чтение с теми же правами и территорией, что и API. Ответ потоком (SSE)
-  со ссылками на страницы. Подробнее — [docs/ASSISTANT.md](docs/ASSISTANT.md).
-- **SAQ VISION** — кадры из видео облёта, OCR выделенных областей и детектор Grounding DINO без дообучения:
-  только подсказки для человека. См. [docs/SAQ_VISION_ARCHITECTURE.md](docs/SAQ_VISION_ARCHITECTURE.md) и
-  [docs/SAQ_VISION_EVAL.md](docs/SAQ_VISION_EVAL.md).
+- **Payment-term extraction:** local Qwen 3.5 9B via Ollama, so data stays on the server. The answer is checked against a JSON schema and the quote must appear verbatim in the text (hallucination guard).
+- **"Ask AI" assistant:** an agent with RAG over the staff guide (`backend/app/modules/assistant/guide/`, lemma search) and read-only tools bound to the same permissions and territory as the API. Answers stream over SSE with page links. See [docs/ASSISTANT.md](docs/ASSISTANT.md) (Russian).
+- **SAQ VISION:** frames from flyover video, OCR of selected regions and a zero-shot Grounding DINO detector; hints for a human only. See [docs/SAQ_VISION_ARCHITECTURE.md](docs/SAQ_VISION_ARCHITECTURE.md) and [docs/SAQ_VISION_EVAL.md](docs/SAQ_VISION_EVAL.md) (Russian).
 
-### Модель риска
+### Risk model
 
-Балл = min(100, сумма весов **подтверждённых** факторов). Неизвестные сведения дают 0 и выводятся в блоке «Нужна
-проверка»: «нет данных» не равно «нет основания».
+Score = min(100, sum of weights of **confirmed** factors). Unknown facts add 0 and are listed under "Needs verification": "no data" is not "no grounds".
 
-| Код | Фактор | Баллы |
+| Code | Factor | Points |
 |---|---|---|
-| R1 | Проверены гарантия КЖК и разрешение МИО — оба не найдены | +35 |
-| R2 | Прямое предложение внести деньги (бронь, депозит, взнос, рассрочка) | +25 |
-| R3 | Активная реклама строящегося жилья за окно мониторинга (30 дней) | +10 |
-| R4 | Подтверждённое коллективное обращение | +15 |
-| R5 | Заявленная готовность расходится с фотофиксацией на ≥ 20 п.п. | +10 |
-| R6 | Подтверждённый простой > 30 дней или просрочка ввода ≥ 90 дней | +5 |
+| R1 | KZhK guarantee and MIO permit checked, neither found | +35 |
+| R2 | Direct offer to pay money (reservation, deposit, fee, installments) | +25 |
+| R3 | Active advertising of a building under construction in the monitoring window (30 days) | +10 |
+| R4 | Confirmed collective complaint | +15 |
+| R5 | Declared readiness differs from photo evidence by ≥ 20 pp | +10 |
+| R6 | Confirmed standstill > 30 days or commissioning delay ≥ 90 days | +5 |
 
-Зоны: зелёная 0–24; жёлтая 25–59, а также 60+ без одновременных R1 и R2; красная — 60+ и одновременно R1 и R2.
+Zones: green 0–24; yellow 25–59, and also 60+ without both R1 and R2; red 60+ with both R1 and R2.
 
 ### Architecture Decision Records
 
-1. **Модульный монолит FastAPI + Celery вместо микросервисов.** Команда маленькая, домен один, транзакции
-   пересекают модули (публикация → доказательство → балл → карточка). Один процесс API и одна схема БД упрощают
-   согласованность и деплой; изоляция нагрузки достигается очередями Celery (`archive`, `nlp`, `vision` и др.), а не
-   сетевыми границами. FastAPI выбран за async I/O для SSE помощника и типизированные контракты на Pydantic.
-2. **Неизменяемость доказательств на трёх уровнях.** Файлы — в MinIO с Object Lock (`COMPLIANCE`, 1825 дней по
-   умолчанию: не удалит даже root-ключ); `evidence`, `audit_log`, `risk_factor_change`, `ad_post_version` защищены
-   триггерами от UPDATE/DELETE; сервисы ходят в БД ролью `APP_DB_USER` без этих прав, миграции — владельцем в
-   одноразовом сервисе `migrate`. Без этого скриншот рекламы нельзя было бы использовать как материал проверки.
-3. **Детерминированный скоринг, ИИ — только гипотезы.** Решение по сигналу юридически значимо, поэтому балл
-   считается правилами R1–R6 с расшифровкой и ссылками на доказательства; одинаковые данные дают одинаковый
-   результат. LLM работает локально (персональные данные не уходят наружу) и влияет на балл только после
-   подтверждения человеком. PostgreSQL + PostGIS выбран вместо отдельного гео- и поискового хранилища: карта, pg_trgm
-   и история баллов живут в одной транзакционной БД.
+1. **FastAPI + Celery modular monolith instead of microservices.** One small team, one domain, and transactions that cross modules (publication → evidence → score → card). One API process and one DB schema keep consistency and deployment simple; load isolation comes from Celery queues (`archive`, `nlp`, `vision` and others), not network boundaries. FastAPI gives async I/O for the assistant's SSE and typed Pydantic contracts.
+2. **Evidence immutability on three levels.** Files go to MinIO with Object Lock (`COMPLIANCE`, 1825 days by default: not even the root key can delete them). `evidence`, `audit_log`, `risk_factor_change` and `ad_post_version` are protected by triggers against UPDATE/DELETE. Services connect with the `APP_DB_USER` role that lacks those rights, while migrations run as the owner in a one-shot `migrate` service. Without this, an ad screenshot could not serve as inspection material.
+3. **Deterministic scoring, AI only for hypotheses.** A decision on a signal is legally significant, so the score comes from R1–R6 rules with an explanation and links to evidence. The LLM runs locally (personal data stays in) and changes the score only after human confirmation. PostgreSQL + PostGIS replaces separate geo and search stores: map, pg_trgm and score history live in one transactional DB.
 
-Контракт системы — [docs/SPEC.md](docs/SPEC.md), принятые решения — [docs/OPEN_QUESTIONS.md](docs/OPEN_QUESTIONS.md).
+The system contract is in [docs/SPEC.md](docs/SPEC.md), decisions taken in [docs/OPEN_QUESTIONS.md](docs/OPEN_QUESTIONS.md) (both in Russian).
 
-## Установка и запуск
+## Project Structure
 
-Нужен Docker с Compose v2.
+```text
+.
+├── backend/
+│   ├── app/
+│   │   ├── modules/       # domain modules: router / service / schemas / tasks
+│   │   ├── collectors/    # Telegram, OLX, Krisha, Instagram collectors
+│   │   ├── bot/           # Telegram bot for citizens
+│   │   └── seed_data/     # demo and pilot datasets
+│   ├── alembic/           # 11 migrations, append-only triggers
+│   └── tests/             # pytest suite on real PostGIS and MinIO
+├── frontend/
+│   ├── src/               # React SPA
+│   └── e2e/               # Playwright E2E specs
+├── docs/                  # SPEC, assistant, SAQ VISION, data sources, dev guide (Russian)
+├── scripts/               # verify_case_scenarios.py
+├── docker-compose.yml     # db, redis, minio, migrate, api, worker, beat, frontend + profiles
+└── .env.example           # dev defaults
+```
 
-**1. Переменные окружения.**
+## Setup & Deployment
+
+Requires Docker with Compose v2.
+
+**1. Environment.**
 
 ```bash
 cp .env.example .env
 ```
 
-Значения по умолчанию из `.env.example` подходят для локального запуска (это dev-заглушки, не секреты):
+The `.env.example` defaults suit a local run (dev placeholders, not secrets):
 
 ```dotenv
 POSTGRES_USER=saq
@@ -200,86 +227,77 @@ INITIAL_ADMIN_PASSWORD=change-me-admin-password
 DEMO_USER_PASSWORD=demo-saq-2026
 ```
 
-Сервис базы данных в compose называется `db`: контейнеры подключаются к
-`postgresql+psycopg://saq_app:saq_app_dev_password@db:5432/saq` (compose подставляет хосты `db`, `redis`, `minio`
-сам). Для запуска backend на хосте БД опубликована на `localhost:5433`. Для продакшена задайте свои `JWT_SECRET`
-(`openssl rand -hex 32`), пароли и уберите строки `EVIDENCE_LOCK_MODE=GOVERNANCE` / `EVIDENCE_RETENTION_DAYS=1`.
+The database service in compose is called `db`: containers connect to `postgresql+psycopg://saq_app:saq_app_dev_password@db:5432/saq` (compose injects the `db`, `redis`, `minio` hosts itself). To run the backend on the host, the DB is published on `localhost:5433`.
 
-**2. Запуск.**
+> [!WARNING]
+> For production set your own `JWT_SECRET` (`openssl rand -hex 32`) and passwords, and remove the `EVIDENCE_LOCK_MODE=GOVERNANCE` / `EVIDENCE_RETENTION_DAYS=1` lines, which exist so dev data can be deleted.
+
+**2. Run.**
 
 ```bash
 docker compose up -d --build                        # db, redis, minio, migrate, api, worker, beat, frontend
-docker compose exec api python -m app.seed --demo   # справочники, пользователи и вымышленные данные
-python3 scripts/verify_case_scenarios.py            # проверка сценариев A/B/C кейса
+docker compose exec api python -m app.seed --demo   # reference data, users and fictional demo data
+python3 scripts/verify_case_scenarios.py            # check case scenarios A/B/C
 ```
 
-Откройте http://localhost:8080. API — http://localhost:8000/api/v1 (health: `/api/v1/health`).
+Open http://localhost:8080. API: http://localhost:8000/api/v1 (health: `/api/v1/health`).
 
-| Пользователь | Пароль | Роль |
+| User | Password | Role |
 |---|---|---|
-| `admin` | `INITIAL_ADMIN_PASSWORD` | администратор |
-| `demo_mio` | `DEMO_USER_PASSWORD` | специалист МИО (основной сценарий) |
-| `demo_gask` | `DEMO_USER_PASSWORD` | получатель ГАСК |
-| `demo_police` | `DEMO_USER_PASSWORD` | правоохранительный орган |
+| `admin` | `INITIAL_ADMIN_PASSWORD` | administrator |
+| `demo_mio` | `DEMO_USER_PASSWORD` | MIO inspector (main scenario) |
+| `demo_gask` | `DEMO_USER_PASSWORD` | GASK recipient |
+| `demo_police` | `DEMO_USER_PASSWORD` | law enforcement |
 
-`--demo` загружает 20 вымышленных ЖК, ~350 публикаций, обращения, сигнальные карточки во всех статусах, поручения и
-сессии SAQ VISION. `--pilot` дополнительно импортирует 28 реальных строящихся ЖК Усть-Каменогорска из открытых
-источников (только сведения о юрлицах и документах, без оценок).
+`--demo` loads fictional housing complexes, publications, complaints, signal cards in every status, assignments and SAQ VISION sessions. `--pilot` additionally imports real under-construction projects of Ust-Kamenogorsk from open sources (legal-entity and document data only, no assessments).
 
-**3. Необязательные сервисы** (compose-профили, всё выключено по умолчанию):
+<details>
+<summary>Optional services (compose profiles, all off by default)</summary>
 
-| Что | Настройка в `.env` | Команда |
+| What | `.env` settings | Command |
 |---|---|---|
-| LLM-анализ и помощник (GPU NVIDIA) | `OLLAMA_URL=http://ollama:11434`, `LLM_ENABLED=true`, `ASSISTANT_ENABLED=true`, `ASSISTANT_BASE_URL=http://ollama:11434/v1` | `docker compose --profile llm-gpu up -d ollama` → `docker compose exec ollama ollama pull qwen3.5:9b-q6k` → `docker compose up -d api worker` |
-| Telegram-бот для граждан | `TELEGRAM_BOT_TOKEN` от @BotFather | `docker compose --profile bot up -d bot` |
-| Telegram-юзербот (чтение каналов) | `TELEGRAM_API_ID`, `TELEGRAM_API_HASH` с my.telegram.org, `COLLECT_TELEGRAM_ENABLED=true` | `docker compose --profile userbot run --rm userbot python -m app.userbot login`, затем `--profile userbot up -d userbot` |
-| Сборщики OLX / Krisha / Instagram | `COLLECT_*_ENABLED=true`, `INSTAGRAM_GRAPH_TOKEN` | перезапуск `worker` и `beat` |
-| SAQ VISION | `VISION_ENABLED=true`, `VISION_DETECTOR_BACKEND` | `docker compose --profile vision up -d vision-worker` (или `--profile vision-gpu`) |
-| Публичный доступ | `CF_TOKEN` (Cloudflare Zero Trust → Tunnels, сервис `http://frontend:80`) | `docker compose --profile tunnel up -d tunnel` |
+| LLM analysis and assistant (NVIDIA GPU) | `OLLAMA_URL=http://ollama:11434`, `LLM_ENABLED=true`, `ASSISTANT_ENABLED=true`, `ASSISTANT_BASE_URL=http://ollama:11434/v1` | `docker compose --profile llm-gpu up -d ollama` → `docker compose exec ollama ollama pull qwen3.5:9b-q6k` → `docker compose up -d api worker` |
+| Telegram bot for citizens | `TELEGRAM_BOT_TOKEN` from @BotFather | `docker compose --profile bot up -d bot` |
+| Telegram userbot (channel reading) | `TELEGRAM_API_ID`, `TELEGRAM_API_HASH` from my.telegram.org, `COLLECT_TELEGRAM_ENABLED=true` | `docker compose --profile userbot run --rm userbot python -m app.userbot login`, then `--profile userbot up -d userbot` |
+| OLX / Krisha / Instagram collectors | `COLLECT_*_ENABLED=true`, `INSTAGRAM_GRAPH_TOKEN` | restart `worker` and `beat` |
+| SAQ VISION | `VISION_ENABLED=true`, `VISION_DETECTOR_BACKEND` | `docker compose --profile vision up -d vision-worker` (or `--profile vision-gpu`) |
+| Public access | `CF_TOKEN` (Cloudflare Zero Trust → Tunnels, service `http://frontend:80`) | `docker compose --profile tunnel up -d tunnel` |
 
-Помощник работает и через Gemini или Groq (`ASSISTANT_BASE_URL`, `ASSISTANT_API_KEY`) — [docs/ASSISTANT.md](docs/ASSISTANT.md).
-Правила площадок и получение токенов — [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md), справочник разработчика —
-[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+The assistant also works through Gemini or Groq (`ASSISTANT_BASE_URL`, `ASSISTANT_API_KEY`), see [docs/ASSISTANT.md](docs/ASSISTANT.md). Platform rules and token setup: [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md); developer reference: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
-### Тестовый сценарий
+</details>
 
-| Кейс | Объект | Данные | Результат |
+### Test scenario
+
+| Case | Project | Data | Result |
 |---|---|---|---|
-| A | «Северный бриз» | основание не проверено + платная бронь | R2 + R3 = **35, жёлтая**, «Нужна проверка: правовое основание» |
-| B | «Золотая осень» | гарантия и разрешение МИО проверены и не найдены + «внесите депозит» | R1 + R2 + R3 = **70, красная**, черновик сигнальной карточки |
-| C | «Тихая гавань» | гарантия КЖК подтверждена, обычная реклама | R3 = **10, зелёная** |
+| A | "Severny Briz" | legal basis not checked + paid reservation | R2 + R3 = **35, yellow**, "Needs verification: legal basis" |
+| B | "Zolotaya Osen" | guarantee and MIO permit checked and not found + "pay a deposit" | R1 + R2 + R3 = **70, red**, draft signal card |
+| C | "Tikhaya Gavan" | KZhK guarantee confirmed, ordinary ad | R3 = **10, green** |
 
-Сквозной путь под `demo_mio`: карта → фильтр красной зоны → «Золотая осень» → публикация с подсвеченным «внесите
-депозит» → расшифровка балла (отклоните формулировку — балл пересчитается без R2) → сигнальная карточка → «Вернуть
-на доработку» → «Подтвердить и направить» в ГАСК → PDF и журнал действий.
+End-to-end path as `demo_mio`: map → red-zone filter → "Zolotaya Osen" → publication with the highlighted "pay a deposit" → score breakdown (reject the phrase and the score is recalculated without R2) → signal card → "Return for revision" → "Confirm and send" to GASK → PDF and action log.
 
-### Проверка качества
+### Quality checks
 
 ```bash
 docker compose up -d db redis minio
-cd backend && uv sync && uv run pytest                    # тесты на реальных PostgreSQL/PostGIS и MinIO
+cd backend && uv sync && uv run pytest                    # tests on real PostgreSQL/PostGIS and MinIO
 uv run ruff check . && uv run mypy app tests
 cd ../frontend && pnpm install && pnpm typecheck && pnpm lint && pnpm build
 ```
 
-### Известные ограничения
+### Known limitations
 
-- У «Казреестра», разрешений МИО, кадастра и e-Otinish нет публичного API: проверка вносится вручную со
-  скриншотом-доказательством. Реестр АО «КЖК» читается через публичный API, автосинхронизация выключена до
-  согласования.
-- OLX и Krisha отвечают небраузерным клиентам WAF-блокировкой; сборщики протестированы на синтетических страницах,
-  подмену браузера система не делает. Instagram — только через официальный Graph API.
-- Уверенность LLM плохо откалибрована, поэтому итоговое слово за аналитиком. Детектор SAQ VISION не дообучен.
-- Границы районов приблизительные; казахский перевод требует вычитки носителем.
+- Kazreestr, MIO permits, the cadastre and e-Otinish have no public API: checks are entered manually with a screenshot as evidence. The KZhK registry is read through a public API; auto-sync is off until agreed.
+- OLX and Krisha answer non-browser clients with a WAF block; collectors are tested on synthetic pages and the system does not spoof a browser. Instagram works only through the official Graph API.
+- LLM confidence is poorly calibrated, so the analyst has the last word. The SAQ VISION detector is not fine-tuned.
+- District borders are approximate; the Kazakh translation needs a native speaker's review.
+- No CI pipeline and no frontend unit tests; E2E covers the UI.
 
-## Материалы
+## Data & Third-Party Components
 
-- **Демо:** https://youtu.be/3RoOg2nhx4Y
-- **Питч:** https://youtu.be/WTm2HXy0VOM
+Demo data is fictional; the seed contains no real personal data. Open data: the Kazakhstan production calendar, OpenStreetMap (ODbL), the Kazreestr dataset "Objects with shared participation" (CC BY 3.0 NZ), see [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md). Licenses of components, fonts and models: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). UI overview: [docs/UI.md](docs/UI.md).
 
-## Данные и сторонние компоненты
+## License
 
-Демо-данные вымышлены, настоящих персональных данных в seed нет. Открытые данные: производственный календарь РК,
-OpenStreetMap (ODbL), набор Казреестра «Объекты с долевым участием» (CC BY 3.0 NZ) — подробности в
-[docs/DATA_SOURCES.md](docs/DATA_SOURCES.md). Лицензии компонентов, шрифтов и моделей —
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); вид интерфейса — [docs/UI.md](docs/UI.md).
+Proprietary, all rights reserved. The source is published for viewing only, see [LICENSE](LICENSE).
